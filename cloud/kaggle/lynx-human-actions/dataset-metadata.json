@@ -1,0 +1,7 @@
+{
+  "title": "lynx-human-actions",
+  "id": "YOUR_KAGGLE_USER/lynx-human-actions",
+  "licenses": [{"name": "other"}],
+  "isPrivate": true,
+  "description": "Decisions with known hole cards extracted from public anonymized 25NL hand histories (HandHQ via PHH dataset), as feature vectors + action index for a private policy-model experiment. No personal data."
+}

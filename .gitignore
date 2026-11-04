@@ -1,0 +1,49 @@
+# Python, Caches
+__pycache__/
+*.py[cod]
+*.nbc
+*.nbi
+.pytest_cache/
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Portable Werkzeuge der USB-Stick-Variante (Python, uv, Paket-Cache)
+/tools/
+
+# Modelle und Datensaetze ausserhalb von data/ nie versehentlich einchecken
+*.pt
+*.npz
+*.mp4
+*.mkv
+
+# data/: Laufzeitdaten (Aufnahmen, Trainingslaeufe, Wertnetze, externe Datensaetze, Messergebnisse)
+# gehoeren nicht ins Repo. Versioniert ist nur das kleine Startpaket (siehe docs/DATEN-UND-LIZENZEN.md).
+/data/**
+!/data/**/
+!/data/league/players.json
+!/data/rl/pros-1/ckpt_000000.pt
+!/data/rl/pros-2/ckpt_000300.pt
+!/data/rl/pros-r1/ckpt_000300.pt
+!/data/rl/pros-r3/ckpt_000200.pt
+!/data/rl/pros-h1/ckpt_000600.pt
+!/data/rl/lynx-2/ckpt_000500.pt
+!/data/rl/lynx-3/ckpt_000300.pt
+!/data/rl/lynx-4/ckpt_000300.pt
+!/data/rl/lynx-4/best.json
+!/data/rl/lynx-5t/ckpt_000001.pt
+!/data/rl/lynx-5t/teacher.json
+!/data/rl/human-1/ckpt_000001.pt
+!/data/rl/human-1/train_human.json
+!/data/humans/mensch-25nl.json
+!/data/humans/human-fold-1.npz
+
+# Zugangsdaten niemals (doppelt abgesichert)
+/data/cloud/
+/data/bench/gtow/
+*.token
+*api_key*
+lynx_hetzner*
+*.pem
+.env

@@ -1,0 +1,200 @@
+[
+  {
+    "name": "rock",
+    "spec": "rock",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 48.200893018403185,
+    "sigma": 4.796306694753163,
+    "games": 65,
+    "active": true
+  },
+  {
+    "name": "tag",
+    "spec": "tag",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 45.49376391976883,
+    "sigma": 4.732198967506571,
+    "games": 64,
+    "active": true
+  },
+  {
+    "name": "lag",
+    "spec": "lag",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 27.31386866889659,
+    "sigma": 4.610872507473082,
+    "games": 65,
+    "active": true
+  },
+  {
+    "name": "station",
+    "spec": "station",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 9.338336991011754,
+    "sigma": 4.67648214181786,
+    "games": 64,
+    "active": true
+  },
+  {
+    "name": "maniac",
+    "spec": "maniac",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 13.121808116469351,
+    "sigma": 4.719109721873703,
+    "games": 64,
+    "active": true
+  },
+  {
+    "name": "equity",
+    "spec": "equity",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": 21.62762477694771,
+    "sigma": 4.595933724059861,
+    "games": 65,
+    "active": true
+  },
+  {
+    "name": "random",
+    "spec": "random",
+    "kind": "bot",
+    "note": "Standard-Pool",
+    "created": "2026-10-25 21:20",
+    "mu": -9.381546705318083,
+    "sigma": 5.316791238094086,
+    "games": 63,
+    "active": true
+  },
+  {
+    "name": "opt-1",
+    "spec": "tag?vpip=0.082&pfr=0.157&value_margin=0.081&raise_margin=0.26&call_slack=-0.021&bluff=0.141&bet_size=0.808&open_size=3.289&push_bb=14&nash_stack_factor=1.429",
+    "kind": "bot",
+    "note": "CEM aus tag, Gate vs tag +8.9 % ROI [1.1, 16.7] auf 120 frischen Schemata",
+    "created": "2026-10-25 22:28",
+    "mu": 45.38737410843468,
+    "sigma": 4.677499278452763,
+    "games": 60,
+    "active": true
+  },
+  {
+    "name": "opt-2",
+    "spec": "tag?vpip=0.1&pfr=0.106&value_margin=0.194&raise_margin=0.416&call_slack=-0.079&bluff=0.019&bet_size=0.619&open_size=2.873&push_bb=9&nash_stack_factor=1.607",
+    "kind": "bot",
+    "note": "CEM aus rock gegen Liga, Gate vs rock +8.5 % [1.0, 16.0]",
+    "created": "2026-10-26 11:27",
+    "mu": 39.30598815731653,
+    "sigma": 5.291006251167053,
+    "games": 30,
+    "active": false
+  },
+  {
+    "name": "pros-bc",
+    "spec": "nn?run=pros-1@0",
+    "kind": "bot",
+    "note": "",
+    "created": "2026-10-26 17:03",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "pros-ppo2",
+    "spec": "nn?run=pros-2@300",
+    "kind": "bot",
+    "note": "PPO pros-2 It 300, Gate vs rock +19.8 % [8.8, 30.7]",
+    "created": "2026-10-26 19:08",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "pros-r3-200",
+    "spec": "nn?run=pros-r3@200",
+    "kind": "bot",
+    "note": "PPO pros-r3 It 200, Gate vs pros-ppo2 +13.3 % [3.0, 23.6]",
+    "created": "2026-10-27 04:24",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "pros-r1",
+    "spec": "nn?run=pros-r1@300",
+    "kind": "bot",
+    "note": "",
+    "created": "2026-10-27 11:01",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "pros-h1",
+    "spec": "nn?run=pros-h1@600",
+    "kind": "bot",
+    "note": "",
+    "created": "2026-10-27 14:56",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "lynx",
+    "spec": "nn?run=pros-h1@600",
+    "kind": "bot",
+    "note": "",
+    "created": "2026-10-27 17:21",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "lynx-2",
+    "spec": "nn?run=lynx-2@500",
+    "kind": "bot",
+    "note": "",
+    "created": "2026-10-27 20:16",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "lynx-3-300",
+    "spec": "nn?run=lynx-3@300",
+    "kind": "bot",
+    "note": "PPO lynx-3 It 300, Gate vs lynx-2 +4.5 % [0.3, 8.6]",
+    "created": "2026-10-27 22:11",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  },
+  {
+    "name": "lynx-4-300",
+    "spec": "nn?run=lynx-4@300",
+    "kind": "bot",
+    "note": "PPO lynx-4 It 300, Gate vs lynx-3-300 +10.0 % [5.4, 14.6]",
+    "created": "2026-10-29 03:39",
+    "mu": 25.0,
+    "sigma": 8.333333333333334,
+    "games": 0,
+    "active": true
+  }
+]

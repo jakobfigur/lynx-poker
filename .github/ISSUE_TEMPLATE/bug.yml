@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem with the collector, simulator, models or CLI.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Use synthetic or anonymized examples. Never attach credentials, private recordings or third-party hand histories.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version and commit or release.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction
+      description: Exact command and minimal steps, including seed when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Remove secrets and personal paths before pasting logs.
+      render: text

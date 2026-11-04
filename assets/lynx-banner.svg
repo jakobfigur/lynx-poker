@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">Lynx — from pixels to poker policies</title>
+  <desc id="desc">A dark blue project banner with a geometric lynx and a three-stage research pipeline: observe, learn, evaluate.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#172941"/></linearGradient></defs>
+  <rect width="1280" height="360" rx="20" fill="url(#bg)"/>
+  <g fill="none" stroke="#56d8c1" stroke-width="3" stroke-linejoin="round">
+    <path d="M958 115 932 62 925 146 900 190 936 248 992 275 1048 248 1084 190 1059 146 1052 62 1026 115Z"/>
+    <path d="m932 151 38 25-22 14m104-39-38 25 22 14m-65 28 21 13 21-13m-21 13v22m-56-5 56 27 56-27"/>
+    <path d="m925 146 45-13m89 13-45-13" stroke-opacity=".45"/>
+  </g>
+  <g font-family="Arial,Helvetica,sans-serif">
+    <text x="72" y="83" fill="#56d8c1" font-size="15" letter-spacing="4">OPEN POKER RESEARCH</text>
+    <text x="67" y="179" fill="#f2f6fb" font-size="88" font-weight="700" letter-spacing="-4">Lynx</text>
+    <text x="72" y="228" fill="#c2d0e2" font-size="25">From pixels to poker policies.</text>
+    <text x="72" y="296" fill="#8099b8" font-size="14" letter-spacing="2">OBSERVE  /  LEARN  /  EVALUATE</text>
+  </g>
+</svg>

@@ -1,0 +1,279 @@
+{
+ "version": "humanbots-1",
+ "source": "handhq-25nl.json",
+ "round": 2,
+ "table": [
+  "tag?vpip=0.156&pfr=0.0&value_margin=0.206&raise_margin=0.217&call_slack=0.001&bluff=0.153&bet_size=0.929&open_size=4.681&push_bb=0&nash_stack_factor=1.321&respect=1.0&sticky=0.276",
+  "tag?vpip=0.167&pfr=0.0&value_margin=0.222&raise_margin=0.451&call_slack=-0.126&bluff=0.363&bet_size=0.919&open_size=4.192&push_bb=0&nash_stack_factor=1.395&respect=0.64&sticky=0.051",
+  "tag?vpip=0.459&pfr=0.065&value_margin=0.152&raise_margin=0.224&call_slack=0.059&bluff=0.534&bet_size=0.859&open_size=3.233&push_bb=0&nash_stack_factor=1.884&respect=0.837&sticky=0.627",
+  "tag?vpip=0.156&pfr=0.0&value_margin=0.206&raise_margin=0.217&call_slack=0.001&bluff=0.153&bet_size=0.929&open_size=4.681&push_bb=0&nash_stack_factor=1.321&respect=1.0&sticky=0.276",
+  "tag?vpip=0.315&pfr=0.012&value_margin=0.252&raise_margin=0.005&call_slack=-0.051&bluff=0.109&bet_size=0.72&open_size=2.787&push_bb=0&nash_stack_factor=1.183&respect=0.709&sticky=0.366"
+ ],
+ "bots": [
+  {
+   "name": "mensch-1",
+   "type": "Nit (sehr eng)",
+   "share": 0.26950286957057606,
+   "target": {
+    "vpip": 0.14925793790854638,
+    "pfr": 0.07089611628889994,
+    "agg": 0.728039907426529,
+    "ftb": 0.6636587292522923,
+    "threebet": 0.021341183427080797,
+    "cbet": 0.7147115476618896,
+    "wtsd": 0.2530213163158966
+   },
+   "spec": "tag?vpip=0.186&pfr=0.055&value_margin=0.099&raise_margin=0.089&call_slack=0.14&bluff=0.246&bet_size=0.304&open_size=5.787&push_bb=0&nash_stack_factor=1.368&respect=0.667&sticky=0.195",
+   "distance": 0.00752,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.15333333333333332,
+    "pfr": 0.045,
+    "threebet": 0.0,
+    "f3b": NaN,
+    "agg": 0.7050359712230215,
+    "ftb": 0.6744186046511628,
+    "cbet": 0.75,
+    "wtsd": 0.23178807947019867,
+    "wsd": 0.6,
+    "bb100": 25.916666666666668
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.15666666666666668,
+    "pfr": 0.042222222222222223,
+    "threebet": 0.0,
+    "f3b": NaN,
+    "agg": 0.8095238095238095,
+    "ftb": 0.7462235649546828,
+    "cbet": 0.7916666666666666,
+    "wtsd": 0.23903508771929824,
+    "wsd": 0.6697247706422018,
+    "bb100": 5.491666666666666
+   },
+   "distance_check": 0.03284,
+   "from": "v2"
+  },
+  {
+   "name": "mensch-2",
+   "type": "Durchschnitt",
+   "share": 0.2511994639870135,
+   "target": {
+    "vpip": 0.20089408654096044,
+    "pfr": 0.14197595610833313,
+    "agg": 0.7602888518827453,
+    "ftb": 0.61798307125136,
+    "threebet": 0.04717874270148167,
+    "cbet": 0.7267294268982111,
+    "wtsd": 0.2569422404558714
+   },
+   "spec": "tag?vpip=0.155&pfr=0.155&value_margin=0.257&raise_margin=0.318&call_slack=0.282&bluff=0.573&bet_size=0.457&open_size=2.502&push_bb=0&nash_stack_factor=1.414&respect=0.411",
+   "distance": 0.01078,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.155,
+    "pfr": 0.15,
+    "threebet": 0.08695652173913043,
+    "f3b": NaN,
+    "agg": 0.7886178861788617,
+    "ftb": 0.6176470588235294,
+    "cbet": 0.7391304347826086,
+    "wtsd": 0.24489795918367346,
+    "wsd": 0.2916666666666667,
+    "bb100": -58.74166666666667
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.14833333333333334,
+    "pfr": 0.1388888888888889,
+    "threebet": 0.02909090909090909,
+    "f3b": 1.0,
+    "agg": 0.7448979591836735,
+    "ftb": 0.5305164319248826,
+    "cbet": 0.6619718309859155,
+    "wtsd": 0.33214285714285713,
+    "wsd": 0.45161290322580644,
+    "bb100": 33.18055555555556
+   },
+   "distance_check": 0.02671,
+   "from": "v1"
+  },
+  {
+   "name": "mensch-3",
+   "type": "Durchschnitt",
+   "share": 0.1682942693036973,
+   "target": {
+    "vpip": 0.2080127753192384,
+    "pfr": 0.09199442445946315,
+    "agg": 0.6260641897815998,
+    "ftb": 0.5734236690507233,
+    "threebet": 0.025088693554894598,
+    "cbet": 0.5019591994314744,
+    "wtsd": 0.3035353315738717
+   },
+   "spec": "tag?vpip=0.236&pfr=0.128&value_margin=0.25&raise_margin=0.149&call_slack=0.171&bluff=0.158&bet_size=0.865&open_size=5.635&push_bb=0&nash_stack_factor=1.021&respect=0.502&sticky=0.326",
+   "distance": 0.05354,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.18166666666666667,
+    "pfr": 0.09,
+    "threebet": 0.0,
+    "f3b": 0.0,
+    "agg": 0.5504587155963303,
+    "ftb": 0.49019607843137253,
+    "cbet": 0.5,
+    "wtsd": 0.19696969696969696,
+    "wsd": 0.4230769230769231,
+    "bb100": 20.941666666666666
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.19944444444444445,
+    "pfr": 0.10944444444444444,
+    "threebet": 0.02040816326530612,
+    "f3b": 1.0,
+    "agg": 0.4463276836158192,
+    "ftb": 0.49373433583959897,
+    "cbet": 0.48214285714285715,
+    "wtsd": 0.20093457943925233,
+    "wsd": 0.5348837209302325,
+    "bb100": 34.452777777777776
+   },
+   "distance_check": 0.07537,
+   "from": "v2"
+  },
+  {
+   "name": "mensch-4",
+   "type": "passiver Freizeitspieler",
+   "share": 0.13558464202766607,
+   "target": {
+    "vpip": 0.3090514579101699,
+    "pfr": 0.07344743118914028,
+    "agg": 0.618388201362472,
+    "ftb": 0.489124198929447,
+    "threebet": 0.02244943296508202,
+    "cbet": 0.7638734140175727,
+    "wtsd": 0.3262620435816875
+   },
+   "spec": "tag?vpip=0.507&pfr=0.138&value_margin=0.129&raise_margin=0.516&call_slack=0.182&bluff=0.596&bet_size=0.471&open_size=4.066&push_bb=0&nash_stack_factor=0.991&respect=0.499&sticky=0.607",
+   "distance": 0.04864,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.38666666666666666,
+    "pfr": 0.1,
+    "threebet": 0.0,
+    "f3b": NaN,
+    "agg": 0.6461538461538462,
+    "ftb": 0.425,
+    "cbet": 0.75,
+    "wtsd": 0.24436090225563908,
+    "wsd": 0.3384615384615385,
+    "bb100": -104.15833333333333
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.43444444444444447,
+    "pfr": 0.1322222222222222,
+    "threebet": 0.0,
+    "f3b": 1.0,
+    "agg": 0.6635514018691588,
+    "ftb": 0.4765751211631664,
+    "cbet": 0.7368421052631579,
+    "wtsd": 0.23095823095823095,
+    "wsd": 0.4148936170212766,
+    "bb100": -37.208333333333336
+   },
+   "distance_check": 0.08953,
+   "from": "v2"
+  },
+  {
+   "name": "mensch-5",
+   "type": "TAG/Reg (eng-aggressiv)",
+   "share": 0.08772409562576938,
+   "target": {
+    "vpip": 0.0910421714797763,
+    "pfr": 0.07509629471481957,
+    "agg": 0.8010440184259574,
+    "ftb": 0.7125003016973197,
+    "threebet": 0.040815019592666764,
+    "cbet": 0.7907912310328395,
+    "wtsd": 0.3858979566397055
+   },
+   "spec": "tag?vpip=0.092&pfr=0.092&value_margin=0.11&raise_margin=0.338&call_slack=0.199&bluff=0.32&bet_size=0.291&open_size=2.517&push_bb=0&nash_stack_factor=1.309&respect=0.26",
+   "distance": 0.01495,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.06333333333333334,
+    "pfr": 0.06,
+    "threebet": 0.0196078431372549,
+    "f3b": NaN,
+    "agg": 0.7625,
+    "ftb": 0.6274509803921569,
+    "cbet": 0.8333333333333334,
+    "wtsd": 0.4090909090909091,
+    "wsd": 0.37037037037037035,
+    "bb100": -46.6
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.07611111111111112,
+    "pfr": 0.07333333333333333,
+    "threebet": 0.020761245674740483,
+    "f3b": 0.5,
+    "agg": 0.7847682119205298,
+    "ftb": 0.5806451612903226,
+    "cbet": 0.8484848484848485,
+    "wtsd": 0.3926940639269406,
+    "wsd": 0.5348837209302325,
+    "bb100": 20.836111111111112
+   },
+   "distance_check": 0.02251,
+   "from": "v1"
+  },
+  {
+   "name": "mensch-6",
+   "type": "Durchschnitt",
+   "share": 0.0876946594852777,
+   "target": {
+    "vpip": 0.36593710601313423,
+    "pfr": 0.18618455751375773,
+    "agg": 0.6934158461205331,
+    "ftb": 0.47627910132334744,
+    "threebet": 0.0654986833271691,
+    "cbet": 0.6797339127344061,
+    "wtsd": 0.31624829067221477
+   },
+   "spec": "tag?vpip=0.383&pfr=0.204&value_margin=0.399&raise_margin=0.115&call_slack=0.23&bluff=0.692&bet_size=0.367&open_size=4.069&push_bb=0&nash_stack_factor=1.948&respect=0.696&sticky=0.888",
+   "distance": 0.0099,
+   "stats": {
+    "hands": 600,
+    "vpip": 0.3416666666666667,
+    "pfr": 0.175,
+    "threebet": 0.043478260869565216,
+    "f3b": 1.0,
+    "agg": 0.7509025270758123,
+    "ftb": 0.5061728395061729,
+    "cbet": 0.6764705882352942,
+    "wtsd": 0.34285714285714286,
+    "wsd": 0.4027777777777778,
+    "bb100": -70.96666666666667
+   },
+   "stats_check": {
+    "hands": 1800,
+    "vpip": 0.34833333333333333,
+    "pfr": 0.19166666666666668,
+    "threebet": 0.05405405405405406,
+    "f3b": NaN,
+    "agg": 0.7395411605937922,
+    "ftb": 0.5,
+    "cbet": 0.7926829268292683,
+    "wtsd": 0.29541595925297115,
+    "wsd": 0.3333333333333333,
+    "bb100": -73.39444444444445
+   },
+   "distance_check": 0.03107,
+   "from": "v2"
+  }
+ ],
+ "note": "je Typ die Version mit kleinerem Abstand (v1/v2)"
+}

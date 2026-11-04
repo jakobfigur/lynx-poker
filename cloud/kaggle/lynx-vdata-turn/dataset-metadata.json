@@ -1,0 +1,7 @@
+{
+  "title": "lynx-vdata-turn",
+  "id": "YOUR_KAGGLE_USER/lynx-vdata-turn",
+  "licenses": [{"name": "other"}],
+  "isPrivate": true,
+  "description": "Synthetic solved turn subgames sampled at the turn roots of flop searches (ranges + counterfactual values, river leaves by a value net) for a private value-net experiment. No real hands."
+}

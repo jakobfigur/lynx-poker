@@ -1,0 +1,7 @@
+{
+  "title": "lynx-vdata-leaf",
+  "id": "YOUR_KAGGLE_USER/lynx-vdata-leaf",
+  "licenses": [{"name": "other"}],
+  "isPrivate": true,
+  "description": "Synthetic solved river subgames sampled at the leaves of turn searches (ranges + counterfactual values) for a private value-net experiment. No real hands."
+}

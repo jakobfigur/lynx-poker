@@ -1,0 +1,16 @@
+name: Research or feature proposal
+description: Propose an experiment, reproducibility improvement or focused feature.
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Problem or research question
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach and validation
+      description: Include evaluation data, metrics and licensing considerations where relevant.
+    validations:
+      required: true

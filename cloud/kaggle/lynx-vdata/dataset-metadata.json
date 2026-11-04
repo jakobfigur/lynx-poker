@@ -1,0 +1,7 @@
+{
+  "title": "lynx-vdata",
+  "id": "YOUR_KAGGLE_USER/lynx-vdata",
+  "licenses": [{"name": "other"}],
+  "isPrivate": true,
+  "description": "Synthetic solved river subgames (ranges + counterfactual values) for a private value-net experiment. No real hands."
+}

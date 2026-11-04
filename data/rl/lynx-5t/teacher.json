@@ -1,0 +1,2528 @@
+{
+ "phase": "teacher",
+ "iteration": 1,
+ "student": "lynx-4@300",
+ "rows": 41730,
+ "kl_coef": 0.5,
+ "epochs": 10,
+ "hist": [
+  {
+   "epoch": 0,
+   "val_ce": 2.6101696491241455,
+   "val_kl": 0.0,
+   "agree": 0.2921159863471985
+  },
+  {
+   "epoch": 1,
+   "val_ce": 1.1707490682601929,
+   "val_kl": 0.4594491124153137,
+   "agree": 0.5645818114280701
+  },
+  {
+   "epoch": 2,
+   "val_ce": 1.0718241930007935,
+   "val_kl": 0.5047060251235962,
+   "agree": 0.5971723198890686
+  },
+  {
+   "epoch": 3,
+   "val_ce": 1.0432896614074707,
+   "val_kl": 0.4898916482925415,
+   "agree": 0.6038820743560791
+  },
+  {
+   "epoch": 4,
+   "val_ce": 1.0206236839294434,
+   "val_kl": 0.4979451298713684,
+   "agree": 0.6189791560173035
+  },
+  {
+   "epoch": 5,
+   "val_ce": 1.0040873289108276,
+   "val_kl": 0.5061694979667664,
+   "agree": 0.6314402222633362
+  },
+  {
+   "epoch": 6,
+   "val_ce": 0.9952084422111511,
+   "val_kl": 0.5084608793258667,
+   "agree": 0.623532235622406
+  },
+  {
+   "epoch": 7,
+   "val_ce": 1.0023982524871826,
+   "val_kl": 0.4823181629180908,
+   "agree": 0.6362329125404358
+  },
+  {
+   "epoch": 8,
+   "val_ce": 0.9847605228424072,
+   "val_kl": 0.506552517414093,
+   "agree": 0.6400671005249023
+  },
+  {
+   "epoch": 9,
+   "val_ce": 0.9780299067497253,
+   "val_kl": 0.5092980265617371,
+   "agree": 0.6407859921455383
+  },
+  {
+   "epoch": 10,
+   "val_ce": 0.9825184345245361,
+   "val_kl": 0.49345970153808594,
+   "agree": 0.634555459022522
+  }
+ ],
+ "sources": [
+  "<Projektordner>/data/teacher/t1/teacher\\t1-000.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-001.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-002.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-003.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-004.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-005.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-006.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-007.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-008.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-009.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-010.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-011.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-012.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-013.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-014.npz",
+  "<Projektordner>/data/teacher/t1/teacher\\t1-015.npz"
+ ],
+ "teacher_meta": [
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1000,
+   "rows": 2529,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 101.5,
+     "rows": 232,
+     "secs": 379.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 46.24,
+     "rows": 222,
+     "secs": 355.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 38.52,
+     "rows": 32,
+     "secs": 54.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -24.07,
+     "rows": 131,
+     "secs": 247.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 55.56,
+     "rows": 227,
+     "secs": 378.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 49.38,
+     "rows": 205,
+     "secs": 361.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 35.46,
+     "rows": 54,
+     "secs": 99.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 98.4,
+     "rows": 126,
+     "secs": 229.0
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -31.05,
+     "rows": 250,
+     "secs": 458.5
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 33.96,
+     "rows": 150,
+     "secs": 260.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 40.98,
+     "rows": 72,
+     "secs": 131.8
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -149.24,
+     "rows": 164,
+     "secs": 290.0
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -48.8,
+     "rows": 229,
+     "secs": 439.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 69.48,
+     "rows": 177,
+     "secs": 309.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 53.53,
+     "rows": 85,
+     "secs": 157.3
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -35.21,
+     "rows": 173,
+     "secs": 321.5
+    }
+   ],
+   "elapsed_s": 4476.5581912994385,
+   "t": "2026-10-31 09:14:35"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1037,
+   "rows": 2563,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 7.28,
+     "rows": 236,
+     "secs": 398.0
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 36.98,
+     "rows": 190,
+     "secs": 303.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 69.02,
+     "rows": 20,
+     "secs": 34.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 97.29,
+     "rows": 108,
+     "secs": 190.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 79.28,
+     "rows": 244,
+     "secs": 414.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 58.18,
+     "rows": 232,
+     "secs": 388.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 44.47,
+     "rows": 36,
+     "secs": 64.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -22.78,
+     "rows": 142,
+     "secs": 260.8
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 189.63,
+     "rows": 262,
+     "secs": 468.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 5.58,
+     "rows": 167,
+     "secs": 289.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 54.9,
+     "rows": 65,
+     "secs": 116.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 86.96,
+     "rows": 161,
+     "secs": 278.5
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -50.53,
+     "rows": 259,
+     "secs": 491.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 36.47,
+     "rows": 173,
+     "secs": 304.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -93.68,
+     "rows": 84,
+     "secs": 164.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 243.19,
+     "rows": 184,
+     "secs": 330.7
+    }
+   ],
+   "elapsed_s": 4501.822409629822,
+   "t": "2026-10-31 09:15:00"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1074,
+   "rows": 2776,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 24.02,
+     "rows": 290,
+     "secs": 464.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 39.28,
+     "rows": 218,
+     "secs": 364.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 13.3,
+     "rows": 47,
+     "secs": 85.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 56.73,
+     "rows": 121,
+     "secs": 214.2
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -80.63,
+     "rows": 328,
+     "secs": 554.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 49.25,
+     "rows": 228,
+     "secs": 376.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 25.89,
+     "rows": 38,
+     "secs": 66.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -56.97,
+     "rows": 161,
+     "secs": 286.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 217.37,
+     "rows": 247,
+     "secs": 457.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -35.72,
+     "rows": 185,
+     "secs": 313.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 70.06,
+     "rows": 76,
+     "secs": 137.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 46.6,
+     "rows": 158,
+     "secs": 280.6
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -91.31,
+     "rows": 233,
+     "secs": 457.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 31.27,
+     "rows": 172,
+     "secs": 303.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -87.34,
+     "rows": 99,
+     "secs": 172.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -72.71,
+     "rows": 175,
+     "secs": 298.1
+    }
+   ],
+   "elapsed_s": 4834.773464441299,
+   "t": "2026-10-31 09:20:33"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1111,
+   "rows": 2638,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 33.38,
+     "rows": 285,
+     "secs": 467.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -19.31,
+     "rows": 222,
+     "secs": 373.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 22.18,
+     "rows": 55,
+     "secs": 96.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 7.58,
+     "rows": 116,
+     "secs": 211.7
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -18.51,
+     "rows": 302,
+     "secs": 509.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 27.36,
+     "rows": 171,
+     "secs": 299.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 96.18,
+     "rows": 34,
+     "secs": 63.5
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 21.5,
+     "rows": 165,
+     "secs": 312.5
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -4.29,
+     "rows": 240,
+     "secs": 438.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -182.5,
+     "rows": 151,
+     "secs": 263.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 36.87,
+     "rows": 81,
+     "secs": 147.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -7.94,
+     "rows": 164,
+     "secs": 297.1
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -18.87,
+     "rows": 237,
+     "secs": 461.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -55.85,
+     "rows": 176,
+     "secs": 305.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -101.67,
+     "rows": 56,
+     "secs": 108.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 30.12,
+     "rows": 183,
+     "secs": 310.8
+    }
+   ],
+   "elapsed_s": 4668.3483510017395,
+   "t": "2026-10-31 09:17:47"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1148,
+   "rows": 2602,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 9.2,
+     "rows": 250,
+     "secs": 399.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -29.12,
+     "rows": 208,
+     "secs": 342.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 63.53,
+     "rows": 34,
+     "secs": 58.8
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 51.94,
+     "rows": 144,
+     "secs": 257.6
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 80.52,
+     "rows": 244,
+     "secs": 415.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 10.36,
+     "rows": 187,
+     "secs": 316.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 62.93,
+     "rows": 32,
+     "secs": 56.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 35.72,
+     "rows": 93,
+     "secs": 177.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 177.04,
+     "rows": 268,
+     "secs": 488.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 96.03,
+     "rows": 170,
+     "secs": 285.5
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 14.61,
+     "rows": 77,
+     "secs": 143.5
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 48.8,
+     "rows": 179,
+     "secs": 320.1
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -42.4,
+     "rows": 251,
+     "secs": 482.3
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -6.69,
+     "rows": 165,
+     "secs": 295.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -1.97,
+     "rows": 95,
+     "secs": 175.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -137.65,
+     "rows": 205,
+     "secs": 356.6
+    }
+   ],
+   "elapsed_s": 4574.354621171951,
+   "t": "2026-10-31 09:16:13"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1185,
+   "rows": 2582,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 29.53,
+     "rows": 258,
+     "secs": 409.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 103.28,
+     "rows": 190,
+     "secs": 315.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 89.22,
+     "rows": 27,
+     "secs": 50.9
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 25.25,
+     "rows": 121,
+     "secs": 211.0
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 119.29,
+     "rows": 247,
+     "secs": 417.0
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 170.75,
+     "rows": 210,
+     "secs": 368.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 61.32,
+     "rows": 46,
+     "secs": 88.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 40.8,
+     "rows": 148,
+     "secs": 271.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 161.62,
+     "rows": 246,
+     "secs": 456.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 16.34,
+     "rows": 168,
+     "secs": 288.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 48.64,
+     "rows": 68,
+     "secs": 121.3
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 99.87,
+     "rows": 170,
+     "secs": 304.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -7.07,
+     "rows": 225,
+     "secs": 449.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 194.54,
+     "rows": 175,
+     "secs": 310.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 32.75,
+     "rows": 89,
+     "secs": 168.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -113.77,
+     "rows": 194,
+     "secs": 335.5
+    }
+   ],
+   "elapsed_s": 4568.24946641922,
+   "t": "2026-10-31 09:16:07"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1222,
+   "rows": 2644,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -16.67,
+     "rows": 285,
+     "secs": 475.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 50.16,
+     "rows": 206,
+     "secs": 340.5
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 47.97,
+     "rows": 40,
+     "secs": 67.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -2.26,
+     "rows": 95,
+     "secs": 168.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 59.01,
+     "rows": 276,
+     "secs": 470.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 67.32,
+     "rows": 210,
+     "secs": 359.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 27.19,
+     "rows": 46,
+     "secs": 83.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 15.53,
+     "rows": 117,
+     "secs": 214.7
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 6.65,
+     "rows": 259,
+     "secs": 482.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -1.8,
+     "rows": 156,
+     "secs": 261.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 124.6,
+     "rows": 82,
+     "secs": 149.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 28.35,
+     "rows": 161,
+     "secs": 295.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -115.9,
+     "rows": 247,
+     "secs": 468.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -87.3,
+     "rows": 193,
+     "secs": 328.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -110.86,
+     "rows": 107,
+     "secs": 198.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -11.18,
+     "rows": 164,
+     "secs": 286.5
+    }
+   ],
+   "elapsed_s": 4654.624710083008,
+   "t": "2026-10-31 09:17:33"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1259,
+   "rows": 2599,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -28.84,
+     "rows": 228,
+     "secs": 384.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 16.45,
+     "rows": 196,
+     "secs": 336.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 39.38,
+     "rows": 57,
+     "secs": 102.9
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 48.06,
+     "rows": 90,
+     "secs": 162.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 27.79,
+     "rows": 263,
+     "secs": 431.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 100.36,
+     "rows": 217,
+     "secs": 378.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 134.53,
+     "rows": 33,
+     "secs": 61.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 72.93,
+     "rows": 131,
+     "secs": 228.0
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -85.79,
+     "rows": 248,
+     "secs": 445.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 32.28,
+     "rows": 148,
+     "secs": 260.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -160.06,
+     "rows": 90,
+     "secs": 169.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 94.28,
+     "rows": 167,
+     "secs": 310.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 183.0,
+     "rows": 261,
+     "secs": 493.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 223.76,
+     "rows": 200,
+     "secs": 345.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 81.37,
+     "rows": 83,
+     "secs": 154.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -83.25,
+     "rows": 187,
+     "secs": 331.7
+    }
+   ],
+   "elapsed_s": 4600.26499080658,
+   "t": "2026-10-31 09:16:39"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1296,
+   "rows": 2604,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -104.15,
+     "rows": 297,
+     "secs": 481.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 119.7,
+     "rows": 221,
+     "secs": 368.5
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 89.24,
+     "rows": 33,
+     "secs": 61.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 17.99,
+     "rows": 123,
+     "secs": 216.7
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -110.43,
+     "rows": 250,
+     "secs": 425.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 16.02,
+     "rows": 191,
+     "secs": 328.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 111.79,
+     "rows": 40,
+     "secs": 72.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -89.25,
+     "rows": 142,
+     "secs": 251.2
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 132.08,
+     "rows": 241,
+     "secs": 468.3
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 115.18,
+     "rows": 175,
+     "secs": 293.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -6.21,
+     "rows": 60,
+     "secs": 110.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -116.79,
+     "rows": 153,
+     "secs": 281.3
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 394.14,
+     "rows": 241,
+     "secs": 475.5
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -74.52,
+     "rows": 169,
+     "secs": 288.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 48.26,
+     "rows": 97,
+     "secs": 176.7
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 114.07,
+     "rows": 171,
+     "secs": 299.9
+    }
+   ],
+   "elapsed_s": 4603.232178688049,
+   "t": "2026-10-31 09:16:42"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1333,
+   "rows": 2598,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -10.0,
+     "rows": 274,
+     "secs": 458.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -19.48,
+     "rows": 213,
+     "secs": 349.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 67.61,
+     "rows": 41,
+     "secs": 73.5
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 14.68,
+     "rows": 121,
+     "secs": 221.6
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 126.66,
+     "rows": 265,
+     "secs": 438.0
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 37.84,
+     "rows": 207,
+     "secs": 344.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 58.6,
+     "rows": 42,
+     "secs": 80.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -31.18,
+     "rows": 143,
+     "secs": 255.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 78.12,
+     "rows": 185,
+     "secs": 354.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 115.51,
+     "rows": 155,
+     "secs": 260.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 61.94,
+     "rows": 59,
+     "secs": 109.9
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -8.38,
+     "rows": 160,
+     "secs": 296.1
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -56.27,
+     "rows": 240,
+     "secs": 456.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -56.13,
+     "rows": 195,
+     "secs": 340.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 103.52,
+     "rows": 84,
+     "secs": 158.3
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 118.6,
+     "rows": 214,
+     "secs": 379.2
+    }
+   ],
+   "elapsed_s": 4578.77604842186,
+   "t": "2026-10-31 09:16:17"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1370,
+   "rows": 2545,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -4.86,
+     "rows": 222,
+     "secs": 373.0
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 18.45,
+     "rows": 208,
+     "secs": 340.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 48.88,
+     "rows": 40,
+     "secs": 72.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -10.22,
+     "rows": 122,
+     "secs": 219.1
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 23.75,
+     "rows": 240,
+     "secs": 405.5
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 8.66,
+     "rows": 223,
+     "secs": 377.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 29.28,
+     "rows": 44,
+     "secs": 77.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 39.7,
+     "rows": 119,
+     "secs": 214.8
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 72.92,
+     "rows": 215,
+     "secs": 403.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 237.86,
+     "rows": 202,
+     "secs": 336.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 1.55,
+     "rows": 72,
+     "secs": 137.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 60.06,
+     "rows": 149,
+     "secs": 261.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 440.83,
+     "rows": 233,
+     "secs": 456.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 13.92,
+     "rows": 188,
+     "secs": 325.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -29.43,
+     "rows": 89,
+     "secs": 167.6
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -257.29,
+     "rows": 179,
+     "secs": 337.1
+    }
+   ],
+   "elapsed_s": 4508.649026632309,
+   "t": "2026-10-31 09:15:07"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1407,
+   "rows": 2509,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -40.99,
+     "rows": 229,
+     "secs": 378.4
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 56.26,
+     "rows": 214,
+     "secs": 361.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 107.8,
+     "rows": 41,
+     "secs": 74.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 32.94,
+     "rows": 130,
+     "secs": 251.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 43.54,
+     "rows": 232,
+     "secs": 394.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -9.85,
+     "rows": 218,
+     "secs": 362.6
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 115.79,
+     "rows": 32,
+     "secs": 60.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 33.02,
+     "rows": 147,
+     "secs": 264.2
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 217.84,
+     "rows": 241,
+     "secs": 456.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 17.8,
+     "rows": 175,
+     "secs": 293.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -25.82,
+     "rows": 69,
+     "secs": 128.3
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -42.45,
+     "rows": 138,
+     "secs": 242.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 126.65,
+     "rows": 243,
+     "secs": 473.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 70.52,
+     "rows": 155,
+     "secs": 276.5
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -81.23,
+     "rows": 74,
+     "secs": 139.0
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 6.2,
+     "rows": 171,
+     "secs": 321.4
+    }
+   ],
+   "elapsed_s": 4482.608514308929,
+   "t": "2026-10-31 09:14:41"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1444,
+   "rows": 2508,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 133.71,
+     "rows": 237,
+     "secs": 392.3
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 39.47,
+     "rows": 202,
+     "secs": 337.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 25.46,
+     "rows": 36,
+     "secs": 66.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -0.23,
+     "rows": 108,
+     "secs": 199.7
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 79.25,
+     "rows": 252,
+     "secs": 435.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 91.95,
+     "rows": 229,
+     "secs": 376.2
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -9.08,
+     "rows": 44,
+     "secs": 81.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 51.78,
+     "rows": 131,
+     "secs": 235.5
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 95.06,
+     "rows": 204,
+     "secs": 387.2
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 123.04,
+     "rows": 172,
+     "secs": 295.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -16.26,
+     "rows": 73,
+     "secs": 138.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -52.33,
+     "rows": 144,
+     "secs": 272.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -155.65,
+     "rows": 220,
+     "secs": 429.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -6.67,
+     "rows": 161,
+     "secs": 286.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 56.06,
+     "rows": 81,
+     "secs": 158.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -76.35,
+     "rows": 214,
+     "secs": 392.7
+    }
+   ],
+   "elapsed_s": 4488.441591262817,
+   "t": "2026-10-31 09:14:47"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1481,
+   "rows": 2672,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -74.66,
+     "rows": 283,
+     "secs": 463.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 122.9,
+     "rows": 211,
+     "secs": 344.0
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 78.96,
+     "rows": 42,
+     "secs": 76.3
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 87.42,
+     "rows": 101,
+     "secs": 190.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -78.82,
+     "rows": 304,
+     "secs": 509.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 77.87,
+     "rows": 190,
+     "secs": 331.1
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 85.94,
+     "rows": 39,
+     "secs": 72.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 6.92,
+     "rows": 130,
+     "secs": 235.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -103.51,
+     "rows": 258,
+     "secs": 473.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 107.42,
+     "rows": 193,
+     "secs": 327.5
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 50.93,
+     "rows": 107,
+     "secs": 187.9
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 30.79,
+     "rows": 149,
+     "secs": 262.8
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 124.96,
+     "rows": 237,
+     "secs": 450.8
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 201.3,
+     "rows": 196,
+     "secs": 339.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 51.68,
+     "rows": 61,
+     "secs": 126.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -74.26,
+     "rows": 171,
+     "secs": 295.5
+    }
+   ],
+   "elapsed_s": 4689.992135047913,
+   "t": "2026-10-31 09:18:09"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1518,
+   "rows": 2689,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -15.48,
+     "rows": 273,
+     "secs": 438.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 20.36,
+     "rows": 180,
+     "secs": 290.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 92.42,
+     "rows": 47,
+     "secs": 84.5
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -25.92,
+     "rows": 121,
+     "secs": 214.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 0.56,
+     "rows": 281,
+     "secs": 466.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -11.75,
+     "rows": 193,
+     "secs": 331.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 47.51,
+     "rows": 31,
+     "secs": 54.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 144.23,
+     "rows": 123,
+     "secs": 234.1
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 2.62,
+     "rows": 262,
+     "secs": 476.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 67.58,
+     "rows": 196,
+     "secs": 333.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -27.85,
+     "rows": 68,
+     "secs": 124.8
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": -315.32,
+     "rows": 167,
+     "secs": 295.9
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 230.34,
+     "rows": 293,
+     "secs": 548.3
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 44.11,
+     "rows": 182,
+     "secs": 304.3
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -158.84,
+     "rows": 96,
+     "secs": 183.8
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 165.04,
+     "rows": 176,
+     "secs": 302.4
+    }
+   ],
+   "elapsed_s": 4687.393643140793,
+   "t": "2026-10-31 09:18:06"
+  },
+  {
+   "version": "teacher-1",
+   "search": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1",
+   "student": "nn?run=lynx-4@300",
+   "opponents": [
+    "nn?run=lynx-4@300",
+    "nn?run=human-1@1&fold=human-fold-1",
+    "mensch-2",
+    "mensch-4"
+   ],
+   "stacks_bb": [
+    25,
+    50,
+    100,
+    200
+   ],
+   "hands_per_match": 120,
+   "seed": 1555,
+   "rows": 2672,
+   "matches": [
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 75.07,
+     "rows": 283,
+     "secs": 473.6
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 9.65,
+     "rows": 172,
+     "secs": 287.9
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": -54.21,
+     "rows": 32,
+     "secs": 53.4
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 25,
+     "hands": 240,
+     "bb100": 33.33,
+     "rows": 131,
+     "secs": 232.6
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 42.47,
+     "rows": 235,
+     "secs": 397.7
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": -34.95,
+     "rows": 207,
+     "secs": 355.8
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 87.25,
+     "rows": 36,
+     "secs": 67.9
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 50,
+     "hands": 240,
+     "bb100": 56.9,
+     "rows": 130,
+     "secs": 237.4
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 1.75,
+     "rows": 272,
+     "secs": 512.1
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 72.07,
+     "rows": 164,
+     "secs": 271.7
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 62.65,
+     "rows": 87,
+     "secs": 158.2
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 100,
+     "hands": 240,
+     "bb100": 122.43,
+     "rows": 192,
+     "secs": 343.8
+    },
+    {
+     "opp": "nn?run=lynx-4@300",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 31.54,
+     "rows": 262,
+     "secs": 514.9
+    },
+    {
+     "opp": "nn?run=human-1@1&fold=human-fold-1",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": -99.16,
+     "rows": 173,
+     "secs": 309.4
+    },
+    {
+     "opp": "mensch-2",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 117.06,
+     "rows": 97,
+     "secs": 180.1
+    },
+    {
+     "opp": "mensch-4",
+     "stack_bb": 200,
+     "hands": 240,
+     "bb100": 28.28,
+     "rows": 199,
+     "secs": 333.4
+    }
+   ],
+   "elapsed_s": 4732.909712076187,
+   "t": "2026-10-31 09:18:52"
+  }
+ ]
+}

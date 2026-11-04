@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Python 3.12 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONUTF8: '1'
+      POKERCOLLECTOR_DATA: ${{ github.workspace }}/data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: collector/uv.lock
+      - name: Install locked environment
+        run: uv sync --project collector --frozen --python 3.12
+      - name: Run tests
+        run: uv run --project collector --no-sync pytest -q collector/tests --junitxml=test-results.xml
+      - name: Check CLI entry point
+        run: uv run --project collector --no-sync pokercollector --help
