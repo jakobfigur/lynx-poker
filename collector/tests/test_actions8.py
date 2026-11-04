@@ -15,7 +15,7 @@ def test_mask_and_actions_8():
     obs = _obs()
     m6, m8 = action_mask(obs), action_mask(obs, 8)
     assert len(m6) == 6 and len(m8) == 8 and (m8[:6] == m6).all()
-    assert m8[MIN_RAISE] and not m8[6]                   # 1/3 Pot waere preflop = Min-Raise
+    assert m8[MIN_RAISE] and not m8[6]                   # 1/3 pot preflop would be = min-raise
     assert to_action(obs, MIN_RAISE) == Action.raise_to(obs.min_raise_to)
     third = to_action(obs, 6).amount
     half = to_action(obs, 2).amount
@@ -33,8 +33,8 @@ def test_widen_actions_keeps_old_ratios():
     obs = _obs()
     p6, _ = forward_np(numpy_weights(net), features(obs, version="feat-2"), action_mask(obs))
     p8, _ = forward_np(numpy_weights(wide), features(obs, version="feat-3"), action_mask(obs, 8))
-    assert p8[6:].sum() < 0.35                              # neue Aktionen anfangs selten
-    assert np.allclose(p8[:6] / p8[:6].sum(), p6, atol=1e-5)  # Verhaeltnisse der alten bleiben
+    assert p8[6:].sum() < 0.35                              # new actions initially rare
+    assert np.allclose(p8[:6] / p8[:6].sum(), p6, atol=1e-5)  # old ratios remain
 
 
 def test_nn_agent_with_8_actions_plays_legal():

@@ -1,7 +1,7 @@
-"""Preflop-Equity-Tabelle: 169 Starthand-Klassen gegen 1-9 zufaellige Gegner.
+"""Preflop equity table: 169 starting hand classes against 1-9 random opponents.
 
-Einmalig per Monte-Carlo berechnet (`build_preflop_table`) und als JSON im Paket
-gespeichert. Die Werte sind Schaetzungen mit Stichprobenfehler (gespeichert).
+Computed once by Monte Carlo (`build_preflop_table`) and stored as JSON in package.
+The values are estimates with sampling error (stored).
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ def _equity(hero: list[str], opponents: int, iterations: int, rng: random.Random
 
 def build_preflop_table(iterations: int = 1500, heads_up_iterations: int = 8000, seed: int = 7,
                         max_opponents: int = 9, progress=None) -> dict:
-    """Spalte '1 Gegner' genauer, weil sie die Rangfolge der Starthaende bestimmt."""
+    """Column '1 opponent' more precise as it determines the ranking of starting hands."""
     rng = random.Random(seed)
     eq = {}
     for i, cls in enumerate(all_classes()):
@@ -82,7 +82,7 @@ def build_preflop_table(iterations: int = 1500, heads_up_iterations: int = 8000,
     return {"iterations": iterations, "heads_up_iterations": heads_up_iterations, "seed": seed,
             "std_error_max": round(0.5 / iterations ** 0.5, 4),
             "std_error_max_heads_up": round(0.5 / heads_up_iterations ** 0.5, 4),
-            "note": "Equity gegen k zufaellige Haende, k=1..9 (Index 0 = 1 Gegner)", "equity": eq}
+            "note": 'Equity against k random hands, k=1..9 (index 0 = 1 opponent)', "equity": eq}
 
 
 def save_table(table: dict, path: Path):
@@ -102,8 +102,8 @@ def preflop_equity(cards: list[str], opponents: int) -> float:
 
 @lru_cache(maxsize=1)
 def _percentiles() -> dict[str, float]:
-    """Anteil aller Starthaende (nach Kombinationen), die mindestens so stark sind.
-    0.0 = beste Hand (AA), 1.0 = schlechteste. Rangfolge nach Equity gegen 1 Gegner."""
+    """Proportion of all starting hands (by combinations) that are at least this strong.
+    0.0 = best hand (AA), 1.0 = worst. Ranking by equity against 1 opponent."""
     eq = preflop_table()["equity"]
     order = sorted(eq, key=lambda c: eq[c][0], reverse=True)
     out, cum = {}, 0

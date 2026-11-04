@@ -1,18 +1,17 @@
-"""Echte Menschen als Massstab: Spielertypen aus HandHQ (PHH-Datensatz, 21,6 Mio. Online-Haende 2009).
+"""Real humans as benchmark: player types from HandHQ (PHH dataset, 21.6 million online hands 2009).
 
-Die Karten sind dort nur bekannt, wenn sie am Showdown gezeigt wurden ('????' sonst). Nachahmen wie bei
-Pluribus geht deshalb nicht - wohl aber messen, WIE Menschen spielen: je Spieler (feste, anonymisierte ID)
-Haeufigkeiten wie ein HUD, ueber tausende Haende. Daraus:
-  1. Verteilung echter Spielertypen (eng/locker, passiv/aggressiv, ...).
-  2. 'Mensch-Bots': Stilbots, deren Haeufigkeiten zu einem Typ passen (fit_style).
-  3. Training und Pruefstand gegen diese Mischung statt nur gegen eigene Bots.
+Cards are only known there if shown at showdown ('????' otherwise). Mimicking as with
+Pluribus is therefore not possible - but measuring HOW humans play: per player (fixed, anonymized ID)
+frequencies like a HUD, over thousands of hands. From that:
+  1. Distribution of real player types (tight/loose, passive/aggressive, ...).
+  2. 'Human bots': style bots whose frequencies match a type (fit_style).
+  3. Training and test bench against this mixture instead of only own bots.
 
-Gezaehlt wird nur Oeffentliches. Haende mit Antes oder Straddles werden uebersprungen (unsere Engine kennt
-beides nicht). Statistiken je Spieler:
-  hands, vpip, pfr, threebet (3-Bet-Quote, wenn vor ihm genau ein Raise kam), f3b (Fold auf 3-Bet nach
-  eigenem Open), agg (Bets/Raises nach dem Flop / alle Bets, Raises, Calls nach dem Flop), ftb (Fold auf
-  Einsatz nach dem Flop), cbet (Flop-Einsatz als Preflop-Aggressor, wenn er als Erster setzen konnte),
-  wtsd (Showdown, wenn Flop gesehen), wsd (Showdown gewonnen), bb100 (Gewinn in BB je 100 Haende)
+Only public data is counted. Hands with antes or straddles are skipped (our engine knows neither).
+Statistics per player:
+  hands, vpip, pfr, threebet (3-bet rate when exactly one raise came before), f3b (fold to 3-bet after
+  own open), agg (bets/raises after flop / all bets, raises, calls after flop), ftb (fold to bet after flop), cbet (flop bet as preflop aggressor, when first to bet),
+  wtsd (went to showdown if flop seen), wsd (won showdown), bb100 (win in big blinds per 100 hands)
 """
 
 from __future__ import annotations
@@ -35,7 +34,7 @@ def handhq_dir() -> Path:
 
 
 def iter_hands(path: Path):
-    """Alle Haende einer .phhs-Datei (TOML, Abschnitte [1], [2], ...)."""
+    """All hands of a .phhs file (TOML, sections [1], [2], ...)."""
     try:
         doc = tomllib.loads(path.read_text("utf-8"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError):
@@ -58,9 +57,9 @@ class HumanStats:
     @staticmethod
     def _winnings(live: list[int], put: list[float], shown: dict[int, list[str]], board: list[str],
                   mucked: set[int]) -> list[float]:
-        """Brutto-Gewinne, wenn die Datei keine enthaelt: alle anderen gefoldet -> der Letzte gewinnt;
-        sonst unter den Aufgedeckten der Beste (Gleichstand teilt). Seitentoepfe vereinfacht: jeder
-        Gewinner bekommt von jedem Spieler hoechstens so viel, wie er selbst eingezahlt hat."""
+        """Gross winnings, if the file contains none: everyone else folded -> last player wins;
+        otherwise among the revealed the best (ties split). Side pots simplified: each
+        winner gets from each player at most as much as he invested."""
         n = len(put)
         win = [0.0] * n
         cands = [s for s in live if s not in mucked]
@@ -78,7 +77,7 @@ class HumanStats:
         pot = sum(min(p, cap) for p in put)
         for s in cands:
             win[s] = pot / len(cands)
-        for i in range(n):                                   # nicht abgedeckter Rest geht zurueck
+        for i in range(n):                                   # unclaimed remainder is returned
             if put[i] > cap:
                 win[i] += put[i] - cap
         return win
@@ -103,9 +102,9 @@ class HumanStats:
             self.c[p]["hands"] += 1
         win = h.get("winnings") or [0] * n
         starts = h.get("starting_stacks") or [0] * n
-        # Netto: Gewinn - eigener Einsatz (aus Aktionen aufsummiert)
+        # Net: winnings - own bets (summed from actions)
         put = [0.0] * n
-        street = 0                      # 0 preflop, 1 flop, 2 turn, 3 river
+        street = 0                      #0 preflop, 1 flop, 2 turn, 3 river
         level = bb
         contrib = [0.0] * n
         contrib[0], contrib[1] = float(bl[0]), bb
@@ -146,16 +145,16 @@ class HumanStats:
                     shown_cards[s] = [parts[2][i:i + 2] for i in range(0, len(parts[2]), 2)]
                     mucked.discard(s)
                 elif s not in shown_cards:
-                    # '????' = gemuckt (verloren, war aber am Showdown). Bei All-in vor dem River steht
-                    # '????' auch mitten im Verlauf, die echten Karten folgen spaeter - dann zaehlen diese.
+                    #'????' = mucked (lost, but made it to showdown). If all-in before the river is indicated
+                    #'????' also appears in the middle of the action, the actual cards follow later - then those count.
                     mucked.add(s)
                 continue
             if street == 0:
                 if raises_pre == 1 and s != opener and act in ("cbr", "cc", "f"):
-                    c["threebet_n"] += 1                  # Gelegenheit: genau ein Raise vor ihm
+                    c["threebet_n"] += 1                  #Opportunity: exactly one raise before him
                     c["threebet"] += act == "cbr"
                 if raises_pre >= 2 and s == opener and not opener_answered and act in ("cbr", "cc", "f"):
-                    opener_answered = True                # Opener antwortet auf die 3-Bet
+                    opener_answered = True                #Opener responds to the 3-bet
                     c["f3b_n"] += 1
                     c["f3b"] += act == "f"
                 if act == "cbr":
@@ -193,12 +192,12 @@ class HumanStats:
         top = max(range(n), key=lambda i: put[i])
         second = max((put[i] for i in range(n) if i != top), default=0.0)
         if put[top] > second:
-            put[top] = second                     # nicht gecallter Einsatz geht zurueck
+            put[top] = second                     #Uncalled bet returns
         live = [i for i in range(n) if i not in folded]
-        if not any(float(x) for x in (h.get("winnings") or [])):   # fehlt oder nur Nullen (z. B. kampflos)
+        if not any(float(x) for x in (h.get("winnings") or [])):   #missing or only zeros (e.g. uncontested)
             win = self._winnings(live, put, shown_cards, board, mucked)
         elif sum(float(x) for x in win) > sum(put) + 0.005:
-            put = put_total                       # Gewinne enthalten den Rueckfluss (PartyPoker)
+            put = put_total                       #Winnings include the return flow (PartyPoker)
         for s in vp:
             self.c[names[s]]["vpip"] += 1
         for s in pr:
@@ -241,7 +240,7 @@ def _collect_chunk(files: list[Path]) -> tuple[dict, int, int]:
 
 
 def collect(dirs: list[Path], max_files: int | None = None, progress=None, workers: int | None = None) -> HumanStats:
-    """Alle .phhs-Dateien auswerten, verteilt auf mehrere Prozesse (Zaehler werden danach addiert)."""
+    """Evaluate all .phhs files, distributed across multiple processes (counters are then summed)."""
     from concurrent.futures import ProcessPoolExecutor, as_completed
     hs = HumanStats()
     files = [f for d in dirs for f in sorted(d.rglob("*.phhs"))]
@@ -264,25 +263,25 @@ def collect(dirs: list[Path], max_files: int | None = None, progress=None, worke
     return hs
 
 
-# ---- Spielertypen ---------------------------------------------------------------
+#---- Player Types ---------------------------------------------------------------
 
 TYPE_FEATURES = ("vpip", "pfr", "agg", "ftb", "threebet", "cbet", "wtsd")
 
 
 def player_types(stats: dict[str, dict], k: int = 6, min_hands: int = 300, seed: int = 0) -> list[dict]:
-    """k-Means auf den Haeufigkeiten der Spieler mit genug Haenden -> Typen mit Anteil und Mittelwerten.
-    Gewichtet nach gespielten Haenden (so oft trifft man den Typ am Tisch)."""
+    """k-Means on the frequencies of players with enough hands -> types with proportion and means.
+    Weighted by hands played (frequency of encountering the type at the table)."""
     names = [p for p, s in stats.items() if s["hands"] >= min_hands
              and all(not math.isnan(s[f]) for f in TYPE_FEATURES)]
     if len(names) < k:
-        raise ValueError(f"nur {len(names)} Spieler mit >= {min_hands} Haenden")
+        raise ValueError(f"only {len(names)} players with >= {min_hands} hands")
     X = np.array([[stats[p][f] for f in TYPE_FEATURES] for p in names])
     w = np.array([stats[p]["hands"] for p in names], float)
     mu, sd = X.mean(0), X.std(0) + 1e-9
     Z = (X - mu) / sd
     rng = np.random.default_rng(seed)
     best = None
-    for _ in range(8):                                    # mehrere Starts, bester Fehler gewinnt
+    for _ in range(8):                                    #multiple starts, best error wins
         C = Z[rng.choice(len(Z), k, replace=False, p=w / w.sum())]
         for _ in range(100):
             lab = ((Z[:, None, :] - C[None]) ** 2).sum(-1).argmin(1)
@@ -313,15 +312,15 @@ def type_name(m: dict) -> str:
     aggr = m["agg"] >= 0.5 and m["pfr"] >= 0.6 * m["vpip"]
     passive = m["agg"] < 0.38 or m["pfr"] < 0.4 * m["vpip"]
     if loose and passive:
-        return "Calling-Station (locker-passiv)"
+        return 'Calling station (loose-passive)'
     if loose and aggr:
-        return "LAG/Maniac (locker-aggressiv)"
+        return 'LAG/Maniac (loose-aggressive)'
     if tight and aggr:
-        return "TAG/Reg (eng-aggressiv)"
+        return 'TAG/Reg (tight-aggressive)'
     if tight:
-        return "Nit (sehr eng)"
+        return 'Nit (very tight)'
     if passive:
-        return "passiver Freizeitspieler"
+        return 'passive recreational player'
     return "Durchschnitt"
 
 

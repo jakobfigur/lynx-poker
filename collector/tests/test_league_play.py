@@ -17,8 +17,8 @@ def test_plackett_luce_basics():
     r = [(25.0, 25 / 3)] * 4
     new = rate_plackett_luce(r, [1, 2, 3, 4])
     mus = [m for m, _ in new]
-    assert mus == sorted(mus, reverse=True)                  # Sieger steigt am meisten
-    assert all(s < 25 / 3 for _, s in new)                   # Unsicherheit sinkt
+    assert mus == sorted(mus, reverse=True)                  # winner increases most
+    assert all(s < 25 / 3 for _, s in new)                   # uncertainty decreases
     assert sum(m - 25 for m in mus) == pytest.approx(0, abs=1e-6)
     tie = rate_plackett_luce([(25.0, 8.0), (25.0, 8.0)], [1, 1])
     assert tie[0][0] == pytest.approx(tie[1][0])
@@ -52,7 +52,7 @@ def test_league_rounds_benchmark_and_report(tmp_path):
     md = lg.leaderboard_markdown()
     assert "tag-v2" in md and "Benchmark" in md
     assert "<svg" in lg.report_html()
-    lg2 = League(tmp_path)                                   # wird von Platte geladen
+    lg2 = League(tmp_path)                                   # loads from disk
     assert lg2.players["tag"].games == 3
 
 
@@ -83,7 +83,7 @@ def test_human_parse():
     assert hu.parse("f", o).kind == "fold"
     assert hu.parse("c", o).kind == "call"
     assert hu.parse("r", o).amount == 40
-    assert hu.parse("r 100", o).amount == 100
+    assert hu.parse('r 100', o).amount == 100
     assert hu.parse("a", o).amount == 1000
     assert hu.parse("p", o).amount == 20 + 30 + 20
     with pytest.raises(ValueError):
@@ -91,7 +91,7 @@ def test_human_parse():
     with pytest.raises(ValueError):
         hu.parse("blabla", o)
     with pytest.raises(ValueError):
-        hu.parse("k", o)                                      # Check bei offenem Einsatz
+        hu.parse("k", o)                                      # Check with open bet
     with pytest.raises(QuitGame):
         hu.parse("q", o)
 
@@ -107,9 +107,9 @@ def test_cash_session_with_scripted_human(tmp_path):
     md = stats_markdown(sessions, "du")
     assert "**du**" in md and "tag" in md
     text = "\n".join(map(str, out))
-    assert "unbekannte Eingabe" in text and "Deine Karten" in text
-    # Sichtbarkeit: Gegnerkarten erscheinen nur bei 'zeigt' (Showdown)
-    assert "Dein Ergebnis" in text
+    assert 'unknown input' in text and 'Your cards' in text
+    # Visibility: Opponent cards appear only at 'show' (Showdown)
+    assert 'Your result' in text
 
 
 def test_tournament_session_human_always_folds(tmp_path):
@@ -117,6 +117,6 @@ def test_tournament_session_human_always_folds(tmp_path):
     bots = [make_agent("tag:tag", 1), make_agent("rock:rock", 2)]
     path, res = play_tournament_session(human, bots, tmp_path, FAST, seed=5)
     assert res is not None and res.finished
-    assert res.places[0] >= 2                                 # wer nur foldet/checkt, gewinnt nicht
+    assert res.places[0] >= 2                                 # those who only fold/check do not win
     s = load_sessions(tmp_path)[0]
-    assert s["end"]["places"][0] == res.places[0]           # Sitzungsdatei stimmt mit Ergebnis
+    assert s["end"]["places"][0] == res.places[0]           # Session file matches result

@@ -1,5 +1,5 @@
-"""Protokolliert Entscheidungen eines beliebigen Agenten (Bot oder Mensch) und bewertet
-Push/Fold-Situationen gegen das Nash-Gleichgewicht."""
+"""Logs decisions of any agent (bot or human) and evaluates
+push/fold situations against the Nash equilibrium."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from .agents import push_fold_spot
 from .observation import Action, Observation, clamp_action
 from .pushfold import decision_ev
 
-PF_MAX_BB = 15   # ueber ~15 BB ist Push/Fold nicht mehr die Standardstrategie (Open-Raise ist legitim)
+PF_MAX_BB = 15   # above ~15 BB, push/fold is no longer the standard strategy (open-raise is legitimate)
 
 
 def classify_pf_choice(obs: Observation, action: Action, spot: dict) -> str | None:
@@ -17,10 +17,10 @@ def classify_pf_choice(obs: Observation, action: Action, spot: dict) -> str | No
         return "fold"
     if spot["kind"] == "first_in":
         if action.kind == "check":
-            return "fold"           # BB checkt ohne Einsatz = kein Push; zaehlt wie Fold
+            return "fold"           # BB checks with zero bet = no push; counts like fold
         if action.kind == "raise" and obs.max_raise_to and action.amount >= 0.9 * obs.max_raise_to:
             return "push"
-        return None                 # Mini-Raise oder Limp: ausserhalb des Push/Fold-Modells
+        return None                 # Mini-raise or limp: outside the push/fold model
     if spot["kind"] == "facing_push":
         if action.kind in ("call", "raise"):
             return "call"
@@ -44,7 +44,7 @@ class DecisionLog:
 
 
 class RecordingAgent:
-    """Huelle um einen Agenten; leitet alles weiter und protokolliert."""
+    """Wrapper around an agent; forwards everything and logs."""
 
     def __init__(self, agent, log: DecisionLog | None = None):
         self.agent = agent

@@ -1,17 +1,17 @@
-"""Gegnermodell: Statistiken je Gegner ueber die bisherigen Haende (wie ein HUD).
+"""Opponent model: statistics per opponent over previous hands (like a HUD).
 
-Gezaehlt wird nur Oeffentliches aus dem Handverlauf (HandRecord.actions), nach jeder Hand ueber
-hand_over(). Je Gegner (Schluessel: Name am Tisch, sonst Platznummer):
-  vpip  freiwillig Geld preflop investiert (Call/Raise, Blinds zaehlen nicht)
-  pfr   preflop erhoeht
-  agg   Anteil Bets/Raises an allen Bets/Raises/Calls nach dem Flop (Aggressionsrate)
-  ftb   Fold auf einen Einsatz nach dem Flop (Anteil der Faelle, in denen er einem Einsatz gegenueberstand)
-Wenige Haende sagen wenig: jede Quote startet bei einem Durchschnittswert (Prior) und bewegt sich mit den
-Beobachtungen; 'conf' = Haende / (Haende + 20) sagt dem Netz, wie belastbar die Zahlen sind.
+Only public information from hand history (HandRecord.actions) is counted, updated after each hand via
+hand_over(). Per opponent (key: name at table, else seat number):
+  vpip  voluntarily put money in preflop (call/raise, blinds don’t count)
+  pfr   raised preflop
+  agg   fraction of bets/raises among all bets/raises/calls after the flop (aggression rate)
+  ftb   fold to a bet after the flop (fraction of cases where facing a bet)
+Few hands say little: every ratio starts at an average value (prior) and adjusts with
+observations; 'conf' = hands / (hands + 20) tells the network the reliability of the numbers.
 
-Merkmale fuer das Netz (8, OPP_FEATURES): der Gegner, gegen den man gerade spielt (letzter Aggressor
-dieser Strasse, sonst der Durchschnitt der Gegner in der Hand) mit vpip, pfr, agg, ftb, conf, und der
-Durchschnitt aller Gegner in der Hand mit vpip, agg, ftb.
+Features for the network (8, OPP_FEATURES): the opponent currently playing against (last aggressor
+this street, else average of opponents in hand) with vpip, pfr, agg, ftb, conf, and the
+average of all opponents in the hand with vpip, agg, ftb.
 """
 
 from __future__ import annotations
@@ -36,12 +36,12 @@ DEFAULT_FEATURES = np.array([PRIOR["vpip"][0], PRIOR["pfr"][0], PRIOR["agg"][0],
 
 class OpponentTracker:
     def __init__(self, fuzzy: bool = False):
-        # je Gegner: hands, vpip, pfr, aggr (bets/raises nach Flop), pas (calls nach Flop), ftb_n, ftb
+        # per opponent: hands, vpip, pfr, aggr (bets/raises post flop), pas (calls post flop), ftb_n, ftb
         self.c: dict[str, dict[str, int]] = {}
-        # fuzzy (live): per Texterkennung verrauschte Namen ('Card S//"arp') dem bekannten Namen zuordnen
+        # fuzzy (live): map noisy recognized names from OCR ('Card S//"arp') to known names
         self.fuzzy = fuzzy
         self.alias: dict[str, str] = {}
-        self.seat_last: dict[int, str] = {}       # wer zuletzt auf dem Platz sass (fuzzy-Rueckfall)
+        self.seat_last: dict[int, str] = {}       # who last sat in the seat (fuzzy fallback)
 
     def _key(self, names, seat: int) -> str:
         n = names[seat] if names and seat < len(names) else None
@@ -56,7 +56,7 @@ class OpponentTracker:
             if ok:
                 self.alias[n] = best
             elif seat in self.seat_last:
-                return self.seat_last[seat]       # unlesbarer Name: derselbe Platz wie zuletzt (nicht merken)
+                return self.seat_last[seat]       # unreadable name: same seat as last time (do not remember)
             else:
                 return n
         return self.alias[n]
@@ -67,12 +67,12 @@ class OpponentTracker:
         return self.c[key]
 
     def update(self, rec, me: int):
-        """Nach jeder Hand (Simulator, HandRecord): Verlauf auswerten (me = eigener Platz, zaehlt nicht)."""
+        """After each hand (simulator, HandRecord): evaluate history (me = own seat, does not count)."""
         dealt = [r.seat for r in rec.results if r.start_stack > 0]
         self._count(rec.names, dealt, [(a.street, a.seat, a.kind, a.amount_to) for a in rec.actions], me)
 
     def update_collector(self, hand: dict, me: int):
-        """Nach jeder Hand (Collector, rekonstruierte Hand als dict wie in hands.json)."""
+        """After each hand (collector, reconstructed hand as a dict like in hands.json)."""
         seats = {int(k): v for k, v in (hand.get("seats") or {}).items()}
         names = [None] * (max(seats, default=0) + 1)
         for k, v in seats.items():
@@ -143,6 +143,6 @@ class OpponentTracker:
 
 
 def describe(st: dict) -> str:
-    """Kurzanzeige wie ein HUD: 'H 23  VPIP 35 %  PFR 12 %  Agg 40 %  FvB 55 %'."""
+    """Brief display like a HUD: 'H 23  VPIP 35 %  PFR 12 %  Agg 40 %  FvB 55 %'."""
     return (f"H {st.get('hands', 0):3d}  VPIP {st['vpip']:4.0%}  PFR {st['pfr']:4.0%}  "
             f"Agg {st['agg']:4.0%}  FvB {st['ftb']:4.0%}")

@@ -1,19 +1,19 @@
-# Experiment-Skripte
+# Experiment Scripts
 
-Hier liegen die Skripte, mit denen die Trainings und Messungen aus der [Case Study](../../docs/CASE-STUDY.md) tatsächlich gelaufen sind, unverändert bis auf ersetzte Pfade. Sie dokumentieren, wie die Zahlen entstanden; zum erneuten Ausführen müssen sie angepasst werden.
+Here are the scripts with which the training and measurements from the [Case Study](../../docs/CASE-STUDY.md) were actually run, unchanged except for replaced paths. They document how the numbers were generated; to rerun, they must be adapted.
 
-- **Umgebung:** geschrieben für Windows mit Git Bash und das portable Setup auf einem USB-Stick (`tools\uv\uv.exe`, Projektordner als Wurzel). `<Projektordner>` und `<scratchpad>` stehen für die ursprünglichen absoluten Pfade.
-- **Python-Skripte** (`bench_*.py`, `confirm_lynx3.py`) sind plattformneutral. Aufruf aus `collector/`: `uv run --project . python ../scripts/experimente/<skript>.py`. Skripte mit Prozess-Pool brauchen unter Windows den `if __name__ == "__main__"`-Schutz (ist vorhanden).
-- **Shell-Skripte** (`train_*.sh`, `night*.sh`, `morning.sh`, `measure.sh` …) laufen Trainingsabschnitte mit Gate, wählen den Titelverteidiger aus `data/league/players.json` und setzen an einem vorhandenen Stand fort. Die Rezepte stehen lesbarer in Teil 2, Abschnitt 10 der [technischen Dokumentation](../../docs/TECHNISCHE-DOKUMENTATION.md).
-- **`.cmd`-Hüllen** starten Messungen losgelöst und schreiben ihre Ausgabe nach `data/bench/*.txt`.
+- **Environment:** written for Windows with Git Bash and the portable setup on a USB stick (`tools\uv\uv.exe`, project folder as root). `<Projektordner>` and `<scratchpad>` stand for the original absolute paths.
+- **Python scripts** (`bench_*.py`, `confirm_lynx3.py`) are platform-neutral. Invocation from `collector/`: `uv run --project . python ../scripts/experimente/<skript>.py`. Scripts using a process pool require the `if __name__ == "__main__"` guard under Windows (it is present).
+- **Shell scripts** (`train_*.sh`, `night*.sh`, `morning.sh`, `measure.sh` …) run training phases with Gate, select the title defender from `data/league/players.json`, and continue from an existing checkpoint. The recipes are more readable in Part 2, Section 10 of the [technical documentation](../../docs/TECHNICAL_DOCUMENTATION.md).
+- **`.cmd` wrappers** start measurements independently and write their output to `data/bench/*.txt`.
 
-| Skript | Lauf |
+| Script | Run |
 | --- | --- |
-| `train_h1.sh`, `train_h1b.sh` | pros-h1, später „Lynx“ (27.10.) |
-| `train_lynx2.sh` | lynx-2, Training mit 40 % Mensch-Bots (27.10.) |
-| `train_lynx3.sh`, `morgen_lynx3.sh`, `confirm_lynx3.py` | lynx-3 in Abschnitten bis 1500 Iterationen, Bestätigungen, Slumbot (Nacht 27./28.10.) |
-| `night_lynx4.sh` | lynx-4 mit ICM-Belohnung (Nacht 28./29.10.) |
-| `bench_hus*.py`, `bench_diag_nacht.py` | Messreihe der Heads-up-Suche (29.–30.10.) |
-| `bench_humanopp*.py`, `bench_humanopp3.cmd` | Suche und Netze gegen den Menschen-Bot (31.10./1.11.) |
-| `bench_lynx5t_sets.*`, `bench_temp.cmd`, `exploit_greedy.cmd` | Prüfstand, Temperatur und Ausbeuter-Test für greedy (31.10.) |
-| `slumbot_long.sh`, `measure.sh`, `morning.sh`, `night.sh`, `night2.sh`, `pause_and_humans.sh` | Slumbot-Langläufe, Prüfstand-Serien, HandHQ-Auswertung |
+| `train_h1.sh`, `train_h1b.sh` | pros-h1, later „Lynx“ (Oct 27) |
+| `train_lynx2.sh` | lynx-2, training with 40 % human-bots (Oct 27) |
+| `train_lynx3.sh`, `morgen_lynx3.sh`, `confirm_lynx3.py` | lynx-3 in sections up to 1500 iterations, confirmations, slumbot (night Oct 27/28) |
+| `night_lynx4.sh` | lynx-4 with ICM reward (night Oct 28/29) |
+| `bench_hus*.py`, `bench_diag_nacht.py` | measurement series of heads-up search (Oct 29–30) |
+| `bench_humanopp*.py`, `bench_humanopp3.cmd` | search and networks against the human-bot (Oct 31/Nov 1) |
+| `bench_lynx5t_sets.*`, `bench_temp.cmd`, `exploit_greedy.cmd` | test bench, temperature and exploiter test for greedy (Oct 31) |
+| `slumbot_long.sh`, `measure.sh`, `morning.sh`, `night.sh`, `night2.sh`, `pause_and_humans.sh` | slumbot long runs, test bench series, HandHQ evaluation |

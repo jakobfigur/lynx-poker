@@ -37,12 +37,12 @@ def test_ranges_narrow_with_aggression():
     obs = _three_bet_spot(["Qs", "Jh"])
     r = opponent_ranges(obs)
     assert set(r) == {2, 3} and all(abs(x.sum() - 1) < 1e-9 for x in r.values())
-    assert range_summary(r[3])["top10"] > range_summary(r[2])["top10"] > 0.2      # 3-Bet enger als Open
+    assert range_summary(r[3])["top10"] > range_summary(r[2])["top10"] > 0.2      # 3-bet tighter than open
     dead = dead_mask(obs.hole_cards)
-    assert r[2][dead].sum() == 0                                                 # eigene Karten unmoeglich
+    assert r[2][dead].sum() == 0                                                 # own cards impossible
     eq_r = equity_vs_ranges(obs, 2000, 1)
     eq_z = mc_equity(obs.hole_cards, [], 2, 4000, random.Random(2))
-    assert eq_r < eq_z - 0.1                                                     # QJ schlecht gegen 3-Bet-Range
+    assert eq_r < eq_z - 0.1                                                     # QJ bad against 3-bet range
 
 
 def test_board_strength_and_postflop_update():
@@ -57,7 +57,7 @@ def test_board_strength_and_postflop_update():
     before = equity_vs_ranges(h.observation(1), 2000, 3)
     h.apply(2, Action.raise_to(80))
     after = equity_vs_ranges(h.observation(1), 2000, 3)
-    assert after < before - 0.03                                                 # Bet zeigt Staerke
+    assert after < before - 0.03                                                 # bet shows strength
 
 
 def test_sample_hands_consistent():
@@ -71,10 +71,10 @@ def test_feature_versions_and_old_nets(tmp_path, monkeypatch):
     obs = _three_bet_spot(["Qs", "Jh"])
     f1, f2 = features(obs, version="feat-1"), features(obs, version="feat-2")
     assert len(f1) == FEATURE_SIZES["feat-1"] and len(f2) == FEATURE_SIZES["feat-2"]
-    assert np.allclose(f1, f2[:len(f1)]) and f2[-3] < f1[4]                      # Range-Equity < Zufalls-Equity
+    assert np.allclose(f1, f2[:len(f1)]) and f2[-3] < f1[4]                      # range equity < random equity
     monkeypatch.setenv("POKERCOLLECTOR_DATA", str(tmp_path))
     from pokercollector.ai.nn_agent import build_net, load_weights, rl_root, save_checkpoint
-    for v in ("feat-1", "feat-2"):                                               # alte und neue Netze spielen
+    for v in ("feat-1", "feat-2"):                                               # play old and new nets
         save_checkpoint(rl_root() / f"n-{v}" / "ckpt_000000.pt", build_net(8, v), {"phase": "test"})
         assert load_weights(f"n-{v}", 0)["features"] == v
         tiny = TournamentConfig(start_stack=300, blinds=BlindSchedule(10, 20, 4))

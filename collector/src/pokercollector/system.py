@@ -1,4 +1,4 @@
-"""Systemhilfen: Standby waehrend langer Laeufe verhindern."""
+""" System utilities: prevent standby during long runs."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ ES_DISPLAY_REQUIRED = 0x00000002
 
 @contextmanager
 def keep_awake(enabled: bool = True):
-    """Verhindert Leerlauf-Standby, solange der Block laeuft (Windows SetThreadExecutionState).
-    Auf Geraeten mit 'Modern Standby' fuehrt das Abschalten des Bildschirms zum Standby,
-    deshalb wird auch der Bildschirm wach gehalten. Danach gilt wieder die normale Einstellung."""
+    """ Prevents idle standby as long as the block is running (Windows SetThreadExecutionState).
+    On devices with 'Modern Standby', turning off the screen leads to standby,
+    so the screen is also kept awake. Afterwards, normal settings apply again."""
     if not enabled or sys.platform != "win32":
         yield False
         return

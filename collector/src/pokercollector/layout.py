@@ -1,12 +1,12 @@
-"""Findet Tisch, Sitz-Panels, Board-Karten, Marker und Aktionsleiste im Frame.
+"""Finds table, seat panels, board cards, markers, and action bar in the frame.
 
-Alles wird pro Frame aus sichtbaren Bildmerkmalen bestimmt. Sitze werden NICHT an festen
-Profil-Positionen gesucht (die Anordnung haengt bei PokerTH von der Spielerzahl ab), sondern:
-alle Spieler-Panels finden, das eigene (groesstes Panel unten in der Mitte) wird Sitz 0, die
-uebrigen werden im Uhrzeigersinn um die Tischmitte nummeriert (= Aktionsreihenfolge).
-SeatMemory merkt sich die Positionen ueber die Frames, damit Nummern stabil bleiben, auch wenn
-ein Panel verschwindet (Spieler ausgeschieden). Massstab = gemessene Panelbreite / Referenz.
-Geprueft an 10er- (Testbild) und 6er-Tisch (Aufnahme 26.10.2026).
+Everything is determined per frame from visible image features. Seats are NOT searched at fixed
+profile positions (the arrangement depends on player count in PokerTH), but:
+all player panels are found, own panel (largest panel bottom center) is seat 0, the
+others are numbered clockwise around the table center (= action order).
+SeatMemory remembers positions over frames so numbers remain stable even if
+a panel disappears (player eliminated). Scale = measured panel width / reference.
+Verified on 10-player (test image) and 6-player table (recording 26.10.2026).
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ from .profile import Profile
 @dataclass
 class SeatPanel:
     seat: int
-    rect: Rect            # Haupt-Panel ohne Einsatzzeile
-    full_rect: Rect       # inkl. Einsatzzeile, falls vorhanden
+    rect: Rect            # Main panel without bet line
+    full_rect: Rect       # including bet line if present
     has_bet_row: bool
     hero: bool
 
@@ -55,7 +55,7 @@ class TableLayout:
 
 
 class SeatMemory:
-    """Gelernte Sitzpositionen eines Tisches (relativ zum Filz). Index in `positions` = Sitznummer."""
+    """Learned seating positions of a table (relative to the felt). Index in `positions` = seat number."""
 
     def __init__(self, tol: float = 0.06):
         self.tol = tol
@@ -65,7 +65,7 @@ class SeatMemory:
         self.positions = []
 
     def assign(self, centers: list[tuple[float, float]], hero: int | None) -> list[int]:
-        """Sitznummer je Panel-Mittelpunkt. Erste Belegung: eigener Platz 0, dann im Uhrzeigersinn."""
+        """Seat number per panel center. First assignment: own seat 0, then clockwise."""
         if not centers:
             return []
         if not self.positions:
@@ -73,7 +73,7 @@ class SeatMemory:
             cy = sum(c[1] for c in centers) / len(centers)
             h = hero if hero is not None else max(range(len(centers)), key=lambda i: centers[i][1])
             a0 = np.arctan2(centers[h][1] - cy, centers[h][0] - cx)
-            # Bildschirm-y zeigt nach unten: steigender Winkel = im Uhrzeigersinn
+            #Screen-y points downward: increasing angle = clockwise
             order = sorted(range(len(centers)),
                            key=lambda i: (np.arctan2(centers[i][1] - cy, centers[i][0] - cx) - a0) % (2 * np.pi))
             self.positions = [centers[i] for i in order]
@@ -91,7 +91,7 @@ class SeatMemory:
             self.positions[j] = (0.9 * px + 0.1 * centers[i][0], 0.9 * py + 0.1 * centers[i][1])
         for i, c in enumerate(centers):
             if out[i] < 0 and len(self.positions) < 10:
-                out[i] = len(self.positions)          # neuer Platz: naechste freie Nummer (stabil)
+                out[i] = len(self.positions)          # new seat: next free number (stable)
                 self.positions.append(c)
         return out
 
@@ -126,9 +126,9 @@ def _dark_components(hsv: np.ndarray, felt: Rect, profile: Profile, min_area: in
         x, y, w, h, a = stats[i]
         if a < min_area:
             continue
-        # Duenne Randzeilen oben/unten abschneiden: Schatten fliegender Karten haengen
-        # sonst schmal am Panel und verschieben die Kante. Mittlere Zeilen sind wegen
-        # Avatar/Karten loechrig und werden nicht angefasst.
+        # Thin edge rows top/bottom cropped: shadows of flying cards hang
+        # otherwise narrow at panel and shift the edge. Middle rows are because
+        # avatar/cards are perforated and are left untouched.
         cov = (labels[y:y + h, x:x + w] == i).mean(axis=1)
         top, bottom = 0, h - 1
         while top < bottom and cov[top] < 0.3:
@@ -175,12 +175,12 @@ def _find_markers(hsv: np.ndarray, felt: Rect, layout: TableLayout, profile: Pro
                 continue
             if not 0.8 <= w / h <= 1.25:
                 continue
-            # Konvexe Huelle: die Beschriftung (D/SB/BB) schneidet Loecher in die Farbmaske
+            # Convex hull: the lettering (D/SB/BB) cuts holes in the color mask
             hull = cv2.convexHull(c)
             area = cv2.contourArea(hull)
             perim = cv2.arcLength(hull, True)
             circ = 4 * np.pi * area / (perim * perim) if perim else 0
-            # Kreis ~0.9, Quadrat ~0.785: Schwelle trennt fliegende Karten von Buttons
+            # Circle ~0.9, square ~0.785: threshold separates flying cards from buttons
             if circ < 0.8:
                 continue
             score = circ
@@ -207,11 +207,11 @@ def detect_layout(frame: np.ndarray, profile: Profile, memory: SeatMemory | None
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     felt = _felt_rect(hsv, profile)
     if felt is None:
-        return TableLayout(found=False, warnings=["kein Pokertisch (Filz) erkannt"])
+        return TableLayout(found=False, warnings=['no poker table (felt) recognized'])
     ref = profile["reference"]
     lay = TableLayout(found=True, felt=felt)
 
-    # Grobe Mindestflaeche aus Filzbreite (Referenz: Panel 133 px bei Filz 1905 px)
+    # Rough minimum area from felt width (reference: panel 133 px at felt 1905 px)
     est_scale = felt.w / 1905.0
     comps = _dark_components(hsv, felt, profile, min_area=int(4000 * est_scale * est_scale))
 
@@ -226,12 +226,12 @@ def detect_layout(frame: np.ndarray, profile: Profile, memory: SeatMemory | None
         if 0.9 <= aspect <= 1.9:
             panels.append(r)
         elif r.w > 3 * r.h:
-            continue  # duenne Streifen (z. B. Fensterrand)
+            continue  # thin strip (e.g. window edge)
         else:
             lay.unmatched_panels.append(r)
 
-    # Eigenes Panel: unten, waagerecht am naechsten zur Mitte (PokerTH zeigt den eigenen Platz immer dort).
-    # Nicht "groesstes Panel": ein Nachbar mit Einsatzzeile kann groesser sein.
+    # Own panel: bottom, horizontally closest to the center (PokerTH always shows the own seat there).
+    # Not "largest panel": a neighbor with a bet line can be larger.
     lower = [i for i, r in enumerate(panels) if r.cy > felt.y + 0.5 * felt.h and abs(r.cx - felt.cx) < 0.12 * felt.w]
     hero_i = min(lower, key=lambda i: abs(panels[i].cx - felt.cx)) if lower else None
     others = [p.w for i, p in enumerate(panels) if i != hero_i]
@@ -241,7 +241,7 @@ def detect_layout(frame: np.ndarray, profile: Profile, memory: SeatMemory | None
         lay.scale = panels[hero_i].w / ref["hero_panel_w"]
     else:
         lay.scale = est_scale
-        lay.warnings.append("Massstab aus Filzbreite geschaetzt (keine Panels)")
+        lay.warnings.append('scale estimated from felt width (no panels)')
     s = lay.scale
 
     memory = memory or SeatMemory(profile["anchor_tolerance"])
@@ -257,7 +257,7 @@ def detect_layout(frame: np.ndarray, profile: Profile, memory: SeatMemory | None
         main = Rect(r.x, r.y, r.w, min(r.h, main_h))
         lay.seats[n] = SeatPanel(n, main, r, has_bet, hero)
     if lay.unmatched_panels:
-        lay.warnings.append(f"{len(lay.unmatched_panels)} Panel(s) ohne Sitz")
+        lay.warnings.append(f"{len(lay.unmatched_panels)} panel(s) without seat")
 
     lay.board_slots = [
         Rect(int(felt.x + b[0] * felt.w), int(felt.y + b[1] * felt.h), int(b[2] * felt.w), int(b[3] * felt.h))
@@ -273,7 +273,7 @@ def detect_layout(frame: np.ndarray, profile: Profile, memory: SeatMemory | None
         lay.info_center = Rect(int(felt.cx), top, 0, 0).sub(*info["center"], scale=s)
         lay.info_right = Rect(felt.x2, top, 0, 0).sub(*info["right"], scale=s)
     else:
-        lay.warnings.append("Infozeile oberhalb des Filzes nicht im Bild")
+        lay.warnings.append('info line above the felt not in image')
 
     lay.markers = _find_markers(hsv, felt, lay, profile)
     return lay

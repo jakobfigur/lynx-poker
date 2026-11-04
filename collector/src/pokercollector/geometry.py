@@ -1,4 +1,4 @@
-"""Einfache Rechteck-Geometrie in Pixelkoordinaten (x, y, Breite, Hoehe)."""
+"""Simple rectangular geometry in pixel coordinates (x, y, width, height)."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ class Rect:
         return Rect(self.x - d, self.y - d, self.w + 2 * d, self.h + 2 * d)
 
     def sub(self, rx: float, ry: float, rw: float, rh: float, scale: float = 1.0) -> "Rect":
-        """Teilrechteck relativ zur linken oberen Ecke, Masse in Referenzpixeln * scale."""
+        """Subrectangle relative to the top-left corner, dimensions in reference pixels * scale."""
         return Rect(
             int(round(self.x + rx * scale)),
             int(round(self.y + ry * scale)),

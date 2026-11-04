@@ -1,4 +1,4 @@
-"""Kalibrier-Overlay und lesbare Berichte (Markdown)."""
+""" Calibration overlay and human-readable reports (Markdown)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def overlay(frame: np.ndarray, snap: TableSnapshot) -> np.ndarray:
     img = frame.copy()
     lay = snap.layout
     if lay is None or not lay.found:
-        cv2.putText(img, "KEIN TISCH ERKANNT", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+        cv2.putText(img, 'NO TABLE DETECTED', (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
         return img
 
     def box(r, color, label=None, thick=2):
@@ -36,7 +36,7 @@ def overlay(frame: np.ndarray, snap: TableSnapshot) -> np.ndarray:
         c = (snap.get("board.cards") or [None] * 5)[i]
         box(r, (255, 0, 255), c or "-", 1)
     if lay.action_bar:
-        box(lay.action_bar, (0, 128, 255), "Du bist dran")
+        box(lay.action_bar, (0, 128, 255), "It's your turn")
     for m in lay.markers:
         box(m.rect, (255, 255, 255), f"{m.kind}->{m.seat}", 1)
     for n, p in lay.seats.items():
@@ -50,7 +50,7 @@ def overlay(frame: np.ndarray, snap: TableSnapshot) -> np.ndarray:
         box(p.full_rect, color, label)
     for r in lay.unmatched_panels:
         box(r, (0, 0, 255), "?", 1)
-    info = f"Spiel/Hand {snap.get('info.game_hand')}  {snap.get('info.street')}  Blinds {snap.get('info.blinds')}"
+    info = f"Game/Hand {snap.get('info.game_hand')}  {snap.get('info.street')}  Blinds {snap.get('info.blinds')}"
     cv2.putText(img, info, (10, img.shape[0] - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4)
     cv2.putText(img, info, (10, img.shape[0] - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
     return img
@@ -65,27 +65,27 @@ def _cards(cs) -> str:
 def hands_markdown(session_root: Path) -> str:
     meta = json.loads((session_root / "session.json").read_text("utf-8"))
     data = json.loads((session_root / "hands.json").read_text("utf-8"))
-    lines = [f"# Sitzung {meta['session_id']}", "",
-             f"- Quelle: `{meta['source'].get('type')}` {meta['source'].get('path') or meta['source'].get('title') or ''}",
-             f"- Profil: {meta['profile']}, Analyzer: {meta['analyzer_version']}, "
-             f"Rekonstruktion: {data['reconstruct_version']}",
-             f"- Statistik: {meta.get('stats')}",
-             f"- Luecken: {len(meta.get('gaps', []))}, Fehler: {len(meta.get('errors', []))}", ""]
+    lines = [f"# Session {meta['session_id']}", "",
+             f"- Source: `{meta['source'].get('type')}` {meta['source'].get('path') or meta['source'].get('title') or ''}",
+             f"- Profile: {meta['profile']}, Analyzer: {meta['analyzer_version']}, "
+             f"Reconstruction: {data['reconstruct_version']}",
+             f"- Statistics: {meta.get('stats')}",
+             f"- Gaps: {len(meta.get('gaps', []))}, Errors: {len(meta.get('errors', []))}", ""]
     hands = data["hands"]
     complete = sum(1 for h in hands if h["status"] == "complete")
-    lines.append(f"**{len(hands)} Haende, davon {complete} vollstaendig.**")
+    lines.append(f"**{len(hands)} hands, of which {complete} complete.**")
     lines.append("")
     for h in hands:
-        lines.append(f"## Spiel {h['game_no']} Hand {h['hand_no']} - {h['status']}")
+        lines.append(f"## Game {h['game_no']} Hand {h['hand_no']} - {h['status']}")
         if h["status_reasons"]:
-            lines.append("Gruende: " + "; ".join(h["status_reasons"]))
+            lines.append('Reasons: ' + "; ".join(h["status_reasons"]))
         lines.append(f"Dealer {h['dealer']}, SB {h['sb_seat']}, BB {h['bb_seat']}, Blinds {h['blinds']}, "
                      f"Board {_cards(h['board'])}")
         for s, si in h["seats"].items():
             if si.get("cards"):
-                lines.append(f"- Sitz {s} {si.get('name')}: {_cards(si['cards'])} ({si.get('cards_source')})")
+                lines.append(f"- Seat {s} {si.get('name')}: {_cards(si['cards'])} ({si.get('cards_source')})")
         lines.append("")
-        lines.append("| Strasse | Sitz | Name | Aktion | auf | + | Quelle | Konf. | Notiz |")
+        lines.append('| Street | Seat | Name | Action | on | + | Source | Conf. | Note |')
         lines.append("|---|---|---|---|---|---|---|---|---|")
         for a in h["actions"]:
             lines.append(f"| {a['street']} | {a['seat']} | {a['name'] or ''} | {a['type']}{' (all-in)' if a['allin'] else ''}"
@@ -93,25 +93,25 @@ def hands_markdown(session_root: Path) -> str:
                          f" | {a['source']} | {a['confidence']:.2f} | {a['note']} |")
         if h["contradictions"]:
             lines.append("")
-            lines.append("Widersprueche: " + "; ".join(h["contradictions"]))
+            lines.append('Contradictions: ' + "; ".join(h["contradictions"]))
         if h["gaps"]:
-            lines.append("Luecken: " + "; ".join(h["gaps"]))
+            lines.append('Gaps: ' + "; ".join(h["gaps"]))
         lines.append("")
     return "\n".join(lines)
 
 
 def compare_markdown(result: dict) -> str:
-    lines = ["# Vergleich visuell vs. Export", "",
-             f"Haende visuell {result['hands_visual']}, Referenz {result['hands_reference']}, "
-             f"zugeordnet {result['hands_matched']}", "",
-             f"Sitzzuordnung (visuell -> Referenz): {result['seat_map']}", "",
-             "| Feld | Treffer | Abweichung | fehlt | zusaetzlich | nicht sichtbar | Precision | Recall |",
+    lines = ['# Visual vs. Export Comparison', "",
+             f"Hands visually {result['hands_visual']}, reference {result['hands_reference']}, "
+             f"matched {result['hands_matched']}", "",
+             f"Seat assignment (visual -> reference): {result['seat_map']}", "",
+             '| Field | Hits | Deviation | missing | additional | not visible | Precision | Recall |',
              "|---|---|---|---|---|---|---|---|"]
     for k, v in result["fields"].items():
         lines.append(f"| {k} | {v['match']} | {v['mismatch']} | {v['missing']} | {v['extra']} | {v['not_visible']}"
                      f" | {v['precision'] if v['precision'] is not None else '-'}"
                      f" | {v['recall'] if v['recall'] is not None else '-'} |")
-    lines += ["", f"Betragssemantik der Referenz (gezaehlte Treffer): {result['amount_semantics']}", ""]
+    lines += ["", f"Amount semantics of the reference (counted hits): {result['amount_semantics']}", ""]
     for d in result["details"]:
         if d["issues"]:
             lines.append(f"## Hand {d['visual_hand']} ({d['status']})")

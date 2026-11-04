@@ -17,7 +17,7 @@ def test_param_roundtrip_and_spec():
 
 
 def test_scheme_payouts_zero_sum_against_itself():
-    # Kandidat = tag gegen Pool aus tag-Kopien: alle identisch -> exakt 0 je Schema
+    # candidate = tag against pool of tag copies: all identical -> exactly 0 per scheme
     pays = scheme_payouts(spec_from_params(params_from_style("tag")), ["tag", "tag"], [1, 2], TINY)
     assert all(abs(x) < 1e-9 for x in pays)
 
@@ -29,13 +29,13 @@ def test_cem_and_gate_run(tmp_path):
     assert res["center"]["spec"].startswith("tag?")
     g = gate(res["center"]["spec"], "random", schemes=8, pool=["station", "rock"], config=TINY, workers=2)
     assert g["schemes"] == 8 and len(g["ci95"]) == 2
-    assert g["diff_roi"] > 0                       # optimierter tag schlaegt einen Zufallsspieler
+    assert g["diff_roi"] > 0                       # optimized tag beats a random player
 
 
 def test_resume_gives_same_result_as_uninterrupted(tmp_path):
     kw = dict(population=3, schemes_per_gen=1, pool=["station", "random"], config=TINY, workers=2, seed=4)
     full = run_cem(generations=2, out_dir=tmp_path / "a", **kw)
-    run_cem(generations=1, out_dir=tmp_path / "b", **kw)                 # "Abbruch" nach Generation 1
+    run_cem(generations=1, out_dir=tmp_path / "b", **kw)                 # "Abort" after generation 1
     resumed = run_cem(generations=2, out_dir=tmp_path / "b", resume=True, **kw)
     assert [e["generation"] for e in resumed["generations"]] == [1, 2]
     assert resumed["center"] == full["center"]
@@ -60,7 +60,7 @@ def test_league_pool_sampling_weights_and_self_play():
     counts = {}
     for _ in range(400):
         t = lp.sample(rng)
-        assert len(t) == 3 and len(set(t)) == 3          # ohne Zuruecklegen
+        assert len(t) == 3 and len(set(t)) == 3          # without replacement
         for s in t:
             counts[s] = counts.get(s, 0) + 1
     assert counts["rock"] > counts["lag"] > counts["random"] > 0
@@ -78,7 +78,7 @@ def test_cem_and_gate_with_league_pool(tmp_path):
     assert "league" in full["pool"]
     run_cem(generations=1, out_dir=tmp_path / "b", **kw)
     resumed = run_cem(generations=2, out_dir=tmp_path / "b", resume=True, **kw)
-    assert resumed["center"] == full["center"]          # Tische sind reproduzierbar
+    assert resumed["center"] == full["center"]          # tables are reproducible
     g = gate(full["center"]["spec"], "random", schemes=8, pool=LeaguePool(players, table=2, self_play=0),
              config=TINY, workers=2)
     assert g["schemes"] == 8 and g["diff_roi"] > 0

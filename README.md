@@ -6,11 +6,11 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](collector/pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-56d8c1)](LICENSE)
 
-[Quick start](#quick-start) · [Architecture](#how-it-works) · [Documentation](docs/README.md) · [Deutsch](README.de.md) · [Contributing](CONTRIBUTING.md)
+[Quick start](#quick-start) · [Architecture](#how-it-works) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
 **A poker AI built from screen pixels up: a collector that reads PokerTH games purely from the screen, and a self-trained No-Limit Hold'em bot that advises live.**
 
-Built in eight days (25 Oct – 1 Nov 2026) on a laptop without a GPU, with about €6 of rented cloud compute. Developed by Jakob Figur with Claude Code. Documentation is in German; this README is in English and German ([deutsche Fassung](README.de.md)).
+Built in eight days (25 Oct – 1 Nov 2026) on a laptop without a GPU, with about €6 of rented cloud compute. Developed by Jakob Figur. Documentation, source comments and CLI help are in English.
 
 > **Not for real-money play.** Bots and real-time assistance are prohibited on real-money poker sites and may be illegal. Lynx was developed and tested only against PokerTH (open source, play money) and public research benchmarks. The live advisor only displays suggestions in a normal, visible window; it never clicks or controls the browser, and it does not hide from screen recording or screen sharing.
 
@@ -78,7 +78,7 @@ uv run --project collector pokercollector bench run lynx-4-300 --sets hu48
 uv run --project collector pokercollector play --mode tournament --opponents lynx-4-300,tag,rock
 ```
 
-On Windows the wrappers `sync.cmd`, `tests.cmd` and `pc.cmd <command>` do the same; on Linux/macOS use `./pc.sh <command>`. Collector, Windows only: `pc.cmd calibrate collector\testdata\pokerth_preflop_hand1.png` analyses the test screenshot and writes an overlay image. All commands: [CLI reference](docs/CLI-REFERENZ.md).
+On Windows the wrappers `sync.cmd`, `tests.cmd` and `pc.cmd <command>` do the same; on Linux/macOS use `./pc.sh <command>`. Collector, Windows only: `pc.cmd calibrate collector\testdata\pokerth_preflop_hand1.png` analyses the test screenshot and writes an overlay image. All commands: [CLI reference](docs/CLI_REFERENCE.md).
 
 ## Repository layout
 
@@ -90,26 +90,25 @@ data/             small starter pack: league file and trained checkpoints (about
 docs/             technical documentation, case study, API and CLI reference, data and licences, project notes
 ```
 
-## Documentation (German)
+## Documentation
 
 | Document | Content |
 | --- | --- |
 | [CASE-STUDY.md](docs/CASE-STUDY.md) | what was built, how and why, stage by stage, with all results and lessons |
-| [TECHNISCHE-DOKUMENTATION.md](docs/TECHNISCHE-DOKUMENTATION.md) | architecture, every module, data formats, operations, reproduction |
-| [API-REFERENZ.md](docs/API-REFERENZ.md) · [CLI-REFERENZ.md](docs/CLI-REFERENZ.md) | generated from the code |
-| [DATEN-UND-LIZENZEN.md](docs/DATEN-UND-LIZENZEN.md) | what data and models are included, what is not, third-party sources |
-| [projektnotizen/](docs/projektnotizen/) | the original working notes, plans and night logs |
+| [TECHNICAL_DOCUMENTATION.md](docs/TECHNICAL_DOCUMENTATION.md) | architecture, every module, data formats, operations, reproduction |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) · [CLI_REFERENCE.md](docs/CLI_REFERENCE.md) | generated from the code |
+| [DATA_AND_LICENSES.md](docs/DATA_AND_LICENSES.md) | what data and models are included, what is not, third-party sources |
+| [research-notes/](docs/research-notes/) | the original working notes, plans and night logs |
 
 ## Data and models
 
-Included: the league file and ten small checkpoints (lynx-4, lynx-5t, the human model and seven earlier generations), the human-style bots and the fold model. Not included: screen recordings, card templates (harvest your own with `harvest-cards`), value-net training data (8 GB), the value nets themselves (77 MB each) and third-party hand histories, which come from the [PHH dataset](https://github.com/uoftcprg/phh-dataset). Details: [DATEN-UND-LIZENZEN.md](docs/DATEN-UND-LIZENZEN.md).
-
+Included: the league file and ten small checkpoints (lynx-4, lynx-5t, the human model and seven earlier generations), the human-style bots and the fold model. Not included: screen recordings, card templates (harvest your own with `harvest-cards`), value-net training data (8 GB), the value nets themselves (77 MB each) and third-party hand histories, which come from the [PHH dataset](https://github.com/uoftcprg/phh-dataset). Details: [DATA_AND_LICENSES.md](docs/DATA_AND_LICENSES.md).
 ## Limitations
 
 - Most measurements are against bots and against a model of 2009 online players; there are no results against real humans yet.
 - The second external benchmark (GTO Wizard) was requested but not yet available.
 - The collector is calibrated to the PokerTH web client; other clients need their own layout profile and card templates.
-- Code comments, CLI output and documentation are in German.
+- Command names and historical artifact paths retain their original spelling for compatibility.
 
 ## Licence and acknowledgements
 
@@ -117,4 +116,4 @@ MIT, see [LICENSE](LICENSE). Third-party data keeps its own terms.
 
 Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). For vulnerabilities, follow the [security policy](SECURITY.md).
 
-Thanks to the PokerTH project; to the [PHH dataset](https://github.com/uoftcprg/phh-dataset) (MIT) for the Pluribus hands (Brown & Sandholm, *Science* 2019) and the HandHQ histories; to Slumbot for its public API. Ideas come from DeepStack, Libratus, Pluribus, ReBeL and DecisionHoldem. Built with [Claude Code](https://claude.com/claude-code).
+Thanks to the PokerTH project; to the [PHH dataset](https://github.com/uoftcprg/phh-dataset) (MIT) for the Pluribus hands (Brown & Sandholm, *Science* 2019) and the HandHQ histories; to Slumbot for its public API. Ideas come from DeepStack, Libratus, Pluribus, ReBeL and DecisionHoldem.

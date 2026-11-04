@@ -1,21 +1,21 @@
-"""HandHQ-Showdown-Entscheidungen mit bekannten Karten -> Trainingsdaten fuer ein Menschen-Politiknetz (Hebel H11).
+"""HandHQ showdown decisions with known cards -> training data for a human policy network (lever H11).
 
-HandHQ (PHH-Format, .phhs = viele Haende je Datei, 25NL PokerStars/Party 2009, obfuskierte Namen) kennt die
-Lochkarten nur, wenn sie am Showdown gezeigt wurden ('p3 sm AhKd'). Von diesen Spielern wird jede Entscheidung
-der Hand gesammelt: die Hand wird mit unserer Engine nachgespielt (wie phh.replay fuer Pluribus), an jeder
-Entscheidung eines gezeigten Spielers entsteht dieselbe Observation wie beim Blueprint, daraus Merkmale
-(features.py, feat-2) und das Aktionsraster (from_action, 8 Aktionen). Ein darauf trainiertes Netz hat damit
-dieselbe Schnittstelle wie das Blueprint und passt ohne Umbau als Gegnermodell in bpranges (ranges=human).
+HandHQ (PHH format, .phhs = many hands per file, 25NL PokerStars/Party 2009, obfuscated names) knows the
+hole cards only if they were shown at showdown ('p3 sm AhKd'). From these players every decision
+in the hand is collected: the hand is replayed with our engine (like phh.replay for Pluribus), at every
+decision of a shown player the same observation arises as at the Blueprint, from which features
+(features.py, feat-2) and the action grid (from_action, 8 actions) are derived. A net trained on this has
+the same interface as the Blueprint and fits without modification as an opponent model in bpranges (ranges=human).
 
-Verzerrung: Showdown-Haende sind nicht alle Haende (wer frueh foldet, zeigt nicht). Preflop-Ranges gehoeren darum
-weiter aus den unverzerrten Statistiken aller Haende (humans.py), aus den Showdowns kommen die BEDINGTEN
-Postflop-Ranges (mit welchen Haenden bettet/callt/raist ein Normalspieler in dieser Lage). Dazu liefert jede
-Zeile Metadaten (Strasse, Position, Pot, to_call, Stack, Aktion, Handklasse, Spieler), damit sich die Verzerrung
-spaeter messen und gewichten laesst.
+Bias: showdown hands are not all hands (folding early shows no cards). Preflop ranges therefore
+come from the unbiased statistics of all hands (humans.py), the CONDITIONAL postflop ranges
+(from which hands a normal player bets/calls/raises in this situation) come from the showdowns.
+Each line provides metadata (street, position, pot, to_call, stack, action, hand class, player) to later
+measure and weight the bias.
 
-Vorstudie 30.10. (40 von 5.989 Dateien): 21,7 % der Haende mit gezeigten Karten, hochgerechnet 1,24 Mio
-Showdown-Haende und 7,5 Mio Entscheidungen mit Karten (pre 2,2 / flop 2,1 / turn 1,8 / river 1,5 Mio).
-Keine Personen, keine eigenen Aufnahmen; Quelle laut PROJEKTUEBERGABE erlaubt (PHH/HandHQ).
+Pilot study 30.10. (40 of 5,989 files): 21.7% of hands with shown cards, extrapolated 1.24 million
+showdown hands and 7.5 million decisions with cards (pre 2.2 / flop 2.1 / turn 1.8 / river 1.5 million).
+No persons, no own recordings; source approved according to PROJECT HANDOVER (PHH/HandHQ).
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from .tables import all_classes, hand_class
 HUMANDATA_VERSION = "humandata-1"
 FEATURES = "feat-2"
 N_ACTIONS = 8
-SCALE = 100                     # Dollar -> Cent: die Engine rechnet in ganzen Chips
+SCALE = 100                     # Dollars -> cents: the engine calculates in whole chips
 STREETS = {"preflop": 0, "flop": 1, "turn": 2, "river": 3}
 CLASS_ID = {c: i for i, c in enumerate(all_classes())}
 META_FIELDS = ("street", "position", "n_players", "n_live", "pot_bb", "to_call_bb", "stack_bb", "kind",
@@ -64,8 +64,8 @@ def _deck(holes: list[list[str] | None], board: list[str], seed: int) -> list[st
 
 
 def replay_handhq(hand: dict, hand_no: int = 0, version: str = FEATURES, n_actions: int = N_ACTIONS):
-    """Eine HandHQ-Hand nachspielen. Rueckgabe (ok, problem, samples); samples = Liste
-    (x float32, mask bool, aktion int, meta dict) nur fuer Spieler mit gezeigten Karten."""
+    """Replay one HandHQ hand. Return (ok, problem, samples); samples = list
+    (x float32, mask bool, action int, meta dict) only for players with shown cards."""
     if hand.get("variant") != "NT":
         return False, "Variante", []
     blinds = hand.get("blinds_or_straddles") or []
@@ -87,14 +87,14 @@ def replay_handhq(hand: dict, hand_no: int = 0, version: str = FEATURES, n_actio
             if 0 <= s < n:
                 holes[s] = _split(p[2])
     if not any(holes):
-        return False, "keine Karten", []
+        return False, 'no cards', []
     if len(set(c for h in holes if h for c in h) | set(board)) != sum(2 for h in holes if h) + len(board):
         return False, "Kartenkonflikt", []
     stacks = [int(round(float(s) * SCALE)) for s in starts]
     sb, bb = int(round(float(blinds[0]) * SCALE)), int(round(float(blinds[1]) * SCALE))
     if bb <= 0 or min(stacks) <= 0:
         return False, "Stacks/Blinds", []
-    button = 0 if n == 2 else n - 1            # PHH: p1 = SB, p2 = BB, letzter = Button; heads-up ist SB der Button
+    button = 0 if n == 2 else n - 1            # PHH: p1 = SB, p2 = BB, last = Button; heads-up SB is the Button
     try:
         h = Hand(stacks, button, sb, bb, deck=_deck(holes, board, hand_no), hand_id=f"hq-{hand_no}")
     except (ValueError, IllegalAction) as e:
@@ -107,7 +107,7 @@ def replay_handhq(hand: dict, hand_no: int = 0, version: str = FEATURES, n_actio
             continue
         seat = int(p[0][1:]) - 1
         if h.done:
-            return False, "Aktion nach Handende", []
+            return False, 'Action after hand ended', []
         if h.to_act != seat:
             return False, "Reihenfolge", []
         obs = h.observation(seat)
@@ -121,7 +121,7 @@ def replay_handhq(hand: dict, hand_no: int = 0, version: str = FEATURES, n_actio
             return False, "Aktion", []
         legal = clamp_action(obs, act)
         if legal != act and not (act.kind == "fold" and obs.can_check):
-            return False, "nicht regelkonform", []
+            return False, 'not compliant with rules', []
         if seat in known:
             pot = max(obs.pot, 1)
             live = [s for s in range(n) if obs.in_hand[s] and not obs.folded[s]]
@@ -159,7 +159,7 @@ def _process_files(args):
             hand_no += 1
             report["hands"] += 1
             ok, problem, samples = replay_handhq(hand, hand_no, version, n_actions)
-            if problem == "keine Karten":
+            if problem == 'no cards':
                 continue
             report["with_cards"] += 1
             if not ok:
@@ -188,8 +188,8 @@ def _process_files(args):
 
 def extract(files: list[Path], out_dir: Path | str, workers: int = 2, files_per_shard: int = 50,
             version: str = FEATURES, n_actions: int = N_ACTIONS, progress=None) -> dict:
-    """Alle Dateien nachspielen, je files_per_shard Dateien eine Scherbe human-<nr>.npz (schon vorhandene Scherben
-    werden uebersprungen: Wiederaufnahme). Rueckgabe: Gesamtbericht."""
+    """Replay all files, every files_per_shard files one shard human-<nr>.npz (already existing shards
+    are skipped: resume). Return: overall report."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     chunks = [files[i:i + files_per_shard] for i in range(0, len(files), files_per_shard)]
@@ -223,8 +223,8 @@ def extract(files: list[Path], out_dir: Path | str, workers: int = 2, files_per_
 
 
 def load(out_dir: Path | str, max_shards: int | None = None) -> dict:
-    """Scherben zusammenfuegen (x float16, mask, a, Metadaten; player wird je Scherbe neu nummeriert ->
-    hier als 'player_key' = Scherbe*1e6 + id eindeutig gemacht)."""
+    """Merge shards (x float16, mask, a, metadata; player gets renumbered per shard ->
+    here uniquely as 'player_key' = shard*1e6 + id)."""
     out_dir = Path(out_dir)
     files = sorted(out_dir.glob("human-*.npz"))[:max_shards]
     parts = [np.load(f, allow_pickle=False) for f in files]
@@ -234,11 +234,11 @@ def load(out_dir: Path | str, max_shards: int | None = None) -> dict:
     return d
 
 
-# ---- Zweite Extraktion: ALLE Entscheidungen ohne Kartenwissen (Fold-Modell, H11 Schritt 2b) -------------------
-# Die erste Extraktion kennt keine Folds (wer foldet, zeigt nicht). Hier wird jede Entscheidung jedes Spielers
-# mit einem kartenfreien oeffentlichen Zustand gespeichert: daraus P(fold | Zustand) und, mit den gezeigten
-# Karten der Nicht-Folder, die Verteilung der weiterspielenden Haende -> Fold-Wahrscheinlichkeit je Handklasse
-# als Bayes-Rest: P(cont | c, s) = P(c | s, cont) * P(cont | s) / P(c | s).
+# ---- Second extraction: ALL decisions without card knowledge (fold model, H11 step 2b) -------------------
+# The first extraction knows no folds (those who fold do not show cards). Here every decision of every player
+# is stored with a card-free public state: from this P(fold | state) and, with the shown
+# cards of the non-folders, the distribution of continuing hands -> fold probability per hand class
+# as Bayes remainder: P(cont | c, s) = P(c | s, cont) * P(cont | s) / P(c | s).
 
 PUBLIC_FIELDS = ("street", "position", "n_players", "n_live", "pot_bb", "to_call_bb", "stack_bb", "raises_street",
                  "raises_pre", "facing", "aggressor", "board_paired", "board_suited", "board_high", "kind",
@@ -246,7 +246,7 @@ PUBLIC_FIELDS = ("street", "position", "n_players", "n_live", "pot_bb", "to_call
 
 
 def public_rows(hand: dict, hand_no: int = 0):
-    """Alle Entscheidungen einer HandHQ-Hand als kartenfreie Zustandszeilen (hole_class -1 = unbekannt)."""
+    """All decisions of a HandHQ hand as card-free state lines (hole_class -1 = unknown)."""
     from ..poker import RANKS
     if hand.get("variant") != "NT":
         return False, "Variante", []
@@ -296,7 +296,7 @@ def public_rows(hand: dict, hand_no: int = 0):
             return False, "Aktion", []
         legal = clamp_action(obs, act)
         if legal != act and not (act.kind == "fold" and obs.can_check):
-            return False, "nicht regelkonform", []
+            return False, 'not compliant with rules', []
         live = [s for s in range(n) if obs.in_hand[s] and not obs.folded[s]]
         st_acts = obs.street_actions()
         aggressors = [x.seat for x in obs.history if x.kind in ("bet", "raise")]
@@ -347,7 +347,7 @@ def _process_public(args):
 
 def extract_public(files: list[Path], out_dir: Path | str, workers: int = 2, files_per_shard: int = 50,
                    progress=None) -> dict:
-    """Alle Entscheidungen (mit und ohne Karten) als kartenfreie Zeilen, Scherben public-<nr>.npz."""
+    """All decisions (with and without cards) as card-free lines, shards public-<nr>.npz."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     chunks = [files[i:i + files_per_shard] for i in range(0, len(files), files_per_shard)]

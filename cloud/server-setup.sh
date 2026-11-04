@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Einmalige Einrichtung eines frischen Hetzner-Servers (Ubuntu 24.04) fuer Lynx-Rechenlaeufe.
-# Wird von cloud/hetzner.py create aufgerufen, nachdem der Code nach /opt/lynx kopiert wurde.
+# One-time setup of a fresh Hetzner server (Ubuntu 24.04) for Lynx runs.
+# Called by cloud/hetzner.py create after code has been copied to /opt/lynx.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 cd /opt/lynx
@@ -13,14 +13,14 @@ if ! command -v uv > /dev/null; then
 fi
 export PATH="$HOME/.local/bin:$PATH"
 
-# Python + Pakete (torch-CPU ueber den pyproject-Index, numba, numpy, opencv headless reicht nicht: pyproject
-# verlangt opencv-python, das mit libgl1 laeuft). Kein dev-Gruppe (pytest) noetig.
+# Python + packages (torch-CPU via pyproject index, numba, numpy, headless opencv not enough: pyproject
+# requires opencv-python, which runs with libgl1). No dev group (pytest) needed.
 cd collector
 uv python install 3.12 > /dev/null
 uv sync --quiet --no-dev
 cd ..
 
-# Rauchtest: Kernel kompiliert, 20 River-Situationen loesen
+# Smoke test: kernel compiles, solves 20 river situations
 ./pc.sh train valuedata river --n 20 --seed 999000000 --workers 2 --threads 1 --out /opt/lynx/data/valuenet/smoke.npz
 rm -f /opt/lynx/data/valuenet/smoke.npz
-echo "Server eingerichtet: $(nproc) Kerne, $(free -g | awk '/Mem/{print $2}') GB RAM"
+echo "Server configured: $(nproc) cores, $(free -g | awk '/Mem/{print $2}') GB RAM"

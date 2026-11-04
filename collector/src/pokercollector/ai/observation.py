@@ -1,9 +1,8 @@
-"""Die gemeinsame Schnittstelle: was ein Spieler sieht (Observation) und was er tut (Action).
+"""The common interface: what a player sees (Observation) and what he does (Action).
 
-Dieselbe Observation entsteht im Simulator, im Replay aufgezeichneter Haende und live
-aus dem Collector. Sie enthaelt nur sichtbare Information: eigene Karten, Board,
-Stacks, Einsaetze, Positionen und den oeffentlichen Aktionsverlauf - nie fremde
-verdeckte Karten.
+The same observation is generated in the simulator, in replay of recorded hands, and live
+from the collector. It contains only visible information: own cards, board,
+stacks, bets, positions, and public action history - never opponents’ hidden cards.
 """
 
 from __future__ import annotations
@@ -17,7 +16,7 @@ STREETS = ("preflop", "flop", "turn", "river")
 @dataclass(frozen=True)
 class Action:
     kind: str                    # 'fold' | 'check' | 'call' | 'raise'
-    amount: int | None = None    # nur bei 'raise': Gesamteinsatz dieser Strasse NACH der Aktion ("raise auf")
+    amount: int | None = None    # only with 'raise': total bet on this street AFTER the action ("raise to")
 
     def __str__(self):
         return f"{self.kind} {self.amount}" if self.kind == "raise" else self.kind
@@ -44,32 +43,32 @@ class PublicAction:
     street: str
     seat: int
     kind: str                    # post_sb, post_bb, fold, check, call, bet, raise
-    amount_to: int | None        # Strasseneinsatz danach
-    added: int                   # zusaetzlich gesetzt
+    amount_to: int | None        # street bet afterwards
+    added: int                   # additionally posted
     allin: bool = False
 
 
 @dataclass
 class Observation:
-    seat: int                            # eigener Platz
+    seat: int                            # own seat
     num_seats: int
-    hole_cards: list[str]                # eigene Karten (leer, wenn unbekannt)
-    board: list[str]                     # sichtbare Boardkarten
+    hole_cards: list[str]                # own cards (empty if unknown)
+    board: list[str]                     # visible board cards
     street: str
     button: int
     sb_seat: int | None
     bb_seat: int | None
     big_blind: int
     small_blind: int
-    stacks: list[int]                    # aktuelle Stacks (ohne bereits gesetzte Chips)
-    bets: list[int]                      # Einsaetze dieser Strasse
-    committed: list[int]                 # insgesamt in dieser Hand gesetzt (inkl. bets)
+    stacks: list[int]                    # current stacks (excluding already posted chips)
+    bets: list[int]                      # bets on this street
+    committed: list[int]                 # total bet in this hand (including bets)
     folded: list[bool]
     allin: list[bool]
-    in_hand: list[bool]                  # hat Karten bekommen
+    in_hand: list[bool]                  # has been dealt cards
     history: list[PublicAction]
-    # Rechtliches, vom Spielleiter berechnet
-    to_call: int                         # zusaetzlich noetig zum Mitgehen (begrenzt durch eigenen Stack)
+    # legal amount, calculated by the dealer
+    to_call: int                         # additionally required to call (capped by own stack)
     can_check: bool
     can_raise: bool
     min_raise_to: int | None
@@ -77,19 +76,19 @@ class Observation:
     hand_id: str = ""
     names: list[str | None] = field(default_factory=list)
     source: str = "sim"                  # 'sim' | 'replay' | 'live'
-    uncertain: list[str] = field(default_factory=list)   # bei replay/live: was unsicher ist
-    # Turnier (None im Cash-Game): level, sb, bb, hands_to_next_level, players_left,
-    # start_players, average_stack, payouts (Anteile je Platz), hand_no
+    uncertain: list[str] = field(default_factory=list)   # for replay/live: what is uncertain
+    # tournament (None in cash game): level, sb, bb, hands_to_next_level, players_left,
+    # start_players, average_stack, payouts (shares per place), hand_no
     tournament: dict | None = None
 
     @property
     def stack_bb(self) -> float:
-        """Effektiver eigener Stack (inkl. gesetzter Chips) in Big Blinds."""
+        """Effective own stack (including chips already bet) in big blinds."""
         return (self.my_stack + self.my_bet) / self.big_blind if self.big_blind else float("inf")
 
     @property
     def pot(self) -> int:
-        """Gesamter Pot inkl. aller Einsaetze auf dem Tisch."""
+        """Entire pot including all bets on the table."""
         return sum(self.committed)
 
     @property
@@ -111,13 +110,13 @@ class Observation:
 
     @property
     def active_opponents(self) -> int:
-        """Gegner, die noch handeln koennen (nicht gefoldet, nicht all-in)."""
+        """Opponents who can still act (not folded, not all-in)."""
         return sum(1 for s in range(self.num_seats)
                    if s != self.seat and self.in_hand[s] and not self.folded[s] and not self.allin[s])
 
     def position(self) -> int:
-        """0 = Button, 1 = Cutoff, ... (Abstand gegen den Uhrzeigersinn vom Button
-        unter den Spielern mit Karten). Hoeher = frueher."""
+        """0 = button, 1 = cutoff, ... (distance counterclockwise from the button among players with cards).
+        Higher = acts earlier."""
         order = [(self.button - k) % self.num_seats for k in range(self.num_seats)]
         live = [s for s in order if self.in_hand[s]]
         return live.index(self.seat) if self.seat in live else -1
@@ -145,8 +144,8 @@ class Agent(Protocol):
 
 
 def clamp_action(obs: Observation, action: Action) -> Action:
-    """Macht eine Agentenaktion regelkonform (z. B. Raise ueber Stack -> All-in).
-    Unzulaessige Absichten werden auf die naechste zulaessige Aktion abgebildet."""
+    """Makes an agent action legal (e.g., raise beyond stack -> all-in).
+    Illegal intentions are mapped to the next legal action."""
     if action.kind == "fold":
         return Action.check() if obs.can_check else Action.fold()
     if action.kind in ("check", "call"):
@@ -157,4 +156,4 @@ def clamp_action(obs: Observation, action: Action) -> Action:
         amt = action.amount if action.amount is not None else obs.min_raise_to
         amt = max(obs.min_raise_to, min(obs.max_raise_to, amt))
         return Action.raise_to(amt)
-    raise ValueError(f"unbekannte Aktion: {action}")
+    raise ValueError(f"unknown action: {action}")

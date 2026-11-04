@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# Nachtauftrag 31.10./1.11.: fehlende Turn-Scherben von lehrer-1 holen, pruefen, als Kaggle-Dataset-Version hochladen.
-# Aufruf aus dem Projektordner (Git-Bash):  MSYS_NO_PATHCONV=1 bash cloud/night-pull-turn.sh [IP]
-# Gibt am Ende "NACHT OK" aus, wenn alle 10 Scherben lokal und geprueft sind; sonst "NACHT UNVOLLSTAENDIG".
-# Den Server loescht dieses Skript NICHT (das macht Claude nach Sichtkontrolle: python cloud/hetzner.py delete lehrer-1).
+# Night task 31.10./1.11.: fetch missing turn fragments from teacher-1, check them, upload as Kaggle dataset version.
+# Call from project directory (Git-Bash):  MSYS_NO_PATHCONV=1 bash cloud/night-pull-turn.sh [IP]
+# Outputs "NIGHT OK" at the end if all 10 fragments are local and checked; otherwise "NIGHT INCOMPLETE".
+# This script does NOT delete the server (the operator does this after manual inspection: python cloud/hetzner.py delete teacher-1).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 IP="${1:-SERVER_IP}"
 KEY=data/cloud/lynx_hetzner
 DST=data/valuenet/hetzner-turn
 SSH="ssh -i $KEY -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o BatchMode=yes root@$IP"
-echo "$(date '+%F %T') Serverstand:"
-$SSH 'ls -la /opt/lynx/data/valuenet/ | grep turn-leaf; tail -2 /opt/lynx/data/vdata-turn.log; tail -1 /opt/lynx/data/after.log' || { echo "NACHT UNVOLLSTAENDIG (ssh)"; exit 1; }
+echo "$(date '+%F %T') Server status:"
+$SSH 'ls -la /opt/lynx/data/valuenet/ | grep turn-leaf; tail -2 /opt/lynx/data/vdata-turn.log; tail -1 /opt/lynx/data/after.log' || { echo "OVERNIGHT RUN INCOMPLETE (ssh)"; exit 1; }
 for i in 0 1 2 3 4 5 6 7 8 9; do
   f=$(printf "turn-leaf-%08d.npz" $((i * 2000)))
   if [[ -s "$DST/$f" ]]; then continue; fi
   if $SSH "test -s /opt/lynx/data/valuenet/$f"; then
-    echo "$(date '+%T') hole $f ..."
-    scp -q -i $KEY -o StrictHostKeyChecking=no "root@$IP:/opt/lynx/data/valuenet/$f" "$DST/$f.part" && mv "$DST/$f.part" "$DST/$f" || echo "FEHLER beim Holen von $f"
+    echo "$(date '+%T') fetching $f ..."
+    scp -q -i $KEY -o StrictHostKeyChecking=no "root@$IP:/opt/lynx/data/valuenet/$f" "$DST/$f.part" && mv "$DST/$f.part" "$DST/$f" || echo "ERROR fetching $f"
   else
-    echo "$f auf dem Server noch nicht fertig"
+    echo "$f not yet ready on the server"
   fi
 done
-echo "$(date '+%T') Pruefung:"
+echo "$(date '+%T') Validation:"
 cd collector
 PYTHONIOENCODING=utf-8 ../tools/uv/uv.exe run --quiet --no-sync python - <<'EOF'
 import json, glob, sys, numpy as np
@@ -40,7 +40,7 @@ sys.exit(1 if bad or len(files) < 10 else 0)
 EOF
 rc=$?
 cd ..
-if [[ $rc -ne 0 ]]; then echo "NACHT UNVOLLSTAENDIG (Scherben fehlen oder defekt, kein Upload)"; exit 1; fi
-echo "$(date '+%T') Upload Kaggle-Version Scherben0-9 ..."
+if [[ $rc -ne 0 ]]; then echo "OVERNIGHT RUN INCOMPLETE (shards missing or invalid, no upload)"; exit 1; fi
+echo "$(date '+%T') Upload Kaggle version shards0-9 ..."
 MSYS_NO_PATHCONV=1 bash cloud/kaggle-upload-turn.sh version Scherben0-9 2>&1 | tr '\r' '\n' | grep -v "%|" | tail -4
-echo "NACHT OK $(date '+%F %T')"
+echo "OVERNIGHT RUN OK $(date '+%F %T')"

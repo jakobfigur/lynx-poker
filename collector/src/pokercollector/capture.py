@@ -1,17 +1,17 @@
-"""Bildquellen und segmentierte Aufnahme.
+"""Image sources and segmented capture.
 
-- VideoFileSource: vorhandene Aufnahme (OBS, Xbox Game Bar, ...) Frame fuer Frame
-- ImageDirSource: Ordner mit Screenshots
-- WindowSource: Live-Aufnahme des Client-Bereichs eines gewaehlten Fensters per
-  Bildschirmausschnitt (mss). Es wird nur gelesen, niemals geklickt oder getippt.
-  Grenze: Liegt ein anderes Fenster darueber, wird dessen Inhalt aufgenommen; das
-  wird ueber das Vordergrundfenster erkannt und als Luecke gemeldet. Echte
-  Fensteraufnahme unabhaengig von Ueberdeckung braucht Windows.Graphics.Capture
-  (geplanter C#-Adapter).
-- Masken: eigene Anzeigen (die Lynx-Leiste) sind normale, fuer jede Bildschirmaufnahme sichtbare Fenster.
-  Damit der Collector sie nicht mitliest, wird ihre Flaeche in jedem aufgenommenen Bild durch die
-  Umgebungsfarbe ersetzt (apply_masks) und je Bild im Sidecar vermerkt. Was unter der Leiste liegt, ist
-  verdeckt; die Leiste gehoert deshalb neben den Tisch, nicht darauf.
+- VideoFileSource: existing recording (OBS, Xbox Game Bar, ...) frame by frame
+- ImageDirSource: folder with screenshots
+- WindowSource: live capture of client area of a selected window by
+  screen crop (mss). Only reads, never clicks or types.
+  Limitation: If another window covers it, its content is captured;
+  this is detected by the foreground window and reported as a gap.
+  True window capture independent of occlusion needs Windows.Graphics.Capture
+  (planned C# adapter).
+- Masks: own displays (the Lynx bar) are normal windows visible for each screen capture.
+  To prevent Collector from reading them as well, their area in each captured image is replaced
+  by the background color (apply_masks) and noted per image in the sidecar. What lies under the bar is
+  covered; therefore the bar belongs beside the table, not on it.
 """
 
 from __future__ import annotations
@@ -31,23 +31,23 @@ import numpy as np
 @dataclass
 class Frame:
     index: int
-    t_mono: float          # Sekunden, monoton (Video: Position im Video)
-    t_wall: float          # Unix-Zeit (Video: geschaetzt aus Dateizeit, falls bekannt)
+    t_mono: float          #Seconds, monotonic (Video: position in video)
+    t_wall: float          #Unix time (Video: estimated from file date time if known)
     image: np.ndarray
     source_ok: bool = True
     note: str = ""
-    masked: list = field(default_factory=list)   # ausgeschnittene eigene Anzeigen [[x, y, w, h], ...] im Bild
+    masked: list = field(default_factory=list)   #Cut-out own displays [[x, y, w, h], ...] in the image
 
 
-# ---- Masken fuer eigene Anzeigen ---------------------------------------------
+# ---- Masks for own displays ---------------------------------------------
 
 _MASK_WINDOWS: set[int] = set()
 _MASK_LOCK = threading.Lock()
-MASK_RING_PX = 3            # Breite des Rings um die Maske, aus dem die Fuellfarbe stammt
+MASK_RING_PX = 3            #Width of the ring around the mask from which the fill color is taken
 
 
 def register_mask_window(hwnd: int) -> None:
-    """Fenster (z. B. die Lynx-Leiste) ab jetzt aus jeder WindowSource-Aufnahme ausschneiden."""
+    """From now on, cut out windows (e.g. the Lynx bar) from every WindowSource capture."""
     if hwnd:
         with _MASK_LOCK:
             _MASK_WINDOWS.add(int(hwnd))
@@ -65,11 +65,11 @@ def mask_windows() -> list[int]:
 
 def apply_masks(img: np.ndarray, origin: tuple[int, int], rects: list[tuple[int, int, int, int]],
                 ring: int = MASK_RING_PX) -> list[list[int]]:
-    """Schneidet Bildschirm-Rechtecke (x, y, w, h) aus `img` aus, dessen linke obere Ecke bei `origin` liegt.
+    """Cuts out screen rectangles (x, y, w, h) from `img`, whose upper-left corner lies at `origin`.
 
-    Jede Flaeche wird mit dem Median eines schmalen Rings um sie herum gefuellt (meist Filzgruen), damit
-    Tisch- und Kartenerkennung dort nichts finden. Aendert `img` an Ort und Stelle und gibt die tatsaechlich
-    ausgeschnittenen Rechtecke in Bildkoordinaten zurueck (leer, wenn keine Maske im Bild liegt)."""
+    Each area is filled with the median of a narrow ring around it (usually felt green), so
+    table and card recognition finds nothing there. Modifies `img` in-place and returns the actually
+    cut out rectangles in image coordinates (empty if no mask lies in the image)."""
     h, w = img.shape[:2]
     ox, oy = origin
     done: list[list[int]] = []
@@ -94,7 +94,7 @@ class VideoFileSource:
         self.path = Path(path)
         self.cap = cv2.VideoCapture(str(self.path))
         if not self.cap.isOpened():
-            raise RuntimeError(f"Video nicht lesbar: {self.path}")
+            raise RuntimeError(f"Video not readable: {self.path}")
         self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 0.0
         self.count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
         self.step_s = step_s
@@ -123,8 +123,8 @@ class VideoFileSource:
 
 
 class SessionVideoSource:
-    """Spielt die Video-Abschnitte einer Live-Sitzung nacheinander ab - mit den ECHTEN Aufnahmezeiten
-    je Bild aus segment_XXXX.frames.jsonl (fuer die Nachauswertung, z. B. nach einem Analysefehler)."""
+    """Plays video segments of a live session sequentially - with the REAL capture times
+    per image from segment_XXXX.frames.jsonl (for post-analysis, e.g. after an analysis error)."""
 
     def __init__(self, session_dir: str | Path):
         self.root = Path(session_dir)
@@ -133,7 +133,7 @@ class SessionVideoSource:
         if not self.segments:
             self.segments = sorted((self.root / "video").glob("segment_*.mp4"))
         if not self.segments:
-            raise RuntimeError(f"keine Video-Abschnitte in {self.root}")
+            raise RuntimeError(f"no video segments in {self.root}")
 
     def describe(self) -> dict:
         return {"type": "session-video", "path": str(self.root), "segments": [str(s) for s in self.segments]}
@@ -171,18 +171,18 @@ class ImageDirSource:
             img = cv2.imread(str(f))
             if img is None:
                 yield Frame(i, i * self.interval_s, f.stat().st_mtime, np.zeros((10, 10, 3), np.uint8), False,
-                            f"unlesbar: {f.name}")
+                            f"unreadable: {f.name}")
                 continue
             yield Frame(i, i * self.interval_s, f.stat().st_mtime, img, note=f.name)
 
 
-# ---- Fenster (Windows) ----------------------------------------------------
+# ---- Windows (Windows OS) ----------------------------------------------------
 
 @dataclass
 class WindowInfo:
     hwnd: int
     title: str
-    rect: tuple[int, int, int, int]  # Client-Bereich in Bildschirmpixeln (x, y, w, h)
+    rect: tuple[int, int, int, int]  #Client area in screen pixels (x, y, w, h)
     minimized: bool
     foreground: bool
 
@@ -206,13 +206,13 @@ _dpi_set = False
 
 
 def _ensure_dpi_aware():
-    """Physische Pixel verwenden, sonst passen Fensterkoordinaten bei 125 % Skalierung nicht."""
+    """Use physical pixels; otherwise window coordinates do not fit with 125% scaling."""
     global _dpi_set
     if _dpi_set or sys.platform != "win32":
         return
     import ctypes
     try:
-        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))  # PER_MONITOR_AWARE_V2
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))  #PER_MONITOR_AWARE_V2
     except Exception:
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
@@ -275,7 +275,7 @@ def window_info(hwnd: int, title: str = "", fg: int | None = None) -> WindowInfo
 
 
 def window_rect(hwnd: int) -> tuple[int, int, int, int] | None:
-    """Ganzes Fenster in Bildschirmpixeln (x, y, w, h); None, wenn geschlossen, unsichtbar oder minimiert."""
+    """Whole window in screen pixels (x, y, w, h); None if closed, invisible or minimized."""
     import ctypes
     from ctypes import wintypes
 
@@ -291,7 +291,7 @@ def window_rect(hwnd: int) -> tuple[int, int, int, int] | None:
 
 
 class WindowSource:
-    """Liest den Client-Bereich eines Fensters mit fester Bildrate."""
+    """Reads the client area of a window at fixed frame rate."""
 
     def __init__(self, hwnd: int, fps: float = 10.0, max_seconds: float | None = None,
                  require_foreground: bool = True):
@@ -304,16 +304,15 @@ class WindowSource:
         self.require_foreground = require_foreground
         self.sct = mss.mss()
         self.stop_requested = False
-        self.on_mask = None          # Rueckruf(rects), sobald zum ersten Mal eine eigene Anzeige im Bild liegt
+        self.on_mask = None          # Callback(rects) as soon as own display is in the image for the first time
         self._mask_seen = False
 
     def describe(self) -> dict:
         info = window_info(self.hwnd)
         return {"type": "window", "hwnd": self.hwnd, "title": info.title if info else None,
                 "fps": self.fps, "method": "mss-screen-region",
-                "limit": "Ueberdeckung durch andere Fenster wird als Luecke gemeldet, nicht aufgenommen",
-                "masks": "eigene Anzeigen (Lynx-Leiste) werden ausgeschnitten und mit der Umgebungsfarbe gefuellt; "
-                         "je Bild im Sidecar als 'masked' vermerkt"}
+                "limit": 'overlapping by other windows reported as gap, not recorded',
+                "masks": "own displays (Lynx bar) are cut out and filled with surrounding color; marked as 'masked' in each Sidecar image"}
 
     def __iter__(self) -> Iterator[Frame]:
         period = 1.0 / self.fps
@@ -328,28 +327,28 @@ class WindowSource:
                 time.sleep(next_t - now)
             next_t += period
             if time.perf_counter() - next_t > 5 * period:
-                next_t = time.perf_counter() + period  # nicht nachholen, Rueckstand wird als Luecke sichtbar
+                next_t = time.perf_counter() + period  # do not catch up, backlog shows as gap
             info = window_info(self.hwnd)
             t = time.perf_counter() - t0
             if info is None:
-                yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False, "Fenster geschlossen")
+                yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False, 'window closed')
                 break
             if info.minimized or info.rect[2] < 50 or info.rect[3] < 50:
-                yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False, "Fenster minimiert")
+                yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False, 'window minimized')
                 idx += 1
                 continue
             if self.require_foreground and not info.foreground:
                 yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False,
-                            "Fenster nicht im Vordergrund (moeglicherweise verdeckt)")
+                            'window not in foreground (possibly obscured)')
                 idx += 1
                 continue
             x, y, w, h = info.rect
             try:
                 shot = self.sct.grab({"left": x, "top": y, "width": w, "height": h})
                 img = cv2.cvtColor(np.asarray(shot), cv2.COLOR_BGRA2BGR)
-            except Exception as e:            # Bildschirmsperre, Monitorwechsel: Luecke statt Programmende
+            except Exception as e:            # Screen lock, monitor change: gap instead of program end
                 yield Frame(idx, t, time.time(), np.zeros((10, 10, 3), np.uint8), False,
-                            f"Aufnahmefehler: {type(e).__name__}: {e}"[:120])
+                            f"Recording error: {type(e).__name__}: {e}"[:120])
                 idx += 1
                 continue
             owned = mask_windows()
@@ -365,13 +364,13 @@ class WindowSource:
             idx += 1
 
 
-# ---- Segmentierte Aufnahme --------------------------------------------------
+# ---- Segmented capture --------------------------------------------------
 
 class SegmentRecorder:
-    """Schreibt Frames in kurze Videosegmente plus Zeitstempel-Sidecar (JSONL).
+    """Writes frames to short video segments plus timestamp sidecar (JSONL).
 
-    Segmente werden bei Groessenwechsel oder nach `segment_s` Sekunden geschlossen,
-    damit ein Absturz hoechstens das laufende Segment betrifft.
+    Segments are closed on size change or after `segment_s` seconds,
+    so a crash affects at most the current segment.
     """
 
     def __init__(self, video_dir: Path, fps: float, segment_s: float = 120.0, codec: str = "mp4v"):
@@ -398,7 +397,7 @@ class SegmentRecorder:
         path = self.dir / name
         self.writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*self.codec), self.fps, size)
         if not self.writer.isOpened():
-            raise RuntimeError(f"Videoencoder '{self.codec}' nicht verfuegbar")
+            raise RuntimeError(f"Video encoder '{self.codec}' not available")
         self.sidecar = open(self.dir / f"segment_{self.seg_index:04d}.frames.jsonl", "w", encoding="utf-8")
         self.seg_t0 = t
         self.seg_size = size
@@ -414,7 +413,7 @@ class SegmentRecorder:
         rec = {"i": self.frames_in_segment, "frame": frame.index,
                "t_mono": round(frame.t_mono, 4), "t_wall": round(frame.t_wall, 4)}
         if frame.masked:
-            rec["masked"] = frame.masked          # Flaeche eigener Anzeigen, im Video bereits ausgeschnitten
+            rec["masked"] = frame.masked          #Area of own displays, already cut out in the video
         self.sidecar.write(json.dumps(rec) + "\n")
         self.frames_in_segment += 1
         seg = self.segments[-1]

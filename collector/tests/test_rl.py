@@ -15,7 +15,7 @@ TINY = TournamentConfig(start_stack=300, blinds=BlindSchedule(10, 20, 4))
 
 
 class Probe:
-    """Spielt wie ein Stil-Bot und prueft nebenbei Merkmale und Aktionsabbildung."""
+    """ plays like a style bot and simultaneously checks features and action mapping."""
 
     def __init__(self, inner):
         self.inner, self.name, self.n = inner, inner.name, 0
@@ -32,8 +32,8 @@ class Probe:
         for i in range(N_ACTIONS):
             if m[i]:
                 a = to_action(obs, i)
-                assert clamp_action(obs, a) == a              # jede erlaubte Aktion ist regelkonform
-                assert to_action(obs, from_action(obs, a)) == a   # Rueckabbildung trifft dieselbe Aktion
+                assert clamp_action(obs, a) == a              # every allowed action is rule-compliant
+                assert to_action(obs, from_action(obs, a)) == a   # inverse mapping hits the same action
         self.n += 1
         return self.inner.act(obs)
 
@@ -51,7 +51,7 @@ def test_gae_per_hand():
     v = np.array([0.5, 1.0, 0.0], np.float32)
     done = np.array([False, True, True])
     adv, ret = gae(r, v, done, lam=1.0)
-    assert np.allclose(ret, [2.0, 2.0, -1.0])       # gamma=lambda=1: Ziel = Handergebnis
+    assert np.allclose(ret, [2.0, 2.0, -1.0])       # gamma=lambda=1: target = hand result
     assert np.allclose(adv, [1.5, 1.0, -1.0])
 
 
@@ -68,28 +68,17 @@ def test_bc_ppo_resume_and_league_spec(tmp_path, monkeypatch):
     log = [json.loads(line) for line in (run / "log.jsonl").read_text("utf-8").splitlines()]
     assert [e["iteration"] for e in log] == [1, 2] and log[0]["decisions"] > 0
     assert (run / "eval.jsonl").exists()
-    res = train_ppo(run, 3, ["station", "random"], cfg, config=TINY, workers=2)      # fortsetzen
+    res = train_ppo(run, 3, ["station", "random"], cfg, config=TINY, workers=2)      # continue
     assert [json.loads(line)["iteration"] for line in (run / "log.jsonl").read_text("utf-8").splitlines()] == [1, 2, 3]
     bot = make_agent("nn?run=t1@3:netz", 1)
     assert bot.name == "netz"
     r1 = play_tournament([bot, make_agent("rock:r", 1), make_agent("station:s", 1)], TINY, seed=3)
     bot2 = make_agent("nn?run=t1:netz", 1)
     r2 = play_tournament([bot2, make_agent("rock:r", 1), make_agent("station:s", 1)], TINY, seed=3)
-    assert r1.payouts == r2.payouts                   # reproduzierbar (Duplicate-fair)
+    assert r1.payouts == r2.payouts                   # reproducible (duplicate-fair)
 
 
-PLURIBUS_HAND_11 = """
-variant = 'NT'
-ante_trimming_status = true
-antes = [0, 0, 0, 0, 0, 0]
-blinds_or_straddles = [50, 100, 0, 0, 0, 0]
-min_bet = 100
-starting_stacks = [10000, 10000, 10000, 10000, 10000, 10000]
-actions = ['d dh p1 4hAc', 'd dh p2 Ah6s', 'd dh p3 4cKh', 'd dh p4 2s4s', 'd dh p5 2c9c', 'd dh p6 4dKc', 'p3 f', 'p4 f', 'p5 f', 'p6 f', 'p1 cc', 'p2 cc', 'd db 5d6h2h', 'p1 cc', 'p2 cbr 130', 'p1 cc', 'd db 3h', 'p1 cc', 'p2 cbr 300', 'p1 cc', 'd db Js', 'p1 cc', 'p2 cc', 'p1 sm 4hAc', 'p2 sm']
-hand = 11
-players = ['Pluribus', 'MrBlue', 'MrBlonde', 'MrWhite', 'MrPink', 'MrBrown']
-finishing_stacks = [10530, 9470, 10000, 10000, 10000, 10000]
-"""
+PLURIBUS_HAND_11 = "\nvariant = 'NT'\nante_trimming_status = true\nantes = [0, 0, 0, 0, 0, 0]\nblinds_or_straddles = [50, 100, 0, 0, 0, 0]\nmin_bet = 100\nstarting_stacks = [10000, 10000, 10000, 10000, 10000, 10000]\nactions = ['d dh p1 4hAc', 'd dh p2 Ah6s', 'd dh p3 4cKh', 'd dh p4 2s4s', 'd dh p5 2c9c', 'd dh p6 4dKc', 'p3 f', 'p4 f', 'p5 f', 'p6 f', 'p1 cc', 'p2 cc', 'd db 5d6h2h', 'p1 cc', 'p2 cbr 130', 'p1 cc', 'd db 3h', 'p1 cc', 'p2 cbr 300', 'p1 cc', 'd db Js', 'p1 cc', 'p2 cc', 'p1 sm 4hAc', 'p2 sm']\nhand = 11\nplayers = ['Pluribus', 'MrBlue', 'MrBlonde', 'MrWhite', 'MrPink', 'MrBrown']\nfinishing_stacks = [10530, 9470, 10000, 10000, 10000, 10000]\n"
 
 
 def test_phh_replay_matches_engine():
@@ -99,9 +88,9 @@ def test_phh_replay_matches_engine():
     res = replay(hand)
     assert res.ok, res.problem
     assert len(res.samples) == 14 and res.samples[0][0] == "MrBlonde"
-    assert [s[4] for s in res.samples if s[0] == "Pluribus"][0] == 5.3     # +530 Chips = +5,3 BB
+    assert [s[4] for s in res.samples if s[0] == "Pluribus"][0] == 5.3     # +530 chips = +5.3 BB
     bad = dict(hand, finishing_stacks=[10000] * 6)
-    assert not replay(bad).ok                         # falsche Endstacks werden erkannt
+    assert not replay(bad).ok                         # incorrect end stacks are detected
     swapped = dict(hand, actions=[a.replace("p3 f", "p4 f", 1) if a == "p3 f" else a for a in hand["actions"]])
     assert "Reihenfolge" in replay(swapped).problem
 
@@ -154,10 +143,10 @@ def test_ppo_with_random_bots_and_exploiter(tmp_path, monkeypatch):
     train_ppo(run, 2, pool, cfg, config=TINY, workers=2)
     ex = json.loads((run / "exploiters.json").read_text("utf-8"))
     assert len(ex) == 1 and ex[0]["spec"].startswith("nn?run=rx/expl-000002@")
-    assert make_agent(ex[0]["spec"] + ":e", 1).name == "e"          # Ausbeuter ist spielbar
+    assert make_agent(ex[0]["spec"] + ":e", 1).name == "e"          # exploiter is playable
     assert any(n == "expl-2" for n, _, _ in pool.players)
     train_ppo(run, 3, LeaguePool([("s", "station", 0.0), ("r", "random", 0.0)], table=2), cfg, config=TINY,
-              workers=2)                                             # fortsetzen: Ausbeuter wieder im Pool
+              workers=2)                                             # continue: exploiter back in the pool
 
 
 def test_random_formats_in_training(tmp_path, monkeypatch):

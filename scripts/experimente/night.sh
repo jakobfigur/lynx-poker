@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Nachtlauf 26./27.10.2026: Multi-Format-Training pros-r2 in Abschnitten (jeder endet mit Aufnahmepruefung).
-# Fortsetzbar: ein erneuter Aufruf macht beim gespeicherten Stand weiter (state.pt).
+# Night run 26./27.10.2026: multi-format training pros-r2 in sections (each ending with entrance exam).
+#Continuable: a subsequent call resumes from the stored state (state.pt).
 cd <Projektordner>
 RUN=pros-r2
 mkdir -p data/rl/$RUN

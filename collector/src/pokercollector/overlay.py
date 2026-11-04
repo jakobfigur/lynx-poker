@@ -1,17 +1,17 @@
-"""Lynx-Leiste: kleines schwebendes Feld ueber der Taskleiste (neben Uhr und Akku) mit dem Vorschlag.
+""" Lynx bar: small floating field above the taskbar (next to clock and battery) with the suggestion.
 
-- Liegt immer obenauf, nimmt nie den Fokus (das Browserfenster bleibt aktiv), hat keinen Taskleisten-Knopf.
-- Ist ein normales, fuer jede Bildschirmaufnahme sichtbares Fenster. Damit der Collector sie nicht mitliest,
-  meldet sie ihr Fenster bei der Aufnahme an (capture.register_mask_window): WindowSource schneidet die Flaeche
-  aus jedem Bild aus und fuellt sie mit der Umgebungsfarbe. Was unter ihr liegt, sieht der Collector nicht,
-  daher gehoert sie neben den Tisch (Standard: rechts unten ueber der Taskleiste). Bis 2.11.2026 blendete
-  sich die Leiste per WDA_EXCLUDEFROMCAPTURE aus allen Aufnahmen aus; fuer die Veroeffentlichung ersetzt.
-- Du bist dran: Leiste leuchtet in der Farbe der Aktion, kurzer Ton (Fold tief, Check/Call mittel,
-  Raise hoch, All-in doppelt). Sonst blass mit dem letzten Vorschlag.
-- Ziehen mit der Maus verschiebt sie (Position wird gemerkt), Rechtsklick: Ton an/aus, Position zuruecksetzen.
+- Always on top, never takes focus (the browser window remains active), has no taskbar button.
+- Is a normal window visible in every screen capture. To prevent the collector from reading it,
+  it registers its window during capture (capture.register_mask_window): WindowSource cuts out the area
+  from each image and fills it with the ambient color. What lies beneath it is not seen by the collector,
+  so it belongs next to the table (default: bottom right above the taskbar). Until 2.11.2026 the bar excluded
+  itself from all captures via WDA_EXCLUDEFROMCAPTURE; replaced for the release.
+- It's your turn: bar lights up in the color of the action, short tone (fold low, check/call medium,
+  raise high, all-in double). Otherwise pale with the last suggestion.
+- Dragging with the mouse moves it (position is remembered), right-click: toggle tone, reset position.
 
-Reine Anzeige: kein Klick, keine Taste, nichts geht an den Browser.
-Tk laeuft in einem eigenen Thread; Aktualisierungen kommen ueber eine Warteschlange (thread-sicher).
+Pure display: no click, no key, nothing goes to the browser.
+Tk runs in its own thread; updates come via a queue (thread-safe).
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ OVERLAY_VERSION = "leiste-2"
 GWL_EXSTYLE = -20
 WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE, WS_EX_TOPMOST = 0x80, 0x08000000, 0x8
 
-COLORS = {          # Hintergrund aktiv, Schrift
+COLORS = {          # background active, font
     "fold": ("#8a2b2b", "#ffffff"),
     "check": ("#2b6a3a", "#ffffff"),
     "call": ("#2b6a3a", "#ffffff"),
@@ -44,21 +44,21 @@ TONES = {"fold": [(392, 90)], "check": [(587, 90)], "call": [(587, 90)], "raise"
 
 @dataclass
 class Advice:
-    """Was die Leiste anzeigt."""
+    """ What the bar displays."""
     kind: str                         # fold | check | call | raise | allin | none
-    text: str                         # grosse Zeile, z. B. "RAISE auf 360  (3,5 BB)"
-    detail: str = ""                  # kleine Zeile: Karten, Pot, Alternativen
+    text: str                         # large line, e.g. "RAISE to 360  (3.5 BB)"
+    detail: str = ""                  # small line: cards, pot, alternatives
     alternatives: list[tuple[str, float]] = field(default_factory=list)
 
 
 def advice_from(sug, obs, agent=None) -> Advice:
-    """Vorschlag (Action) + Observation -> Anzeige. Betraege in Chips und Big Blinds."""
+    """ Suggestion (action) + observation -> display. Amounts in chips and big blinds."""
     if sug is None:
-        return Advice("none", "keine Empfehlung", "eigene Karten nicht sicher erkannt")
+        return Advice("none", 'no recommendation', 'own cards not reliably recognized')
     bb = obs.big_blind or 1
 
     def in_bb(x):
-        return f"{x / bb:.1f}".replace(".", ",") + " BB"
+        return f"{x / bb:.1f} BB"
 
     if sug.kind == "fold":
         kind, text = ("check", "CHECK") if obs.can_check else ("fold", "FOLD")
@@ -71,29 +71,29 @@ def advice_from(sug, obs, agent=None) -> Advice:
         if obs.max_raise_to is not None and amt >= obs.max_raise_to:
             kind, text = "allin", f"ALL-IN {amt}  ({in_bb(amt)})"
         else:
-            verb = "BET" if obs.current_bet == 0 else "RAISE auf"
+            verb = "BET" if obs.current_bet == 0 else 'RAISE to'
             kind, text = "raise", f"{verb} {amt}  ({in_bb(amt)})"
     alts = alternatives(agent, obs) if agent is not None else []
     cards = " ".join(obs.hole_cards) + (" | " + " ".join(obs.board) if obs.board else "")
     warn = [w for k, w in WARNINGS.items() if k in (obs.uncertain or [])]
-    detail = ("⚠ " + ", ".join(warn) + " - Vorschlag unsicher   " if warn else "") + f"{cards}   Pot {obs.pot}"
+    detail = ("⚠ " + ", ".join(warn) + ' - suggestion uncertain   ' if warn else "") + f"{cards}   Pot {obs.pot}"
     if obs.to_call:
-        detail += f", zu zahlen {obs.to_call}"
+        detail += f", to call {obs.to_call}"
     if alts:
         detail += "   " + "  ".join(f"{n} {p:.0%}" for n, p in alts[:3])
     return Advice(kind, text, detail, alts)
 
 
-GERMAN = {"fold": "Fold", "call": "Call", "raise_half": "½ Pot", "raise_pot": "Pot", "raise_2pot": "2× Pot",
-          "allin": "All-in", "raise_third": "⅓ Pot", "raise_min": "Min-Raise"}
-WARNINGS = {"Pot unbekannt oder widerspruechlich": "Pot nicht erkannt",
-            "zu callender Betrag aus Einsaetzen geschaetzt": "Call-Betrag geschaetzt"}
+ACTION_LABELS = {"fold": "Fold", "call": "Call", "raise_half": '½ Pot', "raise_pot": "Pot", "raise_2pot": '2× Pot',
+          "allin": "All-in", "raise_third": '⅓ Pot', "raise_min": "Min-Raise"}
+WARNINGS = {'Pot unknown or inconsistent': 'Pot not recognized',
+            'Amount to call estimated from bets': 'Call amount estimated'}
 
 
 def alternatives(agent, obs=None) -> list[tuple[str, float]]:
-    """Wahrscheinlichkeiten der Aktionen (groesste zuerst), wenn der Bot sie verraet."""
+    """ Probabilities of actions (largest first), if the bot guesses them."""
     last = getattr(agent, "last", None)
-    if isinstance(last, dict) and "probs" in last:                 # Suche (husearch)
+    if isinstance(last, dict) and "probs" in last:                 # Search (husearch)
         out = []
         for (k, amt), p in zip(last["actions"], last["probs"]):
             out.append((k.capitalize() if amt is None else f"{amt}", float(p)))
@@ -102,7 +102,7 @@ def alternatives(agent, obs=None) -> list[tuple[str, float]]:
         if probs is None:
             return []
         from .ai.features import action_names
-        names = dict(GERMAN)
+        names = dict(ACTION_LABELS)
         if obs is not None and obs.can_check:
             names["call"] = "Check"
         out = [(names.get(n, n), float(p)) for n, p in zip(action_names(len(probs)), probs)]
@@ -115,7 +115,7 @@ def settings_path() -> Path:
 
 
 def _work_area() -> tuple[int, int, int, int]:
-    """Bildschirmbereich ohne Taskleiste (links, oben, rechts, unten)."""
+    """ Screen area without taskbar (left, top, right, bottom)."""
     class RECT(ctypes.Structure):
         _fields_ = [("l", ctypes.c_long), ("t", ctypes.c_long), ("r", ctypes.c_long), ("b", ctypes.c_long)]
     r = RECT()
@@ -138,31 +138,31 @@ class Leiste:
         self.title = title
         self.ready = threading.Event()
         self.hwnd = 0
-        self.masked_in_capture = False      # Flaeche wird aus den Aufnahmen des Collectors ausgeschnitten
+        self.masked_in_capture = False      # Area is cut from collector captures
         self._thread = threading.Thread(target=self._run, name="lynx-leiste", daemon=True)
 
-    # --- von aussen (beliebiger Thread) ---------------------------------------------------------------
+    # --- from outside (any thread) ---------------------------------------------------------------
     def start(self) -> "Leiste":
         self._thread.start()
         self.ready.wait(5)
         return self
 
     def show(self, adv: Advice, beep: bool = True):
-        """Neuer Vorschlag: du bist dran."""
+        """ New suggestion: it's your turn."""
         self.q.put(("advice", adv, beep))
 
     def idle(self):
-        """Nicht (mehr) dran: Leiste blass, letzter Vorschlag bleibt lesbar."""
+        """ Not (anymore) your turn: bar pale, last suggestion remains readable."""
         self.q.put(("idle",))
 
     def status(self, level: str, text: str):
-        """Statuspunkt: ok | warn | err | off, mit kurzem Text (Tooltip-artig rechts unten)."""
+        """ Status point: ok | warn | err | off, with short text (tooltip-like bottom right)."""
         self.q.put(("status", level, text))
 
     def close(self):
         self.q.put(("quit",))
 
-    # --- Tk-Thread --------------------------------------------------------------------------------------
+    # --- Tk thread --------------------------------------------------------------------------------------
     def _run(self):
         import tkinter as tk
         root = tk.Tk()
@@ -174,17 +174,17 @@ class Leiste:
         root.configure(bg=IDLE_BG)
         x, y = self._load_pos()
         root.geometry(f"{self.W}x{self.H}+{x}+{y}")
-        self.big = tk.Label(root, text="Lynx wartet auf den Tisch", font=("Segoe UI Semibold", 17), bg=IDLE_BG,
+        self.big = tk.Label(root, text='Lynx waiting for the table', font=('Segoe UI Semibold', 17), bg=IDLE_BG,
                             fg=IDLE_FG, anchor="w")
         self.big.place(x=12, y=4, width=self.W - 40, height=32)
-        self.small = tk.Label(root, text="", font=("Segoe UI", 9), bg=IDLE_BG, fg=DIM_FG, anchor="w")
+        self.small = tk.Label(root, text="", font=('Segoe UI', 9), bg=IDLE_BG, fg=DIM_FG, anchor="w")
         self.small.place(x=12, y=38, width=self.W - 24, height=20)
         self.dot = tk.Canvas(root, width=12, height=12, bg=IDLE_BG, highlightthickness=0)
         self.dot.place(x=self.W - 22, y=10)
         self.dot_id = self.dot.create_oval(1, 1, 11, 11, fill=STATUS_DOT["off"], outline="")
         self.menu = tk.Menu(root, tearoff=0)
-        self.menu.add_command(label="Ton aus", command=self._toggle_sound)
-        self.menu.add_command(label="Position zuruecksetzen", command=self._reset_pos)
+        self.menu.add_command(label='Sound off', command=self._toggle_sound)
+        self.menu.add_command(label='Reset position', command=self._reset_pos)
         for w in (root, self.big, self.small, self.dot):
             w.bind("<ButtonPress-1>", self._drag_start)
             w.bind("<B1-Motion>", self._drag)
@@ -196,8 +196,8 @@ class Leiste:
         self.ready.set()
         root.after(40, self._pump)
         root.mainloop()
-        # Tk-Objekte hier im Tk-Thread freigeben; raeumt sie erst der Hauptthread beim Beenden ab, bricht Tcl mit
-        # "Tcl_AsyncDelete: async handler deleted by the wrong thread" (Exitcode 3) ab.
+        # Free Tk objects here in the Tk thread; if the main thread cleans them only on exit, Tcl aborts with
+        # "Tcl_AsyncDelete: async handler deleted by the wrong thread" (exit code 3).
         import gc
         self.root = self.big = self.small = self.dot = self.menu = None
         del root
@@ -246,7 +246,7 @@ class Leiste:
             pass
         self.root.after(40, self._pump)
 
-    # Verschieben / Menue
+    # Move / menu
     def _drag_start(self, e):
         self._dx, self._dy = e.x_root - self.root.winfo_x(), e.y_root - self.root.winfo_y()
 
@@ -264,7 +264,7 @@ class Leiste:
         self._label_sound()
 
     def _label_sound(self):
-        self.menu.entryconfigure(0, label="Ton aus" if self.sound else "Ton an")
+        self.menu.entryconfigure(0, label='Sound off' if self.sound else 'Sound on')
 
     def _default_pos(self) -> tuple[int, int]:
         try:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Turn-Scherben (turn-leaf-*.npz in data/valuenet/hetzner-turn/) als privates Kaggle-Dataset YOUR_KAGGLE_USER/lynx-vdata-turn
-# hochladen. Aufruf aus dem Projektordner:  bash cloud/kaggle-upload-turn.sh create|version [Nachricht]
-# Die Kaggle-CLI legt Hilfsdateien unter %TEMP%\.kaggle-uploads\<relativer Ordner> ab; der Ordner muss vorher existieren.
+# Turn shards (turn-leaf-*.npz in data/valuenet/hetzner-turn/) as private Kaggle dataset YOUR_KAGGLE_USER/lynx-vdata-turn
+# upload. Run from project folder:  bash cloud/kaggle-upload-turn.sh create|version [message]
+# The Kaggle CLI stores helper files under %TEMP%\.kaggle-uploads\<relative folder>; the folder must exist beforehand.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODE="${1:-version}"

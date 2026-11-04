@@ -1,13 +1,13 @@
-"""Erzeugt die maschinelle Referenz der Codebasis direkt aus dem Quelltext.
+"""Generates the machine reference of the codebase directly from the source code.
 
-- docs/API-REFERENZ.md: jedes Modul unter collector/src/pokercollector mit Zweck (erster Absatz des Docstrings),
-  Konstanten, Klassen, Methoden und Funktionen samt Signatur, erster Docstring-Zeile und Zeilennummer (per ast,
-  der Code wird dafuer nicht ausgefuehrt).
-- docs/CLI-REFERENZ.md: die Hilfe jedes Befehls und Unterbefehls von `pokercollector` (aus dem argparse-Parser).
+- docs/API_REFERENCE.md: each module under collector/src/pokercollector with purpose (first paragraph of the docstring),
+  constants, classes, methods and functions including signature, first docstring line and line number (via ast,
+  the code is not executed for this).
+- docs/CLI_REFERENCE.md: the help of each command and subcommand of `pokercollector` (from the argparse parser).
 
-Aufruf aus dem Repo-Wurzelordner:
-    uv run --no-sync --project collector python scripts/gen_reference.py [AUSGABEORDNER]
-Ohne Argument wird nach docs/ geschrieben. Fuer die CLI-Referenz muss das Paket importierbar sein.
+Call from the repo root folder:
+    uv run --no-sync --project collector python scripts/gen_reference.py [OUTPUT_FOLDER]
+Without argument writes to docs/. For CLI reference, the package must be importable.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def find_root(start: Path) -> Path:
     for p in [start, *start.parents]:
         if (p / "collector" / "src" / "pokercollector").is_dir():
             return p
-    raise SystemExit("collector/src/pokercollector nicht gefunden")
+    raise SystemExit('collector/src/pokercollector not found')
 
 
 def first_paragraph(doc: str | None) -> str:
@@ -47,7 +47,7 @@ def short(text: str, n: int = 90) -> str:
 def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     args = ast.unparse(node.args)
     ret = f" -> {ast.unparse(node.returns)}" if node.returns else ""
-    prefix = "async " if isinstance(node, ast.AsyncFunctionDef) else ""
+    prefix = 'async ' if isinstance(node, ast.AsyncFunctionDef) else ""
     return f"{prefix}{node.name}({args}){ret}"
 
 
@@ -63,7 +63,7 @@ def module_section(path: Path, src_root: Path) -> list[str]:
     text = path.read_text(encoding="utf-8-sig")
     tree = ast.parse(text)
     lines = text.count("\n") + 1
-    out = [f"### `{mod}`", "", f"Datei `collector/src/{rel}` · {lines} Zeilen", ""]
+    out = [f"### `{mod}`", "", f"File `collector/src/{rel}` · {lines} lines", ""]
     doc = first_paragraph(ast.get_docstring(tree))
     if doc:
         out += [doc, ""]
@@ -81,13 +81,13 @@ def module_section(path: Path, src_root: Path) -> list[str]:
             classes.append(node)
 
     if consts:
-        out += ["**Konstanten**", "", "| Name | Wert | Zeile |", "| --- | --- | --- |"]
+        out += ["**Konstanten**", "", '| Name | Value | Line |', '| --- | --- | --- |']
         for name, val, ln in consts:
             out.append(f"| `{name}` | `{val.replace('|', '¦')}` | {ln} |")
         out.append("")
     for cls in classes:
         bases = ", ".join(ast.unparse(b) for b in cls.bases)
-        out.append(f"**Klasse `{cls.name}`**" + (f" ({bases})" if bases else "") + f" · Zeile {cls.lineno}")
+        out.append(f"**Class `{cls.name}`**" + (f" ({bases})" if bases else "") + f" · line {cls.lineno}")
         cdoc = first_paragraph(ast.get_docstring(cls))
         if cdoc:
             out.append(f": {short(cdoc, 300)}")
@@ -97,18 +97,18 @@ def module_section(path: Path, src_root: Path) -> list[str]:
         priv = [m.name for m in methods if m not in pub]
         for m in pub:
             d = first_line(ast.get_docstring(m))
-            out.append(f"- `{short(signature(m), 160)}` · Z. {m.lineno}" + (f": {short(d, 200)}" if d else ""))
+            out.append(f"- `{short(signature(m), 160)}` · L. {m.lineno}" + (f": {short(d, 200)}" if d else ""))
         if priv:
-            out.append(f"- interne Methoden: {', '.join(f'`{p}`' for p in priv)}")
+            out.append(f"- internal methods: {', '.join(f'`{p}`' for p in priv)}")
         out.append("")
     if funcs:
         out += ["**Funktionen**", ""]
         for f in funcs:
             d = first_line(ast.get_docstring(f))
-            out.append(f"- `{short(signature(f), 160)}` · Z. {f.lineno}" + (f": {short(d, 200)}" if d else ""))
+            out.append(f"- `{short(signature(f), 160)}` · L. {f.lineno}" + (f": {short(d, 200)}" if d else ""))
         out.append("")
     if private:
-        out += [f"Interne Helfer: {', '.join(f'`{p.name}`' for p in private)}", ""]
+        out += [f"Internal helpers: {', '.join(f'`{p.name}`' for p in private)}", ""]
     return out
 
 
@@ -116,16 +116,16 @@ def api_reference(root: Path) -> str:
     src_root = root / "collector" / "src"
     files = sorted(p for p in (src_root / "pokercollector").rglob("*.py") if "__pycache__" not in p.parts)
     total = sum(p.read_text(encoding="utf-8-sig").count("\n") + 1 for p in files)
-    out = ["# API-Referenz", "",
-           f"Automatisch erzeugt aus dem Quelltext (`scripts/gen_reference.py`): {len(files)} Module, {total} Zeilen. "
-           "Pro Modul: Zweck, Konstanten, Klassen mit Methoden, Funktionen mit Signatur und erster Docstring-Zeile. "
-           "Die Erklaerung der Zusammenhaenge steht in `TECHNISCHE-DOKUMENTATION.md`.", ""]
+    out = ['# API Reference', "",
+           f"Automatically generated from the source code (`scripts/gen_reference.py`): {len(files)} modules, {total} lines. "
+           "Per module: purpose, constants, classes with methods, functions with signature and first docstring line. "
+           "The explanation of the relationships is in `TECHNICAL_DOCUMENTATION.md`.", ""]
     groups: dict[str, list[Path]] = {}
     for p in files:
-        key = "pokercollector.ai (KI: Engine, Bots, Training, Suche, Wertnetze)" if "ai" in p.relative_to(
-            src_root / "pokercollector").parts[:-1] else "pokercollector (Erfassung, Rekonstruktion, Bedienung)"
+        key = 'pokercollector.ai (AI: engine, bots, training, search, value nets)' if "ai" in p.relative_to(
+            src_root / "pokercollector").parts[:-1] else 'pokercollector (capture, reconstruction, operation)'
         groups.setdefault(key, []).append(p)
-    out += ["## Inhalt", ""]
+    out += ['## Contents', ""]
     for key, ps in groups.items():
         out.append(f"- {key}: " + ", ".join(f"`{p.stem}`" for p in ps))
     out.append("")
@@ -155,11 +155,10 @@ def cli_reference() -> str:
     finally:
         argparse.ArgumentParser.parse_args = orig
     if "p" not in captured:
-        raise SystemExit("argparse-Parser von pokercollector.cli nicht gefunden")
+        raise SystemExit('argparse parser of pokercollector.cli not found')
 
-    out = ["# CLI-Referenz", "",
-           "Automatisch erzeugt aus dem argparse-Parser von `pokercollector` (`scripts/gen_reference.py`). "
-           "Aufruf unter Windows mit `pc.cmd <befehl> ...`, unter Linux/macOS mit `./pc.sh <befehl> ...`.", ""]
+    out = ['# CLI Reference', "",
+           'Automatically generated from the argparse parser of `pokercollector` (`scripts/gen_reference.py`). Usage on Windows with `pc.cmd <command> ...`, on Linux/macOS with `./pc.sh <command> ...`.', ""]
     seen: set[int] = set()
     entries: list[tuple[list[str], argparse.ArgumentParser]] = []
 
@@ -174,7 +173,7 @@ def cli_reference() -> str:
                     walk(sp, path + [name])
 
     walk(captured["p"], ["pokercollector"])
-    out += ["## Befehlsuebersicht", ""]
+    out += ['## Command Overview', ""]
     for path, _ in entries[1:]:
         out.append("  " * (len(path) - 2) + f"- `{' '.join(path[1:])}`")
     out.append("")
@@ -190,15 +189,15 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = Path(args[0]) if args else root / "docs"
     out_dir.mkdir(parents=True, exist_ok=True)
     api = api_reference(root)
-    (out_dir / "API-REFERENZ.md").write_text(api, encoding="utf-8")
-    print(f"API-REFERENZ.md: {api.count(chr(10))} Zeilen")
+    (out_dir / "API_REFERENCE.md").write_text(api, encoding="utf-8")
+    print(f"API_REFERENCE.md: {api.count(chr(10))} lines")
     try:
         cli_text = cli_reference()
-    except Exception as exc:  # die API-Referenz soll auch ohne importierbares Paket entstehen
-        print(f"CLI-Referenz uebersprungen: {exc!r}")
+    except Exception as exc:  #the API reference should also be generated without importable package
+        print(f"CLI reference skipped: {exc!r}")
         return 1
-    (out_dir / "CLI-REFERENZ.md").write_text(cli_text, encoding="utf-8")
-    print(f"CLI-REFERENZ.md: {cli_text.count(chr(10))} Zeilen")
+    (out_dir / "CLI_REFERENCE.md").write_text(cli_text, encoding="utf-8")
+    print(f"CLI_REFERENCE.md: {cli_text.count(chr(10))} lines")
     return 0
 
 

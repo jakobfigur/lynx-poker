@@ -8,7 +8,7 @@ def test_parse_action():
 
 
 def test_replay_matches_slumbot_result():
-    # echte Slumbot-Hand: wir BB, Call bis zum River, Ergebnis laut Slumbot -3600
+    # real Slumbot hand: we are BB, call to the river, result according to Slumbot -3600
     act = "b200c/kb200c/kb800c/kb2400c"
     h = replay(act, 0, ["Ac", "4h"], ["Qs", "8c", "6h", "2h", "Js"], ["Qc", "8s"])
     assert h.done and h.record.results[CLIENT].net == -3600
@@ -21,7 +21,7 @@ def test_replay_to_act_and_incr():
     from pokercollector.ai.observation import Action
     assert to_incr(obs, Action.call()) == "c"
     assert to_incr(obs, Action.raise_to(600)) == "b600"
-    h = replay("", 1, ["Qd", "2h"], [])            # wir SB, zuerst dran: Check ist nicht erlaubt
+    h = replay("", 1, ["Qd", "2h"], [])            # we are SB, first to act: check is not allowed
     assert to_incr(h.observation(CLIENT), Action.check()) == "c"
 
 

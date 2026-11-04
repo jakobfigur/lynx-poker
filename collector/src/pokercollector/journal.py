@@ -1,15 +1,15 @@
-"""Sitzungsordner, append-only Beobachtungsjournal (JSONL), Belegbilder, SQLite-Index.
+"""Session folder, append-only observation journal (JSONL), evidence images, SQLite index.
 
-Layout einer Sitzung:
-  sessions/<UTC-Zeit>_<uuid8>/
-    session.json            Metadaten, Segmente, Luecken, Fehler (wird fortgeschrieben)
-    video/segment_0001.mp4  Aufnahmesegmente (falls aufgenommen)
-    video/segment_0001.frames.jsonl   Zeitstempel je Frame
-    observations.jsonl      unveraenderliche Feldereignisse mit Provenienz
-    evidence/               Bildausschnitte als Beleg je Ereignis
-    hands.json              Rekonstruktion (versioniert, jederzeit neu erzeugbar)
-    index.sqlite            durchsuchbarer Index (aus JSONL neu erzeugbar)
-    manifest.json           SHA-256 abgeschlossener Dateien
+Layout of a session:
+  sessions/<UTC-time>_<uuid8>/
+    session.json            metadata, segments, gaps, errors (appended continuously)
+    video/segment_0001.mp4  recording segments (if recorded)
+    video/segment_0001.frames.jsonl   timestamp per frame
+    observations.jsonl      immutable field events with provenance
+    evidence/               image snippets as evidence per event
+    hands.json              reconstruction (versioned, regenerable anytime)
+    index.sqlite            searchable index (regenerable from JSONL)
+    manifest.json           SHA-256 of completed files
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def _json_default(o):
         return float(o)
     if isinstance(o, Path):
         return str(o)
-    raise TypeError(f"nicht serialisierbar: {type(o)}")
+    raise TypeError(f"not serializable: {type(o)}")
 
 
 def dumps(o) -> str:
@@ -65,9 +65,9 @@ class Session:
         (root / "video").mkdir(parents=True, exist_ok=True)
         self._obs = open(root / "observations.jsonl", "a", encoding="utf-8")
         self._seq = 0
-        self._lock = threading.RLock()      # Analyse- und Hauptthread schreiben beide (error/gap/write_event)
+        self._lock = threading.RLock()      # Analysis and main thread both write (error/gap/write_event)
 
-    # ---- Anlage / Laden --------------------------------------------------
+    # ---- Creation / Loading --------------------------------------------------
 
     @staticmethod
     def create(base: Path, source: dict[str, Any], profile_id: str, analyzer_version: str,
@@ -106,7 +106,7 @@ class Session:
             tmp.write_text(json.dumps(self.meta, ensure_ascii=False, indent=2, default=_json_default), "utf-8")
             os.replace(tmp, self.root / "session.json")
 
-    # ---- Protokoll -------------------------------------------------------
+    # ---- Log -------------------------------------------------------
 
     def gap(self, t_start: float, t_end: float, reason: str):
         with self._lock:
@@ -158,7 +158,7 @@ def read_events(root: Path) -> list[dict]:
                 try:
                     out.append(json.loads(line))
                 except json.JSONDecodeError:
-                    # Letzte Zeile nach Absturz evtl. unvollstaendig: ueberspringen, nicht reparieren
+                    # Last line after crash possibly incomplete: skip, do not fix
                     out.append({"kind": "corrupt_line", "raw": line[:200]})
     return out
 
@@ -168,9 +168,7 @@ def build_index(root: Path):
     if db.exists():
         db.unlink()
     con = sqlite3.connect(db)
-    con.execute("""CREATE TABLE events(seq INTEGER PRIMARY KEY, kind TEXT, field TEXT, old TEXT, new TEXT,
-                   t_first REAL, t_confirmed REAL, frame_first INTEGER, frame_confirmed INTEGER,
-                   confidence REAL, raw TEXT, method TEXT, note TEXT, evidence TEXT, segment TEXT)""")
+    con.execute('CREATE TABLE events(seq INTEGER PRIMARY KEY, kind TEXT, field TEXT, old TEXT, new TEXT,\n                   t_first REAL, t_confirmed REAL, frame_first INTEGER, frame_confirmed INTEGER,\n                   confidence REAL, raw TEXT, method TEXT, note TEXT, evidence TEXT, segment TEXT)')
     rows = []
     for e in read_events(root):
         if "seq" not in e:
@@ -179,14 +177,13 @@ def build_index(root: Path):
                      e.get("t_first"), e.get("t_confirmed"), e.get("frame_first"), e.get("frame_confirmed"),
                      e.get("confidence"), dumps(e.get("raw")), e.get("method"), e.get("note"),
                      e.get("evidence"), e.get("segment")))
-    con.executemany("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+    con.executemany('INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', rows)
     hands = root / "hands.json"
     if hands.exists():
         data = json.loads(hands.read_text("utf-8"))
-        con.execute("""CREATE TABLE hands(idx INTEGER, game INTEGER, hand INTEGER, status TEXT,
-                       t_start REAL, t_end REAL, json TEXT)""")
+        con.execute('CREATE TABLE hands(idx INTEGER, game INTEGER, hand INTEGER, status TEXT,\n                       t_start REAL, t_end REAL, json TEXT)')
         for i, h in enumerate(data.get("hands", [])):
-            con.execute("INSERT INTO hands VALUES (?,?,?,?,?,?,?)",
+            con.execute('INSERT INTO hands VALUES (?,?,?,?,?,?,?)',
                         (i, h.get("game_no"), h.get("hand_no"), h.get("status"), h.get("t_start"),
                          h.get("t_end"), dumps(h)))
     con.commit()
@@ -215,9 +212,9 @@ def verify_manifest(root: Path) -> list[str]:
     for rel, digest in m["files"].items():
         p = root / rel
         if not p.exists():
-            problems.append(f"fehlt: {rel}")
+            problems.append(f"missing: {rel}")
         elif sha256_file(p) != digest:
-            problems.append(f"geaendert: {rel}")
+            problems.append(f"changed: {rel}")
     return problems
 
 

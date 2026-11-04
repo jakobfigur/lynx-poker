@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 27.10.2026: Praeziser Pruefstand (mix960, pokerth480, hu480, 10max240), danach Suche zur Laufzeit.
+# 27.10.2026: Precise test rig (mix960, pokerth480, hu480, 10max240), then search at runtime.
 cd <Projektordner>
 L=data/bench/measure.txt
 for P in "rock rock" "pros-r1@300 nn?run=pros-r1@300" "pros-r3@200 nn?run=pros-r3@200" \

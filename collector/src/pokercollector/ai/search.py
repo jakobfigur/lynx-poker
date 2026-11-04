@@ -1,22 +1,20 @@
-"""Suche waehrend des Spiels - Grundlage fuer Pluribus-artiges Vorausrechnen.
+"""Search during play - basis for Pluribus-like lookahead.
 
-Pluribus' Staerke kam nicht allein aus seiner Grundstrategie ("Blueprint"), sondern aus der Suche:
-in jeder Situation rechnet er die Hand ein Stueck weit voraus und verfeinert die Entscheidung.
-Hier die Bausteine dafuer und eine erste, einfache Suche:
+Pluribus' strength did not come solely from its base strategy ("blueprint"), but from search:
+In every situation, it looks ahead a bit and refines the decision.
+Here are the building blocks and a first simple search:
 
-1. Glaubenszustand: Ranges der Gegner (ranges.py) -> daraus moegliche Gegnerkarten ziehen ("Welten").
-2. world_from_obs(): aus der Beobachtung + gezogenen Karten einen vollstaendigen Spielstand der Engine
-   bauen (Stacks zu Handbeginn, Button, Blinds, oeffentlicher Verlauf nachgespielt). Davon aus kann
-   man jede Aktion ausprobieren (Hand.clone()).
-3. SearchAgent (Stufe 1, "Rollout-Suche"): fuer jede erlaubte Aktion in vielen Welten die Hand mit der
-   Blueprint-Strategie (einem unserer Netze) fuer ALLE Spieler zu Ende spielen; dieselben Welten fuer
-   alle Aktionen (gepaarter Vergleich, weniger Rauschen). Gewaehlt wird die Aktion mit dem besten
-   Mittelwert - nur wenn sie klar besser ist als die Wahl der Blueprint, sonst bleibt es bei dieser.
+1. Belief state: opponents' ranges (ranges.py) -> from that, sample possible opponent hands ("worlds").
+2. world_from_obs(): build a complete game state from observation + sampled cards (stacks from hand start, button, blinds, public history replayed).
+   From that one can simulate every action (Hand.clone()).
+3. SearchAgent (level 1, "rollout search"): For each allowed action in many worlds play out the hand with
+   the blueprint strategy (one of our networks) for ALL players to the end; same worlds for
+   all actions (paired comparison, less noise). Choose action with best average - only override if clearly better
+   than the blueprint choice, otherwise keep it.
 
-Unterschied zu Pluribus (spaetere Stufen): Pluribus loest an jeder Entscheidung ein begrenztes
-Teilspiel mit CFR, wobei Gegner am Suchhorizont zwischen mehreren Fortsetzungsstrategien waehlen
-duerfen (robust gegen Ausnutzung). Stufe 1 nimmt dagegen an, dass alle nach der Blueprint weiterspielen.
-Die Bausteine 1 und 2 sind fuer beide Stufen dieselben.
+Difference to Pluribus (later levels): Pluribus solves a limited subgame with CFR at every decision,
+where opponents during the search horizon can choose among multiple continuation strategies (robust against exploitation).
+Level 1 assumes all continue after the blueprint. Building blocks 1 and 2 are the same for both levels.
 """
 
 from __future__ import annotations
@@ -38,9 +36,9 @@ SEARCH_VERSION = "search-1"
 
 def world_from_obs(obs: Observation, opp_hands: dict[int, list[str]], rng: random.Random,
                    hand_id: str = "world") -> Hand:
-    """Vollstaendiger Spielstand, der fuer den Spieler obs.seat genauso aussieht wie obs.
-    opp_hands: angenommene Karten der Gegner, die noch in der Hand sind; ausgestiegene Gegner bekommen
-    beliebige freie Karten (sie spielen keine Rolle mehr). Kommende Boardkarten sind zufaellig."""
+    """Complete game state that looks the same to player obs.seat as obs.
+    opp_hands: assumed cards of opponents still in hand; folded opponents get
+    arbitrary free cards (they no longer matter). Upcoming board cards are random."""
     n = obs.num_seats
     start = [obs.stacks[s] + obs.committed[s] for s in range(n)]
     used = set(obs.hole_cards) | set(obs.board) | {c for h in opp_hands.values() for c in h}
@@ -62,7 +60,7 @@ def world_from_obs(obs: Observation, opp_hands: dict[int, list[str]], rng: rando
         if a.kind in ("post_sb", "post_bb"):
             continue
         if h.to_act != a.seat:
-            raise ValueError(f"Verlauf passt nicht: {a} (Engine erwartet Platz {h.to_act})")
+            raise ValueError(f"History does not match: {a} (engine expects seat {h.to_act})")
         if a.kind == "fold":
             act = Action.fold()
         elif a.kind == "check":
@@ -73,13 +71,13 @@ def world_from_obs(obs: Observation, opp_hands: dict[int, list[str]], rng: rando
             act = Action.raise_to(a.amount_to)
         h.apply(a.seat, act)
     if h.done or h.to_act != obs.seat:
-        raise ValueError("nachgebauter Spielstand ist nicht an der Stelle der Beobachtung")
+        raise ValueError('Reconstructed game state is not at the point of observation')
     return h
 
 
 def play_out(h: Hand, agents, seat: int) -> float:
-    """Spielt die Hand mit den gegebenen Agenten (Liste je Platz oder ein Agent fuer alle) zu Ende.
-    Ergebnis fuer `seat` in Big Blinds."""
+    """Plays out the hand to the end with given agents (list per seat or one agent for all).
+    Returns result for `seat` in Big Blinds."""
     while not h.done:
         s = h.to_act
         obs = h.observation(s)
@@ -89,8 +87,8 @@ def play_out(h: Hand, agents, seat: int) -> float:
 
 
 class SearchAgent(BaseAgent):
-    """Rollout-Suche ueber eine Blueprint-Strategie. last_q: geschaetzter Wert je Aktion (BB) - auch fuer
-    Live-Empfehlungen nutzbar. min_gain: Mindestvorteil (BB) gegenueber der Blueprint-Wahl."""
+    """Rollout search over a blueprint strategy. last_q: estimated value per action (BB) - also
+    usable for live recommendations. min_gain: minimum advantage (BB) over blueprint choice."""
     name = "search"
 
     def __init__(self, blueprint: str, worlds: int = 24, min_gain: float = 0.25, seed: int = 0,
@@ -112,7 +110,7 @@ class SearchAgent(BaseAgent):
         rng = self.rng(obs)
         nrng = np.random.default_rng(rng.randrange(1 << 30))
         ranges = opponent_ranges(obs)
-        # Kandidaten: die abstrahierten Aktionen und - falls nicht darunter - die Wahl der Blueprint
+        #Candidates: the abstracted actions and - if not among them - the blueprint choice
         idxs = [int(a) for a in np.flatnonzero(mask)]
         cands = [clamp_action(obs, to_action(obs, a)) for a in idxs]
         if bp_action not in cands:
@@ -131,13 +129,13 @@ class SearchAgent(BaseAgent):
             row = []
             for j, act in enumerate(cands):
                 h = world.clone()
-                h.hand_id = f"{obs.hand_id}|w{k}|c{j}"        # eigener Zufall je Fortsetzung
+                h.hand_id = f"{obs.hand_id}|w{k}|c{j}"        # own randomness per continuation
                 h.apply(obs.seat, act)
                 row.append(play_out(h, self.blueprint, obs.seat))
             rows.append(row)
         if len(rows) < 4:
             return bp_action
-        vals = np.array(rows)                                 # Welten x Kandidaten, gleiche Welten je Spalte
+        vals = np.array(rows)                                 # Worlds x candidates, same worlds per column
         means = vals.mean(0)
         q = np.full(N_ACTIONS, -np.inf)
         for j, a in enumerate(idxs):
@@ -148,7 +146,7 @@ class SearchAgent(BaseAgent):
         best = int(np.argmax(means))
         if best == bp_col:
             return bp_action
-        # Nur bei klarem Vorteil ueberstimmen: gepaarte Differenz pro Welt, Mittel > 2 Standardfehler
+        # Only override when clear advantage: paired difference per world, mean > 2 standard errors
         d = vals[:, best] - vals[:, bp_col]
         se = d.std(ddof=1) / np.sqrt(len(d))
         if d.mean() < max(self.min_gain, 2.0 * se):
@@ -158,8 +156,8 @@ class SearchAgent(BaseAgent):
 
 
 def make_search_agent(params: str, seed: int = 0) -> SearchAgent:
-    """'search?bp=pros-2@300,worlds=24' (bp = Netz-Lauf@Checkpoint; ',' oder '&' trennen - ',' ist cmd-sicher)."""
+    """'search?bp=pros-2@300,worlds=24' (bp = net run@checkpoint; ',' or '&' separate - ',' is cmd-safe)."""
     kv = dict(p.partition("=")[::2] for p in params.replace(",", "&").split("&") if p)
     if "bp" not in kv:
-        raise ValueError("search-Bot: 'search?bp=<lauf>@<ckpt>[&worlds=24&gain=0.25]'")
+        raise ValueError("search-bot: 'search?bp=<run>@<ckpt>[&worlds=24&gain=0.25]'")
     return SearchAgent(f"nn?run={kv['bp']}", int(kv.get("worlds", 24)), float(kv.get("gain", 0.25)), seed)

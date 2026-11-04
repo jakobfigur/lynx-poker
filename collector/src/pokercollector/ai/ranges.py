@@ -1,19 +1,18 @@
-"""Ranges: welche Haende hat ein Gegner nach seinen bisherigen Aktionen wahrscheinlich?
+"""Ranges: which hands is an opponent likely to have after their previous actions?
 
-Bisher rechnete der Bot Equity gegen ZUFAELLIGE Gegnerhaende. Wer aber preflop 3-bettet oder am River
-all-in geht, hat selten Muell. Hier fuehrt jeder Gegner eine Gewichtung ueber alle 1326 Startkombinationen,
-die jede seiner Aktionen verschiebt (Bayes-artig, mit einfachem Aktionsmodell):
+Previously, the bot calculated equity against RANDOM opponent hands. But someone who 3-bets preflop or goes all-in on the river rarely has junk. Each opponent maintains a weighting over all 1326 starting combinations,
+which shifts with each of their actions (Bayes-like, with a simple action model):
 
-  preflop  Raise:  Gewicht ~ "gehoert zu den oberen q %" (Open ~30 %, 3-Bet ~10 %, 4-Bet ~4,5 %);
-                   kurze All-ins breiter (10 BB ~ 24 %, 5 BB ~ 48 %)
-           Call:   obere ~60 % (Limp) bzw. ~35 / 14 / 6 % gegen 1 / 2 / 3 Raises
-  postflop Bet/Raise: Gewicht x (0,15 + 0,85 * s^1,5), Call: x (0,3 + 0,7 * s^0,6), Check: x (1 - 0,35 * s^4)
-           s = Staerke der Kombination auf dem damaligen Board (Perzentil 0..1 unter allen Kombinationen).
-           Die Untergrenzen lassen Bluffs und Draws in der Range.
+  preflop  Raise:  weight ~ "belonging to the top q %" (Open ~30%, 3-Bet ~10%, 4-Bet ~4.5%);
+                   short all-ins broader (10 BB ~ 24%, 5 BB ~ 48%)
+           Call:   top ~60% (Limp) or ~35 / 14 / 6% against 1 / 2 / 3 raises
+  postflop Bet/Raise: weight x (0.15 + 0.85 * s^1.5), Call: x (0.3 + 0.7 * s^0.6), Check: x (1 - 0.35 * s^4)
+           s = strength of combination on that board (percentile 0..1 among all combos).
+           The lower bounds allow bluffs and draws in the range.
 
-Danach Equity per Monte-Carlo: Gegnerhaende werden aus ihren Ranges gezogen (numba). Das ist ein
-Heuristik-Modell, kein exaktes Bayes mit einer Gegnerstrategie - aber es ist auch genau der
-"Glaubenszustand", den eine spaetere Suche (Pluribus-artig) als Ausgangspunkt braucht: sample_hands().
+Then equity via Monte-Carlo: opponent hands are sampled from their ranges (numba). This is a
+heuristic model, not an exact Bayes with an opponent strategy - but it is exactly the
+"belief state" that a later search (Pluribus-like) needs as a starting point: sample_hands().
 """
 
 from __future__ import annotations
@@ -39,13 +38,13 @@ def _sig(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
-# Vorberechnet (Tempo): welche Kombinationen enthalten Karte c; Preflop-Faktoren je Raise-Stufe
+# Precomputed (for speed): which combinations contain card c; preflop factors per raise level
 COMBO_HAS = np.zeros((52, len(COMBOS)), bool)
 COMBO_HAS[COMBOS[:, 0], np.arange(len(COMBOS))] = True
 COMBO_HAS[COMBOS[:, 1], np.arange(len(COMBOS))] = True
 PRE_RAISE = [_sig((q - COMBO_PCT) / 0.03) for q in OPEN_Q]
 PRE_CALL = [_sig((q - COMBO_PCT) / 0.05) for q in CALL_Q]
-# Heads-up (nur fuer die Suche, husearch.py): Button eroeffnet ~85 %, BB verteidigt ~70 %, 3-Bet ~15 %
+# Heads-up (only for search, husearch.py): button opens ~85%, BB defends ~70%, 3-bet ~15%
 OPEN_Q_HU = (0.85, 0.15, 0.06, 0.035)
 CALL_Q_HU = (0.90, 0.70, 0.45, 0.12)
 PRE_RAISE_HU = [_sig((q - COMBO_PCT) / 0.05) for q in OPEN_Q_HU]
@@ -80,28 +79,28 @@ def _strengths(combos, board, nb):
 
 @lru_cache(maxsize=4096)
 def board_strength(board: tuple[str, ...]) -> np.ndarray:
-    """Staerke jeder Kombination auf diesem Board als Perzentil (0 schwaechste .. 1 staerkste)."""
+    """Strength of each combination on this board as percentile (0 weakest .. 1 strongest)."""
     b = np.array([CARD_INDEX[c] for c in board], np.int64)
     vals = _strengths(COMBOS, b, len(b))
     ok = vals >= 0
     order = np.sort(vals[ok])
     lo = np.searchsorted(order, vals, side="left")
     hi = np.searchsorted(order, vals, side="right")
-    s = (lo + hi) / 2.0 / max(1, len(order))           # Gleichstand: mittlerer Rang
+    s = (lo + hi) / 2.0 / max(1, len(order))           # Tie: average rank
     s[~ok] = 0.0
     return s
 
 
 @lru_cache(maxsize=4096)
 def board_factors(board: tuple[str, ...]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Faktoren fuer Bet/Raise, Call, Check auf diesem Board (vorberechnet, gecacht)."""
+    """Factors for Bet/Raise, Call, Check on this board (precomputed, cached)."""
     s = board_strength(board)
     return 0.15 + 0.85 * s ** 1.5, 0.3 + 0.7 * s ** 0.6, 1.0 - 0.35 * s ** 4
 
 
 def opponent_ranges(obs: Observation, heads_up: bool = False) -> dict[int, np.ndarray]:
-    """Gewichte (Summe 1) ueber die 1326 Kombinationen fuer jeden Gegner, der noch in der Hand ist.
-    heads_up=True: Preflop-Parameter fuer Heads-up (viel breiter; nur die Suche nutzt das)."""
+    """Weights (sum 1) over the 1326 combinations for every opponent still in hand.
+    heads_up=True: preflop parameters for heads-up (much wider; only the search uses this)."""
     pre_raise, pre_call = (PRE_RAISE_HU, PRE_CALL_HU) if heads_up else (PRE_RAISE, PRE_CALL)
     open_q = OPEN_Q_HU if heads_up else OPEN_Q
     known = list(obs.hole_cards) + list(obs.board)
@@ -233,8 +232,8 @@ def equity_vs_ranges(obs: Observation, iterations: int = 200, seed: int = 0,
 
 def sample_hands(ranges: dict[int, np.ndarray], dead: list[str], rng: np.random.Generator,
                  tries: int = 50) -> dict[int, list[str]] | None:
-    """Zieht konsistente Gegnerhaende aus den Ranges (fuer die Suche: moegliche 'Welten').
-    None, wenn nach `tries` Versuchen keine kollisionsfreie Zuteilung gelang."""
+    """Draws consistent opponent hands from the ranges (for search: possible 'worlds').
+    None if no collision-free assignment found after `tries` attempts."""
     for _ in range(tries):
         used = {CARD_INDEX[c] for c in dead}
         out = {}
@@ -251,6 +250,6 @@ def sample_hands(ranges: dict[int, np.ndarray], dead: list[str], rng: np.random.
 
 
 def range_summary(r: np.ndarray) -> dict:
-    """Fuer Anzeige/Tests: wie eng ist die Range (Anteil Gewicht in den oberen 10 % / 30 %)?"""
+    """For display/tests: how tight is the range (weight proportion in top 10% / 30%)?"""
     return {"top10": float(r[COMBO_PCT <= 0.10].sum()), "top30": float(r[COMBO_PCT <= 0.30].sum()),
             "entropy_bits": float(-(r[r > 0] * np.log2(r[r > 0])).sum())}

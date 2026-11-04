@@ -21,14 +21,14 @@ The simulation and AI modules are cross-platform. Screen capture, Windows OCR an
 4. Run the relevant tests, then the full suite. Explain any failures or skips.
 5. Describe the problem, resulting behavior and validation in your pull request.
 
-Use English for issues and pull requests where possible. Existing implementation comments and much of the technical documentation are German; translations are welcome.
+Use English for issues and pull requests where possible. Documentation, source comments and user-facing CLI text should be written in English. Keep existing command names and data identifiers stable.
 
 ## Research and data
 
 - Compare policies on paired deals and disclose seeds, opponents, sample sizes and uncertainty.
 - Keep selection, training and final evaluation data separate. Do not repeatedly rerun a failed gate until it passes.
 - Distinguish newly reproduced results from the historical measurements in the case study.
-- Do not commit hand-history datasets, recordings, personal information, credentials or unreviewed model files. Follow [data and licensing](docs/DATEN-UND-LIZENZEN.md).
+- Do not commit hand-history datasets, recordings, personal information, credentials or unreviewed model files. Follow [data and licensing](docs/DATA_AND_LICENSES.md).
 - Keep automation inside the simulator. The live interface displays advice; it must not click, place bets, hide itself or control a poker client.
 
 ## Community

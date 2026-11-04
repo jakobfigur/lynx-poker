@@ -1,14 +1,14 @@
-"""31.10. abends: Greedy in der Suche und Turn-Netz - Suche gegen den MENSCHEN-BOT MIT FOLDS (nn?run=human-1@1&fold=human-fold-1).
-Serverstand (7680 Haende je Zelle, humanopp_srv.txt): C-human+fold 40 BB +30,4 / 100 BB +29,3; greedy lynx-5t +64/+66.
-Varianten (Heads-up Cash duplicate, 40 und 100 BB):
-  netz-g     nn?run=lynx-4@300&greedy=1                                  Referenz Netz greedy
-  lynx5t-g   nn?run=lynx-5t@1&greedy=1                                   Referenz Lehrer-Schueler greedy
-  C          Suche wie Server-Variante C (opp+oppfold)                   Basis
-  C-bpg      + bpgreedy=1   (Blueprint spielt greedy, wo nicht gesucht wird: preflop)
-  C-bpg-g    + greedy=1     (dazu nimmt die Suche selbst die Top-Aktion)
-  C-5t-bpg   Blueprint lynx-5t statt lynx-4 (Ranges aus dem Schueler), bpgreedy
-  C-leaf4    C-bpg mit Turn-Netz vnet-2, leaf=4, k_turn=8 (Flop-Teilbaeume enden an den Turn-Anfaengen)
-Ausgabe bb/100 mit 95 %-Intervall je Variante und Stack. Losgeloest starten (bench_humanopp3.cmd)."""
+"""Oct 31 evening: Greedy in search and turn-network - search against the HUMAN BOT WITH FOLDS (nn?run=human-1@1&fold=human-fold-1).
+Server snapshot (7680 hands per cell, humanopp_srv.txt): C-human+fold 40 BB +30.4 / 100 BB +29.3; greedy lynx-5t +64/+66.
+Variants (heads-up cash duplicate, 40 and 100 BB):
+  netz-g     nn?run=lynx-4@300&greedy=1                                  reference network greedy
+  lynx5t-g   nn?run=lynx-5t@1&greedy=1                                   reference teacher-student greedy
+  C          search like server variant C (opp+oppfold)                  baseline
+  C-bpg      + bpgreedy=1   (blueprint plays greedy where search not done: preflop)
+  C-bpg-g    + greedy=1     (search itself takes top action)
+  C-5t-bpg   blueprint lynx-5t instead of lynx-4 (ranges from student), bpgreedy
+  C-leaf4    C-bpg with turn-network vnet-2, leaf=4, k_turn=8 (flop subtrees end at turn starts)
+Output bb/100 with 95% interval per variant and stack. Start independently (bench_humanopp3.cmd)."""
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -24,8 +24,8 @@ VARIANTS = {
     "C-leaf4": C.replace("vnet=vnet-river-1", "vnet=vnet-2&leaf=4&k_turn=8") + "&bpgreedy=1",
 }
 STACKS = (40, 100)
-BLOCKS = 40         # Seed-Bloecke je (Variante, Stack)
-HANDS = 60          # Blaetter je Block (duplicate -> 120 Haende)
+BLOCKS = 40         # Seed blocks per (variant, stack)
+HANDS = 60          # Blocks per seed (duplicate -> 120 hands)
 
 
 def task(args):
@@ -41,26 +41,26 @@ def task(args):
 
 if __name__ == "__main__":
     import math
-    # Reihenfolge: blockweise ueber alle Varianten, damit Zwischenstaende vergleichbar sind
+    # Order: block-wise across all variants to make intermediate results comparable
     jobs = [(n, s, st, b) for b in range(BLOCKS) for st in STACKS for n, s in VARIANTS.items()]
-    print(f"=== Suche greedy/Turn-Netz gegen Menschen-Bot human-1+Fold: {len(jobs)} Matches x {2 * HANDS} Haende ===",
+    print(f"=== Search greedy/turn-network against human bot human-1+Fold: {len(jobs)} matches x {2 * HANDS} hands ===",
           time.strftime("%H:%M"), flush=True)
     acc = {}
     with ProcessPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 4) as ex:
         for k, (name, stack, block, bb100, hands, secs) in enumerate(ex.map(task, jobs)):
             acc.setdefault((name, stack), []).append(bb100)
-            print(f"  {name:9} {stack:3d} BB Block {block:2d}: {bb100:+7.1f} bb/100 ({hands} Haende, {secs:.0f}s)", flush=True)
+            print(f"  {name:9} {stack:3d} BB Block {block:2d}: {bb100:+7.1f} bb/100 ({hands} hands, {secs:.0f}s)", flush=True)
             if (k + 1) % (len(VARIANTS) * len(STACKS) * 5) == 0:
-                print(f"--- Zwischenstand nach Block {block} ---", time.strftime("%H:%M"), flush=True)
+                print(f"--- Intermediate result after block {block} ---", time.strftime("%H:%M"), flush=True)
                 for (n2, s2), xs in sorted(acc.items()):
                     m = sum(xs) / len(xs)
                     sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(len(xs) - 1, 1))
                     half = 2.0 * sd / math.sqrt(len(xs))
-                    print(f"  {n2:9} {s2:3d} BB: {m:+7.1f} [{m - half:+.1f}; {m + half:+.1f}] ({len(xs) * 2 * HANDS} Haende)", flush=True)
-    print("=== ERGEBNIS (Mittel der Bloecke, 95 %-Intervall ueber Bloecke) ===", time.strftime("%H:%M"), flush=True)
+                    print(f"  {n2:9} {s2:3d} BB: {m:+7.1f} [{m - half:+.1f}; {m + half:+.1f}] ({len(xs) * 2 * HANDS} hands)", flush=True)
+    print('=== RESULT (mean of blocks, 95% interval over blocks) ===', time.strftime("%H:%M"), flush=True)
     for (name, stack), xs in sorted(acc.items()):
         m = sum(xs) / len(xs)
         sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(len(xs) - 1, 1))
         half = 2.02 * sd / math.sqrt(len(xs)) if len(xs) > 1 else float("nan")
-        print(f"  {name:9} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] ueber {len(xs) * 2 * HANDS} Haende", flush=True)
-    print("ALLE MESSUNGEN FERTIG", time.strftime("%H:%M"), flush=True)
+        print(f"  {name:9} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] over {len(xs) * 2 * HANDS} hands", flush=True)
+    print('ALL MEASUREMENTS COMPLETE', time.strftime("%H:%M"), flush=True)

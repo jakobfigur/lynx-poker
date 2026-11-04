@@ -1,5 +1,5 @@
-"""Masken fuer eigene Anzeigen: die Lynx-Leiste ist sichtbar, wird aber aus den Aufnahmen des Collectors
-ausgeschnitten (ersetzt seit 3.11.2026 das Verbergen per WDA_EXCLUDEFROMCAPTURE)."""
+""" Masks for own displays: the Lynx bar is visible but cut out from collector captures
+    (replaces hiding via WDA_EXCLUDEFROMCAPTURE since 11/3/2026)."""
 import json
 
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 from pokercollector import capture
 from pokercollector.capture import Frame, SegmentRecorder, apply_masks
 
-FELT = (40, 120, 30)        # BGR, Filzgruen
+FELT = (40, 120, 30)        # BGR, felt green
 
 
 def _table(w=200, h=120):
@@ -18,20 +18,20 @@ def _table(w=200, h=120):
 
 def test_maske_fuellt_mit_umgebungsfarbe_und_meldet_rechteck():
     img = _table()
-    img[90:110, 150:195] = (30, 30, 30)              # die Leiste rechts unten im Bild
-    # Fenster liegt bei (500, 300) auf dem Bildschirm, die Leiste bei (650, 390), 45x20
+    img[90:110, 150:195] = (30, 30, 30)              # the bar at bottom right of the image
+    # Window at (500, 300) on screen, bar at (650, 390), 45x20
     done = apply_masks(img, (500, 300), [(650, 390, 45, 20)])
     assert done == [[150, 90, 45, 20]]
-    assert (img == FELT).all()                        # an ihrer Stelle steht jetzt Filz
+    assert (img == FELT).all()                        # felt is now at its place
 
 
 def test_maske_ausserhalb_oder_teilweise_im_bild():
     img = _table()
     before = img.copy()
-    assert apply_masks(img, (0, 0), [(300, 300, 50, 20)]) == []        # ganz ausserhalb: nichts passiert
+    assert apply_masks(img, (0, 0), [(300, 300, 50, 20)]) == []        # completely outside: nothing happens
     assert (img == before).all()
     img[100:120, 180:200] = (200, 200, 200)
-    done = apply_masks(img, (0, 0), [(180, 100, 60, 40)])              # ragt rechts und unten hinaus
+    done = apply_masks(img, (0, 0), [(180, 100, 60, 40)])              # protrudes to the right and bottom
     assert done == [[180, 100, 20, 20]]
     assert (img[100:120, 180:200] == FELT).all()
 

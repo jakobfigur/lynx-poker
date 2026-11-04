@@ -1,12 +1,12 @@
-"""Kartenraenge per Formvergleich mit gezeichneten Schrift-Vorlagen erkennen.
+"""Recognize card ranks by shape comparison with drawn font templates.
 
-Windows-OCR ist fuer ganze Woerter gebaut; isolierte Einzelzeichen (A, 7, Q auf grossen Karten)
-liefert es oft gar nicht (gemessen 26.10.2026 an einer 6er-Tisch-Aufnahme: 3 von 7 Raengen).
-Hier werden die 13 Raenge in mehreren Standardschriften gezeichnet, genauso normiert wie die
-Glyphen aus dem Bild (cards._normalize_glyph) und per Korrelation verglichen. Das Seitenverhaeltnis
-geht mit ein ('10' ist breit, '7' schmal).
+Windows OCR is built for whole words; isolated single characters (A, 7, Q on large cards)
+often not detected at all (measured 26.10.2026 on a 6-player table recording: 3 of 7 ranks).
+Here the 13 ranks are drawn in several standard fonts, normalized identically to the
+glyphs from the image (cards._normalize_glyph) and compared by correlation. Aspect ratio
+is included ('10' is wide, '7' narrow).
 
-Bewusst KEINE Vorlagen aus dem PokerTH-Export: der bleibt unabhaengige Referenz fuer den Vergleich.
+Deliberately NO templates from the PokerTH export: that remains an independent reference for comparison.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ RANK_TEXT = {"2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8
 FONT_DIR = Path("C:/Windows/Fonts")
 FONTS = ["arialbd.ttf", "arial.ttf", "segoeuib.ttf", "segoeui.ttf", "verdanab.ttf", "verdana.ttf",
          "tahomabd.ttf", "tahoma.ttf", "calibrib.ttf", "calibri.ttf", "bahnschrift.ttf", "ARIALN.TTF", "ARIALNB.TTF",
-         # schmale und Serifenschriften (PokerTH-Q ist schmal mit langem Schwanz)
+         # narrow and serif fonts (PokerTH-Q is narrow with long tail)
          "times.ttf", "timesbd.ttf", "georgia.ttf", "georgiab.ttf", "cambriab.ttf", "constan.ttf", "constanb.ttf",
          "pala.ttf", "palab.ttf", "framd.ttf", "trebuc.ttf", "trebucbd.ttf", "Candara.ttf", "Candarab.ttf",
          "corbel.ttf", "corbelb.ttf", "seguisb.ttf", "micross.ttf",
@@ -39,7 +39,7 @@ def _norm(g: np.ndarray) -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def font_templates() -> list[tuple[str, np.ndarray, float, str]]:
-    """(Rang, normierte Glyphe, Seitenverhaeltnis b/h, Schrift) fuer alle verfuegbaren Schriften."""
+    """(Rank, normalized glyph, aspect ratio w/h, font) for all available fonts."""
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
@@ -65,7 +65,7 @@ def font_templates() -> list[tuple[str, np.ndarray, float, str]]:
 
 
 def match_rank(glyph: np.ndarray, aspect: float) -> tuple[str | None, float, float]:
-    """(Rang, Score, Abstand zum zweitbesten Rang). glyph: normiert wie cards._normalize_glyph."""
+    """(Rank, score, distance to second-best rank). glyph: normalized as cards._normalize_glyph."""
     tmpls = font_templates()
     if not tmpls or glyph is None or aspect <= 0:
         return None, 0.0, 0.0

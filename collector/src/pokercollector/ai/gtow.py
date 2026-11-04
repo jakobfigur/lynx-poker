@@ -1,22 +1,22 @@
-"""Messung gegen GTO Wizard AI (benchmark.gtowizard.com) - zweites externes Massband neben Slumbot.
+"""Measure against GTO Wizard AI (benchmark.gtowizard.com) - second external benchmark besides Slumbot.
 
-Format: Heads-up No-Limit, Cash, Blinds 50/100, beide Stacks zu Beginn jeder Hand 20000 (200 BB) - wie Slumbot.
-Gegner: GTO Wizard AI (ehemals Ruse AI), rechnet jede Situation in Echtzeit; schlaegt Slumbot um 19,4 bb/100
-(arXiv 2603.23660). Bewertung mit AIVAT (Burch u. a. 2016): erwartungstreue Varianzreduktion, etwa dreifach
-kleinere Streuung als rohe Gewinne.
+Format: Heads-up No-Limit, Cash, blinds 50/100, both stacks at start of each hand 20000 (200 BB) - like Slumbot.
+Opponent: GTO Wizard AI (formerly Ruse AI), calculates each situation in real time; beats Slumbot by 19.4 bb/100
+(arXiv 2603.23660). Evaluation with AIVAT (Burch et al. 2016): unbiased variance reduction, about triple
+smaller variance than raw winnings.
 
-API (https://researcher.gtowizard.com, OpenAPI unter /openapi.json, Schluessel im Header X-API-Key):
-  POST /hands {"game_name": "HUNL 200BB"}        -> Spielstand (hand_id, game, game_state)
-  POST /hands/{hand_id}/act {"action": "f|k|c|b", "amount": N}   -> Spielstand nach unserem Zug UND der Antwort
-  GET  /results?game_name=...                    -> Serverstatistik (total_hands, aivat_score, ...)
-  POST /users/request {...}                      -> Zugang beantragen (Schluessel waehlt man selbst, >= 32 Zeichen)
-Verlauf (game_state.action_history) als Liste: 'f', 'k', 'c', 'bX' (Einsatz AUF X, Strassensumme) und '_' als
-Strassenwechsel - also dasselbe Schema wie bei Slumbot ('/' statt '_'). Deshalb wird der Spielstand mit
-slumbot.replay in der Engine nachgebaut, und to_incr liefert unseren Zug.
+API (https://researcher.gtowizard.com, OpenAPI under /openapi.json, key in header X-API-Key):
+  POST /hands {"game_name": "HUNL 200BB"}        -> gamestate (hand_id, game, game_state)
+  POST /hands/{hand_id}/act {"action": "f|k|c|b", "amount": N}   -> gamestate after our move AND response
+  GET  /results?game_name=...                    -> server stats (total_hands, aivat_score, ...)
+  POST /users/request {...}                      -> request access (key chosen by user, >= 32 chars)
+History (game_state.action_history) as list: 'f', 'k', 'c', 'bX' (bet ON X, street total) and '_' as
+street change - same scheme as Slumbot ('/' instead of '_'). Therefore the gamestate is reconstructed with
+slumbot.replay in the engine, and to_incr delivers our move.
 
-Regeln des Anbieters: nur Haende spielen und Ergebnisse sehen, keine Solver-Funktionen; 100 000 Haende je Nutzer
-und Monat; Zugang kann entzogen werden. Es gehen ausschliesslich unsere Spielzuege nach draussen.
-Jede Hand wird sofort in data/bench/gtow/<name>.jsonl geschrieben (fortsetzbar). Nur Massband, kein Trainingsziel.
+Provider rules: only play hands and see results, no solver features; 100,000 hands per user
+and month; access can be revoked. Only our moves go out.
+Each hand is immediately written to data/bench/gtow/<name>.jsonl (appendable). Only benchmark, no training goal.
 """
 
 from __future__ import annotations
@@ -36,9 +36,9 @@ from .observation import Action, clamp_action
 from .slumbot import BB, CLIENT, _stat, allin_ev, replay
 
 API = "https://researcher.gtowizard.com"
-GAME = "HUNL 200BB"
+GAME = 'HUNL 200BB'
 GTOW_VERSION = "gtow-1"
-KEY_FILE = "api_key.txt"             # unter data/bench/gtow/, alternativ Umgebungsvariable GTOW_API_KEY
+KEY_FILE = "api_key.txt"             # under data/bench/gtow/, alternatively environment variable GTOW_API_KEY
 
 
 class GtowError(RuntimeError):
@@ -57,14 +57,14 @@ def api_key(explicit: str | None = None) -> str:
         if p.exists():
             key = p.read_text("utf-8").strip()
     if not key:
-        raise GtowError(f"kein API-Schluessel: --key, GTOW_API_KEY oder {results_dir() / KEY_FILE}")
+        raise GtowError(f"no API key: --key, GTOW_API_KEY or {results_dir() / KEY_FILE}")
     return key
 
 
 def _request(method: str, path: str, data: dict | None = None, key: str | None = None,
              retries: int = 8) -> dict | list:
     body = json.dumps(data).encode() if data is not None else None
-    # eigener User-Agent: die Standardkennung von urllib wird vom Schutz des Anbieters abgewiesen (403, Code 1010)
+    # own User-Agent: default urllib identifier rejected by provider blacklist (403, code 1010)
     headers = {"Content-Type": "application/json", "Accept": "application/json",
                "User-Agent": f"pokercollector-lynx/{GTOW_VERSION} (benchmark client)"}
     if key:
@@ -75,11 +75,11 @@ def _request(method: str, path: str, data: dict | None = None, key: str | None =
             with urllib.request.urlopen(req, timeout=180) as r:
                 return json.loads(r.read() or b"null")
         except urllib.error.HTTPError as e:
-            if e.code in (502, 503, 504) and k < retries - 1:      # Engine beschaeftigt: warten
+            if e.code in (502, 503, 504) and k < retries - 1:      # Engine busy: wait
                 time.sleep(min(60, 2 ** k))
                 continue
             detail = e.read().decode("utf-8", "replace")[:500]
-            raise GtowError(f"HTTP {e.code} bei {method} {path}: {detail}") from None
+            raise GtowError(f"HTTP {e.code} at {method} {path}: {detail}") from None
         except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError):
             if k == retries - 1:
                 raise
@@ -87,10 +87,10 @@ def _request(method: str, path: str, data: dict | None = None, key: str | None =
     raise AssertionError
 
 
-# ---------------------------------------------------------------- Uebersetzung Spielstand <-> Engine
+# ---------------------------------------------------------------- Translation game state <-> engine
 
 def history_to_text(history: list[str]) -> str:
-    """['b300', 'c', '_', 'k', 'b500'] -> 'b300c/kb500' (Slumbot-Schreibweise fuer slumbot.replay)."""
+    """['b300', 'c', '_', 'k', 'b500'] -> 'b300c/kb500' (Slumbot notation for slumbot.replay)."""
     parts, cur = [], []
     for tok in history:
         if tok == "_":
@@ -99,23 +99,23 @@ def history_to_text(history: list[str]) -> str:
         elif tok in ("f", "k", "c") or (tok.startswith("b") and tok[1:].isdigit()):
             cur.append(tok)
         else:
-            raise GtowError(f"unbekannter Verlaufseintrag {tok!r}")
+            raise GtowError(f"unknown history entry {tok!r}")
     parts.append("".join(cur))
     return "/".join(parts)
 
 
 def parse_cards(s: str | None) -> list[str]:
-    """'AhKd', 'Ah Kd', 'Ah,Kd' -> ['Ah', 'Kd']; None/'' -> []. Zehner als 'T' (auch '10' wird verstanden)."""
+    """'AhKd', 'Ah Kd', 'Ah,Kd' -> ['Ah', 'Kd']; None/'' -> []. Tens as 'T' (also '10' is understood)."""
     if not s:
         return []
     t = s.replace(",", "").replace(" ", "").replace("10", "T")
     if len(t) % 2:
-        raise GtowError(f"Karten nicht lesbar: {s!r}")
+        raise GtowError(f"cards not readable: {s!r}")
     return [t[i:i + 2] for i in range(0, len(t), 2)]
 
 
 def split_players(players: list[dict]) -> tuple[dict, dict]:
-    """(wir, GTO Wizard). Erkennung ueber den Namen, sonst ueber die sichtbaren Hole Cards."""
+    """(we, GTO Wizard). Recognition through the name, otherwise through the visible Hole Cards."""
     bot = [p for p in players if "wizard" in p["name"].lower() or "gto" in p["name"].lower()]
     if len(bot) == 1 and len(players) == 2:
         me = players[0] if players[1] is bot[0] else players[1]
@@ -124,21 +124,21 @@ def split_players(players: list[dict]) -> tuple[dict, dict]:
     if len(seen) == 1 and len(players) == 2:
         me = seen[0]
         return me, players[0] if players[1] is me else players[1]
-    raise GtowError(f"Spieler nicht zuzuordnen: {players}")
+    raise GtowError(f"players not assignable: {players}")
 
 
 def client_pos(position: str) -> int:
-    """1 = Small Blind/Button (handelt preflop zuerst), 0 = Big Blind - wie slumbot.replay."""
+    """1 = Small Blind/Button (acts first preflop), 0 = Big Blind - like slumbot.replay."""
     p = position.lower().replace("_", "").replace("-", "").replace(" ", "")
     if p in ("sb", "btn", "button", "smallblind", "dealer", "ip", "p0", "0"):
         return 1
     if p in ("bb", "bigblind", "oop", "p1", "1"):
         return 0
-    raise GtowError(f"unbekannte Position {position!r}")
+    raise GtowError(f"unknown position {position!r}")
 
 
 def rebuild(resp: dict, seed: int = 0) -> tuple[Hand, dict, dict]:
-    """Spielstand der API in der Engine nachbauen. Liefert (Hand, wir, Bot)."""
+    """Rebuild game state of the API inside the engine. Returns (Hand, we, Bot)."""
     gs = resp["game_state"]
     me, bot = split_players(gs["players"])
     h = replay(history_to_text(gs["action_history"]), client_pos(me["position"]), parse_cards(me["hole_cards"]),
@@ -147,7 +147,7 @@ def rebuild(resp: dict, seed: int = 0) -> tuple[Hand, dict, dict]:
 
 
 def to_act_request(obs, action: Action, gs: dict) -> dict:
-    """Engine-Aktion -> ActRequest. Einsatzhoehe ist die Strassensumme (wie raise_to), in raise_range gekappt."""
+    """Engine action -> ActRequest. The bet size is the street total (like raise_to), capped in raise_range."""
     a = clamp_action(obs, action)
     legal = set(gs.get("legal_actions") or ())
     if a.kind == "fold":
@@ -160,12 +160,12 @@ def to_act_request(obs, action: Action, gs: dict) -> dict:
     amt = int(round(a.amount))
     if rr:
         amt = max(int(round(rr["min"])), min(int(round(rr["max"])), amt))
-    if legal and "b" not in legal:                       # darf nicht mehr setzen -> mitgehen
+    if legal and "b" not in legal:                       #  may no longer bet -> call
         return {"action": "c"} if "c" in legal else {"action": "k"}
     return {"action": "b", "amount": amt}
 
 
-# ---------------------------------------------------------------- eine Hand
+# ---------------------------------------------------------------- one hand
 
 def play_hand(agent, key: str, seed: int) -> dict:
     r = _request("POST", "/hands", {"game_name": GAME}, key)
@@ -174,10 +174,10 @@ def play_hand(agent, key: str, seed: int) -> dict:
     while not r["game_state"]["is_hand_over"]:
         gs = r["game_state"]
         if gs.get("player_to_act") not in (None, "user"):
-            raise GtowError(f"Hand {hand_id}: GTO Wizard am Zug, aber Hand nicht vorbei: {gs}")
+            raise GtowError(f"hand {hand_id}: GTO Wizard to act, but hand not finished: {gs}")
         h, me, bot = rebuild(r, seed)
         if h.done or h.to_act != CLIENT:
-            raise GtowError(f"Hand {hand_id}: Spielstand passt nicht zur Engine: {gs['action_history']}")
+            raise GtowError(f"Hand {hand_id}: Game state does not match engine: {gs['action_history']}")
         obs = h.observation(CLIENT)
         req = to_act_request(obs, agent.act(obs), gs)
         decisions += 1
@@ -190,8 +190,8 @@ def play_hand(agent, key: str, seed: int) -> dict:
            "bot_hole": bot_hole, "action": history_to_text(gs["action_history"]),
            "winnings": gs.get("winnings"), "aivat": gs.get("aivat_score"), "decisions": decisions,
            "bot_folded": gs.get("has_gto_wizard_folded")}
-    # Gegenprobe: Engine rechnet dasselbe Ergebnis aus (prueft die Uebersetzung) - nur wenn alle Karten bekannt
-    # sind oder die Hand ohne Showdown endete
+    # Cross-check: engine calculates the same result (checks the translation) - only if all cards
+    # are known or the hand ended without a showdown
     try:
         h = replay(out["action"], out["client_pos"], hole, board, bot_hole, seed=seed)
         if h.done and h.record is not None and (bot_hole or not h.record.went_to_showdown):
@@ -199,12 +199,12 @@ def play_hand(agent, key: str, seed: int) -> dict:
             if bot_hole:
                 ev = allin_ev(h, hole, bot_hole)
                 out["allin_ev"] = round(ev, 1) if ev is not None else None
-    except (ValueError, KeyError, IndexError, AssertionError) as e:   # Gegenprobe darf die Messung nie stoppen
+    except (ValueError, KeyError, IndexError, AssertionError) as e:   # Cross-check must never stop the measurement
         out["engine_error"] = str(e)[:200]
     return out
 
 
-# ---------------------------------------------------------------- Auswertung
+# ---------------------------------------------------------------- Evaluation
 
 def load_hands(name: str) -> list[dict]:
     p = results_dir() / f"{name}.jsonl"
@@ -224,22 +224,22 @@ def summarize(hands: list[dict]) -> dict:
 
 
 def server_results(key: str) -> dict:
-    """Statistik des Servers (AIVAT ueber alle unsere Haende, massgeblich fuer die Rangliste)."""
+    """Statistics of the server (AIVAT over all our hands, decisive for the ranking)."""
     r = _request("GET", f"/results?game_name={urllib.request.quote(GAME)}", None, key)
     return r if isinstance(r, dict) else {"raw": r}
 
 
 def request_access(email: str, organization: str, bot_name: str, key: str, reason: str) -> dict:
-    """Zugang beantragen. Den Schluessel (>= 32 Zeichen) waehlt man selbst; er gilt nach Freigabe per E-Mail."""
+    """Apply for access. The key (>= 32 characters) is chosen by yourself; it is valid after approval via email."""
     if len(key) < 32:
-        raise GtowError("API-Schluessel muss mindestens 32 Zeichen haben")
+        raise GtowError('API key must be at least 32 characters long')
     r = _request("POST", "/users/request", {"email": email, "organization": organization, "bot_name": bot_name,
                                             "api_key": key, "reason_for_joining": reason})
     return r if isinstance(r, dict) else {"raw": r}
 
 
 def run(spec: str, name: str, hands: int, workers: int = 2, key: str | None = None, progress=None) -> dict:
-    """Spielt bis zu `hands` weitere Haende mit `workers` parallelen Haenden (der Anbieter-Client nutzt 5)."""
+    """Plays up to `hands` further hands with `workers` parallel hands (the provider client uses 5)."""
     key = api_key(key)
     d = results_dir()
     d.mkdir(parents=True, exist_ok=True)
@@ -262,12 +262,12 @@ def run(spec: str, name: str, hands: int, workers: int = 2, key: str | None = No
                 errors += 1
                 msg = str(e)
                 print(f"  Hand {i}/{k}: {msg[:200]}", flush=True)
-                if "HTTP 401" in msg or "HTTP 403" in msg or errors > 20:
-                    stop.set()                   # Schluessel ungueltig oder Dauerfehler: alle anhalten
+                if 'HTTP 401' in msg or 'HTTP 403' in msg or errors > 20:
+                    stop.set()                   # Invalid key or persistent error: stop all
                     raise
                 time.sleep(2)
                 continue
-            res["spec"], res["t"] = spec, time.strftime("%Y-%m-%d %H:%M:%S")
+            res["spec"], res["t"] = spec, time.strftime('%Y-%m-%d %H:%M:%S')
             with lock:
                 with open(path, "a", encoding="utf-8") as f:
                     f.write(json.dumps(res) + "\n")

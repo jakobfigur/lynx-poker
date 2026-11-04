@@ -1,23 +1,23 @@
-"""Wie der Bot lernt: erst Nachahmung (Behavior Cloning), dann Selbstspiel mit PPO.
+"""How the bot learns: first imitation (Behavior Cloning), then self-play with PPO.
 
-1. Nachahmung: Ein Lehrer-Bot (z. B. rock) spielt Sit&Gos; jede seiner Entscheidungen wird
-   als (Merkmale, erlaubte Aktionen, gewaehlte Aktion) gespeichert. Das Netz lernt, ihn
-   nachzuspielen, und sein Wertkopf lernt, was solche Haende im Schnitt einbringen.
-   Ergebnis: Checkpoint 0 - ein vernuenftiger Startpunkt statt Zufall.
+1. Imitation: A teacher bot (e.g. rock) plays Sit&gos; each of its decisions is recorded as
+   (features, allowed actions, chosen action). The net learns to imitate it,
+   and its value head learns what such hands typically yield on average.
+   Result: checkpoint 0 - a reasonable starting point instead of random.
 
-2. PPO (Proximal Policy Optimization): Je Iteration spielt der aktuelle Bot viele Sit&Gos
-   (parallel in Prozessen) gegen Tische aus der Liga und gegen eingefrorene fruehere
-   Versionen von sich. Belohnung je Hand = Chip-Aenderung / Startstack * reward_scale,
-   vergeben bei seiner letzten Entscheidung in der Hand (eine Hand = eine Episode).
-   Danach wird das Netz in kleinen, begrenzten Schritten (clip) in Richtung der Aktionen
-   verschoben, die besser liefen als vom Wertkopf erwartet (Vorteil, GAE).
+2. PPO (Proximal Policy Optimization): Each iteration, the current bot plays many Sit&gos
+   (in parallel processes) against tables from the league and against frozen earlier
+   versions of itself. Reward per hand = chip change / start stack * reward_scale,
+   awarded at its last decision in the hand (a hand = an episode).
+   Then the net is shifted in small, limited steps (clip) toward actions
+   that performed better than expected by the value head (advantage, GAE).
 
-Optimiert wird Chip-Gewinn; mit RLConfig.icm > 0 anteilig die Aenderung des ICM-Eigenkapitals
-   (icm.py, Preise aus der Auszahlungsstruktur des Turniers): Belohnung = (1-icm)*Chips + icm*dICM.
-Ob der Bot wirklich besser ist, entscheidet wie immer die Aufnahmepruefung (optimize.gate).
+Optimized is chip profit; with RLConfig.icm > 0 partly the change in ICM equity
+   (icm.py, prices from the tournament prize structure): reward = (1-icm)*chips + icm*dICM.
+Whether the bot is actually better is decided as always by the entrance exam (optimize.gate).
 
-Ablage je Lauf: data\\rl\\<lauf>\\ mit config.json, bc.json, log.jsonl, eval.jsonl,
-ckpt_000000.pt (nach Nachahmung), ckpt_<Iteration>.pt (Schnappschuesse), state.pt (Fortsetzen).
+Storage per run: data\\rl\\<run>\\ with config.json, bc.json, log.jsonl, eval.jsonl,
+ckpt_000000.pt (after imitation), ckpt_<iteration>.pt (snapshots), state.pt (resume).
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ RL_VERSION = "ppo-1"
 @dataclass
 class RLConfig:
     hidden: int = 128
-    tournaments: int = 96          # Sit&Gos je Iteration
+    tournaments: int = 96          # Sit&gos per iteration
     lr: float = 3e-4
     epochs: int = 4
     minibatch: int = 2048
@@ -57,41 +57,41 @@ class RLConfig:
     lam: float = 0.95
     max_grad_norm: float = 0.5
     reward_scale: float = 10.0
-    self_play: float = 0.3         # Anteil Tische mit einer frueheren Version als Gegner
+    self_play: float = 0.3         # Proportion of tables with an earlier version as opponent
     snapshot_every: int = 10
     eval_every: int = 10
     eval_schemes: int = 12
     seed: int = 1
-    # Leine (piKL): Strafe fuer Abweichung von einer Ankerstrategie, z. B. dem Pluribus-Nachahmer.
-    # 0 = aus. anchor = '<lauf>:<ckpt>', leer = eigener Checkpoint 0.
+    # Leash (piKL): penalty for deviation from an anchor strategy, e.g. the Pluribus imitator.
+    # 0 = off. anchor = '<run>:<ckpt>', empty = own checkpoint 0.
     anchor_coef: float = 0.0
     anchor: str = ""
-    anchor_min_bb: float = 25.0    # Leine nur ab diesem effektiven Stack (Kurzstack lernt der Bot frei)
-    anchor_min_players: int = 0    # Leine nur bei mindestens so vielen Spielern (Pluribus kennt nur 6er)
-    table_weights: str = ""        # mit random_formats: Gewichte der Tischgroessen, z. B. "2:4,3:3,6:2"
-    self_play_seats: float = 0.0   # je Gegnerplatz: Wahrscheinlichkeit fuer eine fruehere eigene Version
-    bench_every: int = 50          # alle N Iterationen auf den Pruefstand (feste Testsets), 0 = nie
-    bench_sets: str = "fest48,mix96,pluribus"   # Testsets ("praezise" = grosse Sets, ca. 4 min)
-    bench_ref: str = ""            # Vergleichsbot auf dem Pruefstand (Name): gepaarte Differenz, bester -> best.json
-    random_share: float = 0.0      # Anteil Tischplaetze mit Zufalls-Stilbots (unendlich viele Spielweisen)
-    human_share: float = 0.0       # Anteil Tischplaetze mit Mensch-Bots (echte Spielertypen aus HandHQ)
-    random_formats: bool = False   # je Turnier zufaellig: 2-10 Spieler, 20-200 BB, Blind-Tempo, Auszahlung
-    exploit_every: int = 0         # alle N Iterationen: Ausbeuter gegen den aktuellen Stand trainieren und
-    exploit_iters: int = 30        #   als Gegner in den Pool aufnehmen (0 = aus)
+    anchor_min_bb: float = 25.0    # Leash only above this effective stack (bot learns short stack freely)
+    anchor_min_players: int = 0    # Leash only with at least this many players (Pluribus knows only 6 max)
+    table_weights: str = ""        # with random_formats: Weights of table sizes, e.g. "2:4,3:3,6:2"
+    self_play_seats: float = 0.0   # per opponent seat: probability of a previous own version
+    bench_every: int = 50          # all N iterations on the test bench (fixed test sets), 0 = never
+    bench_sets: str = "fest48,mix96,pluribus"   # Test sets ("precise" = large sets, approx. 4 min)
+    bench_ref: str = ""            # Comparison bot on the test bench (name): paired difference, best -> best.json
+    random_share: float = 0.0      # Share of table seats with random-style bots (infinitely many play styles)
+    human_share: float = 0.0       # Share of table seats with human bots (real player types from HandHQ)
+    random_formats: bool = False   # per tournament randomly: 2-10 players, 20-200 BB, blind speed, payout
+    exploit_every: int = 0         # every N iterations: train exploiter against current state and
+    exploit_iters: int = 30        #   include as opponent in the pool (0 = off)
     exploit_tournaments: int = 256
-    icm: float = 0.0               # Anteil ICM-Belohnung (0 = Chip-EV, 1 = reine Aenderung des Turnier-Eigenkapitals)
+    icm: float = 0.0               # Share of ICM reward (0 = chip EV, 1 = pure change of tournament equity)
 
 
-# ---- Sammeln von Entscheidungen ---------------------------------------------------------
+# ---- Collecting decisions ---------------------------------------------------------
 
 class _Collector:
-    """Gemeinsame Buchfuehrung: Entscheidungen je Hand, Belohnung bei Handende."""
+    """Joint bookkeeping: decisions per hand, reward at end of hand."""
 
     def __init__(self, scale: float, start_stack: int, icm: float = 0.0):
         self.scale = scale
         self.start_stack = start_stack
         self.icm = icm
-        self.prizes: list[float] = []      # Preise in Buy-ins je Platz (aus obs.tournament)
+        self.prizes: list[float] = []      # Prizes in buy-ins per place (from obs.tournament)
         self.steps: list[list] = []        # [x, mask, action, logp, value, reward, done]
         self.cur_hand = None
         self.hand_start = 0
@@ -119,8 +119,8 @@ class _Collector:
         if after[seat] > 0:
             eq1 = icm_equity(after, self.prizes, seat)
         else:
-            # ausgeschieden: Auszahlung fuer diesen Platz; bei mehreren Ausgeschiedenen derselben Hand ist der
-            # groessere Startstack besser platziert (wie tournament._assign_places)
+            # eliminated: payout for this place; if multiple eliminated in the same hand,
+            # larger starting stack ranks higher (like tournament._assign_places)
             busted_above = sum(1 for s in range(len(after)) if s != seat and before[s] > 0 and after[s] == 0
                                and before[s] > before[seat])
             place = sum(1 for s in after if s > 0) + 1 + busted_above
@@ -179,7 +179,7 @@ class _Teacher(_Collector):
 
     def hand_over(self, rec, seat):
         super().hand_over(rec, seat)
-        # Nachahmung: Wertziel = Ergebnis der Hand fuer ALLE Entscheidungen darin
+        # Imitation: value target = result of the hand for ALL decisions within it
         if self.steps and self.steps[-1][6]:
             r = self.steps[-1][5]
             for st in self.steps[self.hand_start:]:
@@ -206,7 +206,7 @@ def _rollout_job(args) -> tuple[dict, dict]:
     icm = rest[0] if rest else 0.0
     rng = random.Random(rng_seed)
     packs, hands, net_bb, survived, decisions = [], 0, 0.0, 0, 0
-    configs = config if isinstance(config, list) else [config] * len(seeds)   # je Turnier eigenes Format
+    configs = config if isinstance(config, list) else [config] * len(seeds)   # own format per tournament
     for opp_specs, sd, config in zip(tables, seeds, configs):
         learner = _Learner(w, rng, scale, config.start_stack, icm=icm)
         opps = [make_agent(f"{s}:opp{i}", 99) for i, s in enumerate(opp_specs)]
@@ -235,7 +235,7 @@ def _bc_job(args) -> dict:
     return _concat(packs)
 
 
-# ---- Nachahmung --------------------------------------------------------------------------
+# ---- Imitation --------------------------------------------------------------------------
 
 def behavior_clone(run_dir: Path, teacher: str = "rock", tournaments: int = 600, epochs: int = 10,
                    hidden: int = 128, config: TournamentConfig = DEFAULT_CONFIG, seed: int = 1,
@@ -249,14 +249,14 @@ def behavior_clone(run_dir: Path, teacher: str = "rock", tournaments: int = 600,
                                       for i, c in enumerate(chunks)]))
     data = _concat(parts)
     if progress:
-        progress(f"{len(data['a'])} Entscheidungen von '{teacher}' gesammelt ({time.perf_counter() - t0:.0f}s)")
+        progress(f"{len(data['a'])} decisions collected from '{teacher}' ({time.perf_counter() - t0:.0f}s)")
     return fit_bc(run_dir, data, {"teacher": teacher, "tournaments": tournaments}, epochs=epochs, hidden=hidden,
                   seed=seed, progress=progress, label_smoothing=label_smoothing, t0=t0)
 
 
 def fit_bc(run_dir: Path, data: dict, source: dict, epochs: int = 10, hidden: int = 128, seed: int = 1,
            progress=None, label_smoothing: float = 0.05, t0: float | None = None) -> dict:
-    """Netz auf gesammelte Entscheidungen trainieren (x, mask, a, r) -> ckpt_000000.pt."""
+    """Train network on collected decisions (x, mask, a, r) -> ckpt_000000.pt."""
     import torch
     torch.manual_seed(seed)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -289,7 +289,7 @@ def fit_bc(run_dir: Path, data: dict, source: dict, epochs: int = 10, hidden: in
             opt.step()
         acc = _accuracy(net, X, M, A, hold)
         if progress:
-            progress(f"  Epoche {ep + 1}/{epochs}: Trefferquote auf zurueckgehaltenen Daten {acc:.1%}")
+            progress(f"  Epoch {ep + 1}/{epochs}: accuracy on withheld data {acc:.1%}")
     hold_t = torch.from_numpy(hold)
     with torch.no_grad():
         logits, _ = net(X[hold_t], M[hold_t])
@@ -317,7 +317,7 @@ def _accuracy(net, X, M, A, idx) -> float:
 # ---- PPO --------------------------------------------------------------------------------
 
 def gae(r: np.ndarray, v: np.ndarray, done: np.ndarray, lam: float) -> tuple[np.ndarray, np.ndarray]:
-    """Vorteile und Zielwerte, gamma = 1 innerhalb einer Hand, Episodenende bei done."""
+    """Advantages and target values, gamma = 1 within a hand, episode ends at done."""
     adv = np.zeros_like(r)
     last = 0.0
     for t in range(len(r) - 1, -1, -1):
@@ -343,7 +343,7 @@ def snapshot_spec(run: str, it: int) -> str:
 
 
 def eval_fixed(spec: str, cfg: RLConfig, config: TournamentConfig, ex) -> float:
-    """ROI gegen den festen Pool auf immer denselben Kartenschemata (Lernkurve, kein Gate)."""
+    """ROI against fixed pool with always the same card schemes (learning curve, no gating)."""
     seeds = [555_000 + i for i in range(cfg.eval_schemes)]
     mus = [(sd, list(DEFAULT_POOL)) for sd in seeds]
     parts = list(ex.map(_eval_chunk, [(spec, mus[i::6], config) for i in range(6) if mus[i::6]]))
@@ -357,7 +357,7 @@ def _eval_chunk(args):
 
 
 def _run_name(run_dir: Path) -> str:
-    """Laufname relativ zu data\\rl (auch Unterordner wie 'pros-3/expl-100')."""
+    """Run name relative to data\\rl (also subfolders like 'pros-3/expl-100')."""
     try:
         return run_dir.resolve().relative_to(rl_root().resolve()).as_posix()
     except ValueError:
@@ -367,7 +367,7 @@ def _run_name(run_dir: Path) -> str:
 def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg: RLConfig | None = None,
               config: TournamentConfig = DEFAULT_CONFIG, workers: int | None = None, progress=None,
               ex=None) -> dict:
-    """ex: vorhandener Prozess-Pool (z. B. fuer Ausbeuter innerhalb eines Laufs) - spart RAM."""
+    """e.g., existing process pool (e.g., for exploiter within a run) - saves RAM."""
     import torch
     from contextlib import nullcontext
     torch.set_num_threads(max(1, min(8, (workers or 8))))
@@ -380,7 +380,7 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
             diff = {k: (getattr(base, k), getattr(cfg, k)) for k in RLConfig.__dataclass_fields__
                     if getattr(cfg, k) != getattr(base, k)}
             if diff:
-                msg = f"Hinweis: config.json des Laufs gilt, abweichende Aufrufwerte werden ignoriert: {diff}"
+                msg = f"Note: config.json for the run applies, differing call values are ignored: {diff}"
                 print(msg, flush=True)
                 if progress:
                     progress({"warnung": msg})
@@ -401,7 +401,7 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
         opt = torch.optim.Adam(net.parameters(), lr=cfg.lr)
         opt.load_state_dict(st["optimizer"])
         for g in opt.param_groups:
-            g["lr"] = cfg.lr              # gespeicherte Lernrate nicht uebernehmen
+            g["lr"] = cfg.lr              # do not adopt stored learning rate
         start_it = st["iteration"]
     else:
         ck0 = run_dir / "ckpt_000000.pt"
@@ -416,9 +416,9 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
         anchor_net = net_from_checkpoint(load_checkpoint(checkpoint_path(a_run, a_ck or 0)))
         anchor_net.eval()
         if FEATURE_SIZES[anchor_net.features_version] > FEATURE_SIZES[net.features_version]:
-            raise ValueError(f"Anker {cfg.anchor} nutzt {anchor_net.features_version}, das Netz "
-                             f"{net.features_version} - Anker mit derselben oder kleinerer Merkmalsversion waehlen")
-        anchor_net.n_in = FEATURE_SIZES[anchor_net.features_version]   # kleinere Version = vordere Merkmale
+            raise ValueError(f"Anchor {cfg.anchor} uses {anchor_net.features_version}, the network "
+                             f"{net.features_version} - choose anchor with same or lower feature version")
+        anchor_net.n_in = FEATURE_SIZES[anchor_net.features_version]   # smaller version = front features
     ref_data = None
     try:
         from .phh import load_dataset
@@ -434,7 +434,7 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
             from .humanbots import load_bots
             pool.human_bots = [(b["spec"], b["share"]) for b in load_bots()]
             if not pool.human_bots:
-                raise ValueError("--human-share: keine Mensch-Bots (pc.cmd train humans-fit)")
+                raise ValueError('--human-share: no human bots (pc.cmd train humans-fit)')
             pool.human_share = cfg.human_share
         for x in exploiters:
             pool.add(x["name"], x["spec"])
@@ -457,7 +457,7 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
                            for s in t] for t in tables]
             w = numpy_weights(net)
             n_jobs = min(len(seeds), 24)
-            # grosse Tische dauern laenger: Turniere reihum verteilen, damit alle Prozesse aehnlich lange rechnen
+            # large tables take longer: distribute tournaments round-robin so all processes compute about equally long
             jobs = [(w, tables[i::n_jobs], seeds[i::n_jobs], configs[i::n_jobs], cfg.reward_scale,
                      rng.randrange(1 << 30), cfg.icm) for i in range(n_jobs)]
             t_roll = time.perf_counter()
@@ -510,8 +510,8 @@ def train_ppo(run_dir: Path, iterations: int, pool: LeaguePool | list[str], cfg:
                                                              "vs_ref_mean": round(mean, 2),
                                                              "vs_ref": entry["vs_ref"]}, indent=2), "utf-8")
             if exploit_now:
-                # Ausbeuter: startet beim aktuellen Stand und lernt nur gegen 5 Kopien davon. Wie stark er
-                # gewinnt, misst die Ausnutzbarkeit; danach ist er Gegner, dessen Luecken der Bot schliessen muss.
+                # Exloiter: starts from current state and learns only against 5 copies of it. How strongly it
+                # wins measures exploitability; afterwards it is the opponent whose gaps the bot must close.
                 xr = exploit_test(snapshot_spec(run, it), run_dir / f"ckpt_{it:06d}.pt", iterations=cfg.exploit_iters,
                                   schemes=24, seed=cfg.seed * 1000 + it, config=config, ex=ex,
                                   run_dir=run_dir / f"expl-{it:06d}", tournaments=cfg.exploit_tournaments)
@@ -566,9 +566,9 @@ def _ppo_update(net, opt, data: dict, adv: np.ndarray, ret: np.ndarray, cfg: RLC
                 if na == p.shape[1]:
                     kl_each = torch.where(M[idx], p * (logp_all - anchor_logp), torch.zeros_like(p)).sum(-1)
                 else:
-                    # Anker kennt weniger Aktionen (act-1): die Masse der neuen Aktionen (1/3 Pot, Min-Raise) auf
-                    # 'Raise 1/2 Pot' (Index 2) falten, sonst waere sie leinenfrei und das Netz koennte beliebig
-                    # viel auf Mini-Bets legen, ohne dass die Leine reagiert (Review 29.10., B3)
+                    # Anchor knows fewer actions (act-1): the bulk of new actions (1/3 pot, min-raise) are folded into
+                    # 'Raise 1/2 Pot' (index 2), otherwise it would be leash-free and the network could bet arbitrarily
+                    # much on mini-bets without the leash reacting (review 29.10., B3)
                     pf = p[:, :na].clone()
                     extra = p[:, na:].sum(-1)
                     tgt = torch.where(ma[:, 2], torch.full_like(extra, 2, dtype=torch.long),
@@ -576,7 +576,7 @@ def _ppo_update(net, opt, data: dict, adv: np.ndarray, ret: np.ndarray, cfg: RLC
                     pf.scatter_add_(1, tgt.unsqueeze(1), extra.unsqueeze(1))
                     lpf = torch.log(pf.clamp_min(1e-9))
                     kl_each = torch.where(ma, pf * (lpf - anchor_logp), torch.zeros_like(pf)).sum(-1)
-                # Leine nur, wo der Anker Erfahrung hat (Pluribus: tiefe Stacks, Cash 100 BB, 6 Spieler)
+                # Leash only where the anchor has experience (Pluribus: short stacks, cash 100 BB, 6 players)
                 deep = (torch.expm1(2 * X[idx][:, EFF_STACK_INDEX]) >= cfg.anchor_min_bb).float()
                 if cfg.anchor_min_players:
                     deep = deep * (X[idx][:, PLAYERS_INDEX] * 10 >= cfg.anchor_min_players - 0.01).float()
@@ -600,9 +600,9 @@ def _ppo_update(net, opt, data: dict, adv: np.ndarray, ret: np.ndarray, cfg: RLC
 def exploit_test(target: str, init_ckpt: Path, iterations: int = 40, schemes: int = 48, seed: int = 9,
                  config: TournamentConfig = DEFAULT_CONFIG, workers: int | None = None, progress=None,
                  run_dir: Path | None = None, ex=None, tournaments: int = 96) -> dict:
-    """Ausnutzbarkeit: ein Ausbeuter lernt nur gegen 5 Kopien des Pruflings (PPO, ohne Leine).
-    Danach spielt er auf frischen Karten gegen diese 5 Kopien. Der Prufling gegen sich selbst hat
-    genau 0 % ROI, also ist der ROI des Ausbeuters direkt das Mass: je hoeher, desto ausnutzbarer."""
+    """Exploitability: an exploiter learns only against 5 copies of the test subject (PPO, no leash).
+    Afterwards it plays on fresh cards against those 5 copies. The test subject against itself has
+    exactly 0 % ROI, so the exploiter's ROI is a direct measure: the higher, the more exploitable."""
     import shutil
     from contextlib import nullcontext
     run_dir = run_dir or new_run_dir("exploit")

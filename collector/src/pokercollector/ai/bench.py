@@ -1,23 +1,23 @@
-"""Pruefstand: jeder Kandidat durchlaeuft dieselben festen Testsets - vergleichbar ueber Wochen.
+"""Test bench: every candidate goes through the same fixed test sets - comparable over weeks.
 
-Testsets (feste Karten UND feste Tische, aendern sich nie innerhalb einer BENCH_VERSION):
-  fest48   48 Sit&Go-Schemata gegen den festen Pool rock/tag/lag/station/maniac
-  mix96    96 Sit&Go-Schemata, Tische gezogen aus einer festen, staerkeren Mischung
-           (u. a. opt-1 und der Profi-Nachahmer pros-bc als menschenaehnlicher Gegner)
-  cash     300 Duplicate-Cash-Haende je Platz gegen den festen Pool (bb/100)
-  pluribus Uebereinstimmung mit Pluribus (nur Netze)
-  Formate (je 48 Schemata, Tische aus der mix-Mischung, bei Bedarf mit Zuruecklegen):
-  hu48 Heads-up | 3max48 3 Spieler | 10max48 10 Spieler | turbo48 6 Sp., 30 BB, Blinds alle 5 Haende |
-  deep48 6 Sp., 200 BB | pokerth48 PokerTH-Standard (6 Sp., 1000 Chips = 50 BB, alle 9 Haende)
-  exploit  Ausbeuter-Test (optional, teuer)
-  Groessere Varianten fuer genauere Messungen: Zahl am Namen frei waehlbar, z. B. mix960, pokerth480,
-  hu480, fest480. Die ersten Schemata sind identisch mit den kleinen Sets (mix960 beginnt mit mix96).
-  "praezise" = mix960, pokerth480, hu480, 10max240 (Intervall etwa 3x enger als die 48er/96er-Sets).
+Test sets (fixed cards AND fixed tables, never change within a BENCH_VERSION):
+  fest48   48 Sit&Go schemas against the fixed pool rock/tag/lag/station/maniac
+  mix96    96 Sit&Go schemas, tables drawn from a fixed, stronger mix
+           (including opt-1 and the pro imitator pros-bc as more human-like opponents)
+  cash     300 duplicate cash hands per seat against the fixed pool (bb/100)
+  pluribus Coincidence with Pluribus (networks only)
+  Formats (each 48 schemas, tables from the mix mixture, with replacement if needed):
+  hu48 Heads-up | 3max48 3 players | 10max48 10 players | turbo48 6 players, 30 BB, blinds every 5 hands |
+  deep48 6 players, 200 BB | pokerth48 PokerTH-standard (6 players, 1000 chips = 50 BB, every 9 hands)
+  exploit  Exploit test (optional, expensive)
+  Larger variants for more precise measurements: number in the name freely selectable, e.g., mix960, pokerth480,
+  hu480, fest480. The first schemas are identical with the smaller sets (mix960 begins with mix96).
+  "precise" = mix960, pokerth480, hu480, 10max240 (interval about 3x narrower than the 48/96 sets).
 
-Je Schema/Tisch spielt der Kandidat alle Sitzrotationen. ROI = mittlere Netto-Auszahlung in Buy-ins.
-Wichtig: Die Testsets dienen dem VERGLEICHEN und Verfolgen. Fuer die Aufnahme in die Liga gilt
-weiter die Aufnahmepruefung mit frischen Karten (optimize.gate) - ein fester Satz, der oft fuer
-Entscheidungen benutzt wird, nutzt sich ab.
+The candidate plays all seat rotations per schema/table. ROI = average net payout in buy-ins.
+Important: The test sets serve for COMPARISON and tracking. For entry into the league,
+the entry test with fresh cards still applies (optimize.gate) - a fixed set often used for
+decisions wears out over time.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ MIX_PLAYERS = ["rock", "tag", "lag", "station", "maniac", "equity",
 MIX_WEIGHTS = [3, 3, 2, 1, 1, 1, 3, 3]
 
 
-FORMAT_SETS = {   # Name: (Gegner am Tisch, Turnierformat)
+FORMAT_SETS = {   # Name: (opponent at the table, tournament format)
     "hu48": (1, TournamentConfig(start_stack=1000, blinds=BlindSchedule(10, 20, 10), payouts=(1.0,))),
     "3max48": (2, TournamentConfig(start_stack=1500, blinds=BlindSchedule(10, 20, 10), payouts=(0.65, 0.35))),
     "10max48": (9, TournamentConfig(start_stack=3000, blinds=BlindSchedule(10, 20, 10),
@@ -56,13 +56,13 @@ FORMAT_SETS = {   # Name: (Gegner am Tisch, Turnierformat)
 PRECISE_SETS = ("mix960", "pokerth480", "hu480", "10max240")
 _SIZED = re.compile(r"^(fest|mix|hu|3max|10max|turbo|deep|pokerth|mensch|nash|kurz)(\d+)$")
 HUMAN_BOTS = "mensch-25nl"          # data/humans/<name>.json (humanbots.fit_all)
-# Endspiel (Ziel 5): heads-up mit 20 BB, Blinds steigen alle 10 Haende
+# Endgame (goal 5): heads-up with 20 BB, blinds increase every 10 hands
 ENDGAME_CONFIG = TournamentConfig(start_stack=400, blinds=BlindSchedule(10, 20, 10), payouts=(1.0,))
-NASH_BOT = "tag?push_bb=40&nash_stack_factor=1"     # spielt bei <= 40 BB nur Push/Fold nach Nash
+NASH_BOT = "tag?push_bb=40&nash_stack_factor=1"     # plays only push/fold according to Nash at <= 40 BB
 
 
 def parse_set(name: str) -> tuple[str, int]:
-    """'mix960' -> ('mix96', 960): Basis-Set (bestimmt Karten und Tische) und Anzahl Schemata."""
+    """'mix960' -> ('mix96', 960): base set (determines cards and tables) and number of schemas."""
     m = _SIZED.match(name)
     if not m:
         return name, 0
@@ -70,7 +70,7 @@ def parse_set(name: str) -> tuple[str, int]:
         m.group(1), m.group(1) + "48")
     n = int(m.group(2))
     if not 1 <= n <= 1000:
-        raise ValueError(f"Testset {name}: 1 bis 1000 Schemata")
+        raise ValueError(f"Test set {name}: 1 to 1000 schemas")
     return base, n
 
 
@@ -108,13 +108,13 @@ def bench_set(name: str) -> list[tuple[int, list[str]]]:
         from .humanbots import load_bots
         bots = load_bots(HUMAN_BOTS)
         if not bots:
-            raise ValueError(f"keine Mensch-Bots ({HUMAN_BOTS}.json) - erst 'pc.cmd train humans-fit'")
+            raise ValueError(f"no human bots ({HUMAN_BOTS}.json) - run 'pc.cmd train humans-fit' first")
         rng = random.Random("bench|mensch")
         return [(995_000 + i, [rng.choices([b["spec"] for b in bots], weights=[b["share"] for b in bots])[0]
                                for _ in range(5)]) for i in range(count)]
-    if name == "nash":              # heads-up 20 BB gegen Push/Fold-Nash
+    if name == "nash":              # heads-up 20 BB against push/fold Nash
         return [(996_000 + i, [NASH_BOT]) for i in range(count)]
-    if name == "kurz":              # heads-up 20 BB gegen einen Mensch-Bot (nach Anteil)
+    if name == "kurz":              # heads-up 20 BB against a human bot (by proportion)
         from .humanbots import load_bots
         bots = load_bots(HUMAN_BOTS)
         rng = random.Random("bench|kurz")
@@ -133,7 +133,7 @@ def bench_set(name: str) -> list[tuple[int, list[str]]]:
                 w.pop(k)
             out.append((888_000 + i, table))
         return out
-    raise ValueError(f"unbekanntes Testset {name}")
+    raise ValueError(f"unknown test set {name}")
 
 
 def _chunk(args):
@@ -150,9 +150,9 @@ def _summary(vals: list[float]) -> dict:
 
 
 def run_set(spec: str, name: str, ex, config=None, on_chunk=None, partial: Path | None = None) -> dict:
-    """24 Blöcke parallel. on_chunk(fertig, gesamt, zwischenstand) nach jedem Block; partial = Datei, in der
-    fertige Bloecke sofort gesichert werden (Wiederaufnahme nach Absturz des Elternprozesses - 30.10. gingen so
-    85 Minuten Rechnung verloren). Die Datei wird am Ende geloescht."""
+    """24 blocks in parallel. on_chunk(done, total, interim) after each block; partial = file where
+    finished blocks are immediately saved (resume after parent process crash - 30.10. about
+    85 minutes of calculation lost). The file is deleted at the end."""
     mus = bench_set(name)
     config = config or set_config(name)
     jobs = {i: (spec, mus[i::24], config) for i in range(24) if mus[i::24]}
@@ -173,7 +173,7 @@ def run_set(spec: str, name: str, ex, config=None, on_chunk=None, partial: Path 
         if on_chunk:
             on_chunk(len(done), len(jobs), _summary([v for vs in done.values() for v in vs]))
     vals = [0.0] * len(mus)
-    for i in range(24):                       # Reihenfolge wiederherstellen (fuer gepaarte Vergleiche)
+    for i in range(24):                       # Restore order (for paired comparisons)
         for j, v in enumerate(done.get(i, [])):
             vals[i + 24 * j] = v
     if partial is not None and partial.exists():
@@ -196,12 +196,12 @@ def bench_dir() -> Path:
 
 def run_bench(spec: str, name: str, sets=("fest48", "mix96", "cash", "pluribus"), exploit: bool = False,
               ex=None, workers: int | None = None, progress=None, on_chunk=None, resume: bool = False) -> dict:
-    """progress(set, ergebnis) je fertigem Set; on_chunk(fertig, gesamt, zwischenstand) je Block;
-    resume=True sichert fertige Bloecke unter bench/partial-<name>-<set>.json und nimmt dort wieder auf."""
+    """progress(set, result) for each finished set; on_chunk(done, total, interim) for each block;
+    resume=True saves finished blocks under bench/partial-<name>-<set>.json and resumes there."""
     t0 = time.perf_counter()
     own = ex is None
     ex = ex or ProcessPoolExecutor(workers)
-    out = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "bench_version": BENCH_VERSION, "name": name, "spec": spec}
+    out = {"t": time.strftime('%Y-%m-%d %H:%M:%S'), "bench_version": BENCH_VERSION, "name": name, "spec": spec}
     safe = re.sub(r"[^A-Za-z0-9_.@-]+", "_", name)
     try:
         for s in sets:
@@ -246,7 +246,7 @@ def load_results() -> list[dict]:
 
 
 def paired_diff(a: dict, b: dict, s: str) -> dict | None:
-    """Gepaarter Vergleich zweier Ergebnisse auf demselben Testset (gleiche Schemata)."""
+    """Paired comparison of two results on the same test set (same schemas)."""
     if s not in a or s not in b or "per_scheme" not in a[s] or "per_scheme" not in b[s]:
         return None
     return _summary([x - y for x, y in zip(a[s]["per_scheme"], b[s]["per_scheme"])])
@@ -256,11 +256,11 @@ def write_report() -> str:
     rows = {}
     for r in load_results():
         if r.get("bench_version") == BENCH_VERSION:
-            rows[r["name"]] = {**rows.get(r["name"], {}), **r}   # je Testset der neueste Wert
+            rows[r["name"]] = {**rows.get(r["name"], {}), **r}   # the newest value per test set
     ref = rows.get("rock")
-    lines = ["# Pruefstand", "", f"Version {BENCH_VERSION}. Feste Testsets, vergleichbar ueber die Zeit. "
-             "Δ rock = gepaarte Differenz zu rock auf denselben Karten (95-%-Intervall).", "",
-             "| Bot | mix96 ROI | Δ rock | fest48 ROI | Δ rock | Cash bb/100 | Pluribus | Ausbeuter | Stand |",
+    lines = ['# Test bench', "", f"Version {BENCH_VERSION}. Fixed test sets, comparable over time. "
+             "Δ rock = paired difference to rock on the same cards (95% interval).", "",
+             '| Bot | mix96 ROI | Δ rock | fest48 ROI | Δ rock | Cash bb/100 | Pluribus | Exploiter | Date |',
              "|---|---|---|---|---|---|---|---|---|"]
 
     def roi(r, s):
@@ -278,7 +278,7 @@ def write_report() -> str:
                      f"{delta(r, 'fest48')} | {cash} | {plu} | {exp} | {r['t'][:16]} |")
     fmt = [f for f in FORMAT_SETS if any(f in r for r in rows.values())]
     if fmt:
-        lines += ["", "## Formate (ROI, in Klammern Δ rock gepaart)", "", "| Bot | " + " | ".join(fmt) + " |",
+        lines += ["", '## Formats (ROI, paired rock Δ in parentheses)', "", '| Bot | ' + " | ".join(fmt) + " |",
                   "|---|" + "---|" * len(fmt)]
         for r in sorted(rows.values(), key=lambda r: -sum(r.get(f, {}).get("roi", 0) for f in fmt)):
             if any(f in r for f in fmt):
@@ -287,8 +287,8 @@ def write_report() -> str:
     big = sorted({k for r in rows.values() for k in r if is_tournament_set(k)
                   and k not in FORMAT_SETS and k not in ("fest48", "mix96")})
     if big:
-        lines += ["", "## Grosse Testsets (ROI, Δ rock gepaart mit 95-%-Intervall)", "",
-                  "| Bot | " + " | ".join(big) + " |", "|---|" + "---|" * len(big)]
+        lines += ["", '## Large test sets (ROI, paired rock Δ with 95% interval)', "",
+                  '| Bot | ' + " | ".join(big) + " |", "|---|" + "---|" * len(big)]
         for r in sorted(rows.values(), key=lambda r: -sum(r.get(f, {}).get("roi", 0) for f in big)):
             if any(f in r for f in big):
                 cells = [f"{r[f]['roi']:+.1f} % ({delta(r, f)})" if f in r else "-" for f in big]
@@ -301,15 +301,15 @@ def write_report() -> str:
 
 
 def compare(name_a: str, name_b: str) -> list[tuple[str, dict, dict, dict]]:
-    """Gepaarter Vergleich zweier Pruefstand-Eintraege auf allen gemeinsamen Turnier-Testsets:
-    (Set, Ergebnis A, Ergebnis B, Differenz A-B)."""
+    """Paired comparison of two test bench entries on all common tournament test sets:
+    (set, result A, result B, difference A-B)."""
     rows = {}
     for r in load_results():
         if r.get("bench_version") == BENCH_VERSION:
             rows[r["name"]] = {**rows.get(r["name"], {}), **r}
     if name_a not in rows or name_b not in rows:
         missing = [n for n in (name_a, name_b) if n not in rows]
-        raise KeyError(f"nicht auf dem Pruefstand: {', '.join(missing)}")
+        raise KeyError(f"not on test bench: {', '.join(missing)}")
     a, b = rows[name_a], rows[name_b]
     out = []
     for s in a:

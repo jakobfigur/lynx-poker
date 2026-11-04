@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 27.10.2026 abends: lynx-2 = Lynx (pros-h1@600) weiter, jetzt mit 40 % Mensch-Bots (echte Spielertypen
-# aus HandHQ) am Tisch. Pruefstand alle 100 It: mensch480 + praezise, gepaart gegen pros-h1@600 (= Lynx).
-# Ende: Aufnahmepruefung 600 frische Schemata gegen lynx. Fortsetzbar.
+#27.10.2026 evening: lynx-2 = Lynx (pros-h1@600) continued, now with 40% human bots (real player types
+#from HandHQ) at the table. Testbench every 100 iterations: mensch480 + precise, paired against pros-h1@600 (= Lynx).
+#End: entry test 600 fresh schemas against lynx. Continuable.
 cd <Projektordner>
 ./pc.cmd train rl --run lynx-2 --widen-from pros-h1@600 --iterations 600 --tournaments 512 \
     --anchor-coef 0.3 --anchor pros-r1:0 --anchor-min-players 4 \

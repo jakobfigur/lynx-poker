@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 27.10.2026: nach Abschnitt 900 Training pausieren (spaeter ./train_h1b.sh setzt fort), dann HandHQ-Auswertung
-# allein mit 8 Prozessen, danach Mensch-Bots anpassen.
+#27.10.2026: pause training after section 900 (later ./train_h1b.sh resumes), then HandHQ evaluation
+#alone with 8 processes, then adjust human bots.
 cd <Projektordner>
 until grep -q "Abschnitt bis 900 beendet" data/rl/pros-h1/night.txt; do sleep 30; done
 powershell -c "Get-CimInstance Win32_Process | ? { \$_.CommandLine -match 'train_h1b.sh|train rl --run pros-h1' } | % { taskkill /T /F /PID \$_.ProcessId 2>\$null | Out-Null }"

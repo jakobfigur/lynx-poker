@@ -1,9 +1,9 @@
-"""Kartenerkennung: Slot-Zustand (leer / Rueckseite / offen), Rang und Farbe.
+"""Card recognition: slot state (empty / backside / open), rank and suit.
 
-Rang: zuerst gelernte Vorlagen (templates/rank/<R>/*.png), sonst Windows-OCR mit
-gekacheltem Zeichen. Farbe: rot/schwarz aus der Tinte, Form ueber Vorlagen oder
-eine Konturheuristik. Die Heuristik ist nur an Pik und Herz gegen echte
-Screenshots geprueft; Karo/Kreuz brauchen echte Beispiele (siehe README).
+Rank: first learned templates (templates/rank/<R>/*.png), otherwise Windows OCR with
+ tiled characters. Suit: red/black from the ink, shape by templates or
+ a contour heuristic. The heuristic is only tested on spades and hearts against real
+ screenshots; diamonds/clubs need real examples (see README).
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ from .poker import RANKS, normalize_rank
 from .profile import Profile
 
 CARDS_VERSION = "cards-1"
-GLYPH_SIZE = (20, 28)  # (w, h) normalisierte Glyphengroesse
+GLYPH_SIZE = (20, 28)  # (w, h) normalized glyph size
 
 
 @dataclass
 class CardRead:
     rect: Rect
-    card: str | None          # z. B. '6s'; None wenn unlesbar
+    card: str | None          # e.g. '6s'; None if unreadable
     rank: str | None
     suit: str | None
     color: str | None         # 'red' | 'black'
@@ -54,7 +54,7 @@ def _normalize_glyph(ink: np.ndarray) -> np.ndarray | None:
 
 
 class TemplateStore:
-    """Gelernte Glyphen-Vorlagen auf der Festplatte (PNG, 255 = Tinte)."""
+    """Learned glyph templates saved on the hard drive (PNG, 255 = ink)."""
 
     def __init__(self, root: Path | None):
         self.root = root
@@ -75,7 +75,7 @@ class TemplateStore:
                                 cv2.resize(img, GLYPH_SIZE, interpolation=cv2.INTER_AREA))
 
     def match(self, kind: str, glyph: np.ndarray) -> tuple[str | None, float, float]:
-        """(bestes Label, Score, Abstand zum zweitbesten Label)."""
+        """(best label, score, distance to second-best label)."""
         store = self.rank if kind == "rank" else self.suit
         if not store:
             return None, 0.0, 0.0
@@ -117,19 +117,19 @@ def _suit_heuristic(glyph_ink: np.ndarray, color: str) -> tuple[str | None, floa
     cv2.drawContours(shape, [c], -1, 255, -1)
     shape = shape[y:y + h, x:x + w]
     widths = (shape > 0).sum(axis=1) / w
-    top = float(widths[: max(1, h // 5)].mean())      # oberes Fuenftel
-    bottom = float(widths[-max(1, h // 5):].mean())   # unteres Fuenftel
+    top = float(widths[: max(1, h // 5)].mean())      # upper fifth
+    bottom = float(widths[-max(1, h // 5):].mean())   # lower fifth
     area = cv2.contourArea(c)
     hull_area = cv2.contourArea(cv2.convexHull(c))
     solidity = area / hull_area if hull_area else 0
     if color == "red":
-        # Herz: breite Oberseite mit zwei Boegen; Karo: spitz oben und unten
+        # Heart: wide top with two arcs; Diamond: pointed top and bottom
         if top > 0.45:
             return "h", 0.6
         if top < 0.3 and bottom < 0.3:
             return "d", 0.5
         return None, 0.0
-    # Schwarz: Pik hat eine Spitze oben, Kreuz drei runde Blaetter (geringere Solidity)
+    # Black: Spade has one tip at the top, Club has three round leaves (lower solidity)
     if top < 0.3 and solidity > 0.8:
         return "s", 0.5
     if solidity < 0.8:
@@ -160,8 +160,8 @@ class CardReader:
         mask = cv2.inRange(sub, lo, hi)
         red = cv2.bitwise_or(cv2.inRange(sub, *self.profile.hsv("card", "back_red_hsv_1")),
                              cv2.inRange(sub, *self.profile.hsv("card", "back_red_hsv_2")))
-        # Rang/Farbe sind dunkel bzw. rot -> Loecher innerhalb jeder Karte fuellen.
-        # Kein grosses Closing: das wuerde eng liegende Karten bei kleinem Massstab verschmelzen.
+        # Rank/color are dark or red -> fill holes inside each card.
+        # No extensive closing: this would merge closely placed cards at small scale.
         raw_white = mask.copy()
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -172,9 +172,9 @@ class CardReader:
         for i in range(1, n):
             x, y, w, h, a = stats[i]
             if w >= cfg["min_face_w"] * scale and h >= cfg["min_face_h"] * scale and 0.45 <= w / h <= 0.95:
-                # gestreifte Rueckseiten sind zu grossen Teilen rot, offene Karten kaum
+                # striped backs are largely red, face-up cards barely
                 red_share = float((red[y:y + h, x:x + w] > 0).mean())
-                # offene Karte: ueberwiegend weiss; Rueckseite: Streifen, nur etwa halb weiss
+                # face-up card: predominantly white; back side: stripes, only about half white
                 white_share = float((raw_white[y:y + h, x:x + w] > 0).mean())
                 if a >= 0.7 * w * h and red_share < 0.25 and white_share > 0.6:
                     rects.append(Rect(int(region.x + x), int(region.y + y), int(w), int(h)))
@@ -186,7 +186,7 @@ class CardReader:
         m1 = cv2.inRange(sub, *self.profile.hsv("card", "back_red_hsv_1"))
         m2 = cv2.inRange(sub, *self.profile.hsv("card", "back_red_hsv_2"))
         mask = cv2.bitwise_or(m1, m2)
-        # Streifenmuster zu Flaechen schliessen
+        # close striped pattern to surfaces
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
         n, _, stats, _ = cv2.connectedComponentsWithStats(mask)
         cfg = self.profile["card"]
@@ -194,7 +194,7 @@ class CardReader:
         for i in range(1, n):
             x, y, w, h, a = stats[i]
             if w >= cfg["min_face_w"] * scale * 0.8 and h >= cfg["min_face_h"] * scale * 0.8:
-                # nebeneinanderliegende Rueckseiten koennen verschmelzen
+                # adjacent card backs can merge
                 count += max(1, int(round(w / (h * 0.72))))
         return count
 
@@ -207,8 +207,8 @@ class CardReader:
         ink = (gray < 150).astype(np.uint8) * 255
         rows = np.where(ink.sum(axis=1) > 0)[0]
         if len(rows) < 6:
-            return CardRead(rect, None, None, None, None, 0.0, "keine Tinte")
-        # Rang oben, Farbe darunter: groesste Zeilenluecke trennt beide
+            return CardRead(rect, None, None, None, None, 0.0, 'no ink')
+        # Rank top, color below: largest line gap separates both
         prof = ink.sum(axis=1) > 0
         split = None
         first, last = rows.min(), rows.max()
@@ -228,7 +228,7 @@ class CardReader:
         rank_ink = ink[:split]
         suit_ink = ink[split:]
 
-        # Farbe aus den Tintenpixeln
+        # Color from the ink pixels
         b, g, r = [inner[..., i][ink > 0].astype(int) for i in range(3)]
         red_share = float(((r - np.maximum(g, b)) > 60).mean()) if len(r) else 0.0
         color = "red" if red_share > 0.5 else "black"
@@ -247,7 +247,7 @@ class CardReader:
                 rank, rank_conf = label, min(1.0, score)
                 method_parts.append("rank:template")
             elif font and font[0] is not None and font[1] > 0.55 and font[2] > 0.08:
-                # Formvergleich mit Schrift-Vorlagen (Rueckfall, wenn noch keine gelernten Vorlagen passen)
+                # Shape comparison with font templates (fallback if no learned templates match yet)
                 rank, rank_conf = font[0], min(0.8, font[1])
                 method_parts.append("rank:font")
             elif self.ocr is not None:
@@ -260,7 +260,7 @@ class CardReader:
                     text = self.ocr.read_glyph_tiled(crop, accept=_rank_text_ok)
                     tokens = [normalize_rank(t) for t in text.split()]
                     if not any(tokens) and text:
-                        # '666' ohne Leerzeichen -> Einzelzeichen; '101010' -> '10'
+                        # '666' without spaces -> single characters; '101010' -> '10'
                         compact = text.replace(" ", "")
                         if compact and set(compact) <= set("10OIl"):
                             tokens = ["T"]

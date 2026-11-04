@@ -1,11 +1,11 @@
-"""Bruecke Collector -> Observation.
+"""Bridge Collector -> Observation.
 
-- decision_points(hand): rekonstruierte Hand (hands.json) -> Spielerblick vor jeder
-  eigenen Entscheidung + tatsaechliche Aktion. Damit kann jeder Agent deine echten
-  Entscheidungen im Replay bewerten.
-- observation_from_table_state(state): stabilisierter Live-Zustand -> Spielerblick.
+- decision_points(hand): reconstructed hand (hands.json) -> player perspective before each
+  own decision + actual action. This allows any agent to evaluate your true
+  decisions in replay.
+- observation_from_table_state(state): stabilized live state -> player perspective.
 
-Was aus den Daten nicht sicher hervorgeht, steht in Observation.uncertain.
+What is not clearly extractable from the data is stored in Observation.uncertain.
 """
 
 from __future__ import annotations
@@ -23,14 +23,14 @@ def decision_points(hand: dict, hero_seat: int = 0, num_seats: int = 10) -> list
     blinds = hand.get("blinds") or [None, None]
     uncertain_base = []
     if hand.get("status") != "complete":
-        uncertain_base.append("Hand unvollstaendig: " + "; ".join(hand.get("status_reasons", [])))
+        uncertain_base.append('Hand incomplete: ' + "; ".join(hand.get("status_reasons", [])))
     if len(hole) != 2 or any(c in (None, "??") for c in hole):
-        uncertain_base.append("eigene Karten unbekannt")
+        uncertain_base.append('own cards unknown')
         hole = []
     in_hand = [s in seats for s in range(num_seats)]
     start = [seats.get(s, {}).get("start_stack") for s in range(num_seats)]
     if any(in_hand[s] and start[s] is None for s in range(num_seats)):
-        uncertain_base.append("Startstack(s) unbekannt")
+        uncertain_base.append('Starting stack(s) unknown')
     stacks = [start[s] or 0 for s in range(num_seats)]
     bets = [0] * num_seats
     committed = [0] * num_seats
@@ -54,10 +54,10 @@ def decision_points(hand: dict, hero_seat: int = 0, num_seats: int = 10) -> list
             to_call = max(0, current_bet - bets[s])
             unc = list(uncertain_base)
             if any(x["type"] == "unknown" for x in hand.get("actions", [])):
-                unc.append("Aktionsfolge hat Luecken")
+                unc.append('Action sequence has gaps')
             board = [c for c in board_all[:BOARD_COUNT[street]] if c]
             if len(board) != BOARD_COUNT[street]:
-                unc.append("Boardkarten unvollstaendig")
+                unc.append('Board cards incomplete')
             max_to = bets[s] + stacks[s]
             obs = Observation(
                 seat=s, num_seats=num_seats, hole_cards=list(hole), board=board, street=street,
@@ -70,7 +70,7 @@ def decision_points(hand: dict, hero_seat: int = 0, num_seats: int = 10) -> list
                 max_raise_to=max_to, hand_id=f"{hand.get('game_no')}-{hand.get('hand_no')}",
                 names=[seats.get(x, {}).get("name") for x in range(num_seats)], source="replay", uncertain=unc)
             out.append((obs, a))
-        # Zustand fortschreiben
+        #Advance state
         if typ == "fold":
             folded[s] = True
             history.append(PublicAction(street, s, "fold", None, 0))
@@ -95,10 +95,10 @@ def decision_points(hand: dict, hero_seat: int = 0, num_seats: int = 10) -> list
 
 
 def live_pot(st: dict, bets: list[int], bb: int, unc: list[str]) -> int | None:
-    """Pot inkl. laufender Einsaetze. Zwei Quellen im Bild: die Pot-Anzeige in der Tischmitte (pot.total,
-    fehlt bei manchen Tischen ganz und hat OCR-Ausreisser wie 9280 statt 280) und 'Gesamt' im Infofeld
-    (info.total = eingesammelter Pot OHNE die Einsaetze der laufenden Strasse). Die Mitte gilt, wenn sie
-    zu Gesamt + Einsaetze passt; sonst zaehlt Gesamt + Einsaetze."""
+    """Pot including ongoing bets. Two sources in the image: the pot display in center of the table (pot.total,
+    missing entirely on some tables and has OCR outliers like 9280 instead of 280) and 'total' in the info field
+    (info.total = collected pot WITHOUT ongoing street bets). Center is valid if it matches
+    total + bets; otherwise total + bets count."""
     center = st.get("pot.total")
     if center is not None and center < sum(bets):
         center = None
@@ -107,22 +107,22 @@ def live_pot(st: dict, bets: list[int], bb: int, unc: list[str]) -> int | None:
     if center is not None and (est is None or abs(center - est) <= max(0.1 * est, bb or 0)):
         return center
     if est is not None and est > 0:
-        unc.append("Pot aus 'Gesamt' + Einsaetzen")
+        unc.append("Pot from 'Total' + bets")
         return est
     return center
 
 
 def observation_from_table_state(st: dict, hero_seat: int = 0, num_seats: int = 10) -> Observation:
-    """Live: Spielerblick aus dem stabilisierten Feldzustand des Collectors.
-    Der Aktionsverlauf der laufenden Hand ist hier nicht enthalten (-> uncertain)."""
-    unc = ["Aktionsverlauf live nicht enthalten"]
+    """Live: player perspective from the stabilized field state of the collector.
+    The action history of the current hand is not included here (-> uncertain)."""
+    unc = ['Action history not included live']
     hole = st.get(f"seat.{hero_seat}.cards") or []
     if len(hole) != 2 or "??" in hole:
-        unc.append("eigene Karten unbekannt")
+        unc.append('own cards unknown')
         hole = []
     board = [c for c in (st.get("board.cards") or []) if c and c != "??"]
     street = st.get("info.street")
-    if street not in ("preflop", "flop", "turn", "river"):      # fehlt oder 'showdown'
+    if street not in ("preflop", "flop", "turn", "river"):      # missing or 'showdown'
         street = {0: "preflop", 3: "flop", 4: "turn", 5: "river"}.get(len(board), "preflop")
     in_hand = [bool(st.get(f"seat.{s}.present")) and st.get(f"seat.{s}.cards_state") in ("backs", "faces")
                or (s == hero_seat and bool(hole)) for s in range(num_seats)]
@@ -130,16 +130,16 @@ def observation_from_table_state(st: dict, hero_seat: int = 0, num_seats: int = 
     raw_stacks = [st.get(f"seat.{s}.stack") for s in range(num_seats)]
     stacks = [v if isinstance(v, int) else 0 for v in raw_stacks]
     if any(st.get(f"seat.{s}.present") and raw_stacks[s] is None for s in range(num_seats)):
-        unc.append("Stack eines Spielers unlesbar")
+        unc.append('Stack of a player unreadable')
     bets = [st.get(f"seat.{s}.bet") or 0 for s in range(num_seats)]
     pot = live_pot(st, bets, (st.get("info.blinds") or [0, 0])[1], unc)
     committed = list(bets)
     if pot is not None and pot >= sum(bets):
-        # Frueher eingezahlte Chips sind nicht pro Spieler sichtbar: dem Hero-Feld nicht
-        # zurechnen, sondern als 'tote' Summe beim Button fuehren (nur fuer Pot-Groesse).
+        # Previously posted chips are not visible per player: not attributed to the Hero field
+        # but counted as 'dead' sum at the button (only for pot size).
         committed[st.get("marker.D") or 0] += pot - sum(bets)
     else:
-        unc.append("Pot unbekannt oder widerspruechlich")
+        unc.append('Pot unknown or inconsistent')
     buttons = st.get("hero.buttons") or []
     to_call, can_check, min_to = None, False, None
     for b in buttons:
@@ -152,21 +152,21 @@ def observation_from_table_state(st: dict, hero_seat: int = 0, num_seats: int = 
     if to_call is None:
         to_call = max(0, max(bets) - bets[hero_seat])
         can_check = to_call == 0
-        unc.append("zu callender Betrag aus Einsaetzen geschaetzt")
+        unc.append('Amount to call estimated from bets')
     blinds = st.get("info.blinds") or [0, 0]
     max_to = bets[hero_seat] + stacks[hero_seat]
     if min_to is not None and blinds[1]:
-        min_to = min(max_to, max(min_to, max(bets) + blinds[1]))     # Button-Betrag kann zu klein gelesen sein
+        min_to = min(max_to, max(min_to, max(bets) + blinds[1]))     # Button amount may be read too low
     alive = [s for s in range(num_seats) if st.get(f"seat.{s}.present") and (stacks[s] > 0 or bets[s] > 0)]
     extra = st.get("info.blinds_extra")
     tournament = {
         "sb": blinds[0], "bb": blinds[1], "players_left": len(alive),
         "average_stack": round(sum(stacks[s] + bets[s] for s in alive) / len(alive)) if alive else None,
-        # Anzeige '↑8' neben den Blinds: vermutlich Haende bis zur naechsten Stufe (ungeprueft)
+        # Display '↑8' next to blinds: probably hands until next level (unchecked)
         "hands_to_next_level": int(extra) if isinstance(extra, str) and extra.isdigit() else None,
     }
     if tournament["hands_to_next_level"] is not None:
-        unc.append("Haende bis Blinderhoehung aus '↑'-Anzeige gedeutet (ungeprueft)")
+        unc.append("Hands until blind raise interpreted from '↑' display (unchecked)")
     return Observation(
         seat=hero_seat, num_seats=num_seats, hole_cards=hole, board=board, street=street,
         button=st.get("marker.D") or 0, sb_seat=st.get("marker.SB"), bb_seat=st.get("marker.BB"),
@@ -179,13 +179,13 @@ def observation_from_table_state(st: dict, hero_seat: int = 0, num_seats: int = 
 
 
 def review_hands(hands: list[dict], agent, hero_seat: int = 0) -> list[dict]:
-    """Fragt den Agenten an jeder eigenen Entscheidung und stellt Vorschlag und echte Aktion gegenueber."""
+    """Asks the agent at each own decision and compares proposal and true action."""
     rows = []
     for h in hands:
         for obs, actual in decision_points(h, hero_seat):
             if not obs.hole_cards:
                 rows.append({"hand": obs.hand_id, "street": obs.street, "actual": actual["type"],
-                             "suggested": None, "note": "eigene Karten unbekannt", "uncertain": obs.uncertain})
+                             "suggested": None, "note": 'own cards unknown', "uncertain": obs.uncertain})
                 continue
             sug = agent.act(obs)
             actual_kind = {"bet": "raise", "raise": "raise"}.get(actual["type"], actual["type"])

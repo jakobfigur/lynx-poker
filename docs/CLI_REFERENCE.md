@@ -1,8 +1,8 @@
-# CLI-Referenz
+# CLI Reference
 
-Automatisch erzeugt aus dem argparse-Parser von `pokercollector` (`scripts/gen_reference.py`). Aufruf unter Windows mit `pc.cmd <befehl> ...`, unter Linux/macOS mit `./pc.sh <befehl> ...`.
+Automatically generated from the argparse parser of `pokercollector` (`scripts/gen_reference.py`). Usage on Windows with `pc.cmd <command> ...`, on Linux/macOS with `./pc.sh <command> ...`.
 
-## Befehlsuebersicht
+## Command Overview
 
 - `calibrate`
 - `analyze`
@@ -68,36 +68,35 @@ usage: pokercollector [-h] [--profile PROFILE] [--allow-sleep]
                       {calibrate,analyze,windows,live,live-replay,leiste-demo,reconstruct,report,inspect-reference,compare,advise,harvest-cards,verify,sim,play,play-stats,league,train,bench,data}
                       ...
 
-Visuelle Erfassung von PokerTH-Partien
+Visual capture of PokerTH games
 
 positional arguments:
   {calibrate,analyze,windows,live,live-replay,leiste-demo,reconstruct,report,inspect-reference,compare,advise,harvest-cards,verify,sim,play,play-stats,league,train,bench,data}
-    calibrate           Screenshot analysieren, Overlay-Bild erzeugen
-    analyze             Video oder Screenshot-Ordner auswerten (neue Sitzung)
-    windows             Fenster auflisten
-    live                Fenster live erfassen, Sitzungen automatisch starten/beenden
-    live-replay         Aufgezeichnete Sitzung wie live abspielen: Vorschlaege + Gegnermodell
-    leiste-demo         Lynx-Leiste ohne Tisch vorfuehren (Farben, Toene, Position)
-    reconstruct         Haende einer Sitzung neu rekonstruieren
-    report              Handbericht einer Sitzung ausgeben
-    inspect-reference   Schema einer PokerTH-Logdatei anzeigen
-    compare             Sitzung mit PokerTH-Export vergleichen
-    advise              Baseline-Empfehlung fuer einen Screenshot
-    harvest-cards       Kartenvorlagen aus Screenshots lernen (interaktiv)
-    verify              Pruefsummen einer Sitzung pruefen
-    sim                 Simulator, Bots und Bewertung
-    play                Du gegen die Bots (Terminal)
-    play-stats          Auswertung deiner Partien gegen die Bots
-    league              Liga, Rating, Benchmark
-    train               Bots selbst verbessern
-    bench               Pruefstand: feste Testsets fuer jeden Kandidaten
-    data                Fremde Handhistorien (PHH) einlesen und auswerten
+    calibrate           Analyze screenshot, generate overlay image
+    analyze             Evaluate video or screenshot folder (new session)
+    windows             List windows
+    live                Capture windows live, automatically start/stop sessions
+    live-replay         play back recorded session like live: suggestions + opponent model
+    leiste-demo         demonstrate Lynx bar without table (colors, sounds, position)
+    reconstruct         reconstruct hands of a session
+    report              output hand report of a session
+    inspect-reference   show schema of a PokerTH log file
+    compare             compare session with PokerTH export
+    advise              baseline recommendation for a screenshot
+    harvest-cards       learn card templates from screenshots (interactive)
+    verify              check checksums of a session
+    sim                 simulator, bots and evaluation
+    play                you against the bots (terminal)
+    play-stats          evaluation of your matches against the bots
+    league              league, rating, benchmark
+    train               improve bots themselves
+    bench               Test bench: fixed test sets for each candidate
+    data                Read and evaluate foreign hand histories (PHH)
 
 options:
   -h, --help            show this help message and exit
-  --profile PROFILE     Pfad zu einem Tischprofil (JSON); Standard: eingebautes PokerTH-Web-Profil
-  --allow-sleep         Standby waehrend des Laufs erlauben (Standard: wach halten, damit lange Laeufe nicht
-                        abbrechen)
+  --profile PROFILE     Path to a table profile (JSON); default: built-in PokerTH web profile
+  --allow-sleep         Allow standby during the run (default: keep awake so long runs do not abort)
 ```
 
 ## `pokercollector calibrate`
@@ -123,8 +122,8 @@ positional arguments:
 
 options:
   -h, --help           show this help message and exit
-  --step STEP          Sekunden zwischen analysierten Videoframes
-  --interval INTERVAL  angenommener Abstand zwischen Screenshots
+  --step STEP          Seconds between analyzed video frames
+  --interval INTERVAL  Assumed interval between screenshots
 ```
 
 ## `pokercollector windows`
@@ -149,23 +148,22 @@ usage: pokercollector live [-h] [--window WINDOW] [--hwnd HWND] [--fps FPS] [--s
 
 options:
   -h, --help            show this help message and exit
-  --window WINDOW       Teil des Fenstertitels
+  --window WINDOW       Part of the window title
   --hwnd HWND
   --fps FPS
-  --segment SEGMENT     Segmentlaenge in Sekunden
+  --segment SEGMENT     Segment length in seconds
   --stop-after STOP_AFTER
-                        Sitzung endet nach so vielen Sekunden ohne Tisch
+                        Session ends after this many seconds without table
   --max-seconds MAX_SECONDS
-  --no-video            nur Journal, kein Video speichern
-  --allow-background    auch aufnehmen, wenn das Fenster nicht im Vordergrund ist (Risiko: verdeckte
-                        Inhalte)
-  --advice              Vorschlag anzeigen, wenn du dran bist
-  --leiste              Vorschlag zusaetzlich in der Lynx-Leiste ueber der Taskleiste (mit Ton; setzt
+  --no-video            journal only, no video recording
+  --allow-background    also record when the window is not in the foreground (risk: obscured content)
+  --advice              show suggestion when it’s your turn
+  --leiste              additionally show suggestion in the Lynx bar above the taskbar (with sound; sets
                         --advice)
-  --still               Leiste ohne Ton
-  --kein-eintrag        erkanntes Turnierende nicht automatisch in die Zieltafel eintragen
-  --mischen             Vorschlag aus der gemischten Strategie ziehen statt der wahrscheinlichsten Aktion
-  --agent AGENT         Liga-Name oder Agent fuer Vorschlaege (Standard lynx-4-300 = bester Bot)
+  --still               bar without sound
+  --kein-eintrag        do not automatically enter recognized end of turn into target board
+  --mischen             draw suggestion from mixed strategy instead of the most likely action
+  --agent AGENT         league name or agent for suggestions (default lynx-4-300 = best bot)
 ```
 
 ## `pokercollector live-replay`
@@ -174,11 +172,11 @@ options:
 usage: pokercollector live-replay [-h] [--agent AGENT] session
 
 positional arguments:
-  session        Ordner, Teil des Namens oder 'last'
+  session        folder, part of name or 'last'
 
 options:
   -h, --help     show this help message and exit
-  --agent AGENT  Liga-Name oder Agent
+  --agent AGENT  league name or agent
 ```
 
 ## `pokercollector leiste-demo`
@@ -188,8 +186,8 @@ usage: pokercollector leiste-demo [-h] [--still] [--sekunden SEKUNDEN]
 
 options:
   -h, --help           show this help message and exit
-  --still              ohne Ton
-  --sekunden SEKUNDEN  Anzeigedauer je Beispiel
+  --still              without sound
+  --sekunden SEKUNDEN  display duration per example
 ```
 
 ## `pokercollector reconstruct`
@@ -198,7 +196,7 @@ options:
 usage: pokercollector reconstruct [-h] session
 
 positional arguments:
-  session     Ordner, Teil des Namens oder 'last'
+  session     folder, part of name or 'last'
 
 options:
   -h, --help  show this help message and exit
@@ -284,12 +282,12 @@ usage: pokercollector sim [-h] {agents,match,hand,tournament,pushfold,review} ..
 
 positional arguments:
   {agents,match,hand,tournament,pushfold,review}
-    agents              verfuegbare Bots
-    match               Bots gegeneinander bewerten
-    hand                eine Hand spielen und zeigen
-    tournament          Sit&Go-Turniere (wie PokerTH) zwischen Bots
-    pushfold            Nash-Push/Fold-Ranges anzeigen
-    review              eigene Entscheidungen einer Sitzung mit einem Agenten vergleichen
+    agents              available bots
+    match               Evaluate bots against each other
+    hand                play and show a hand
+    tournament          Sit&Go tournaments (like PokerTH) between bots
+    pushfold            display Nash push/fold ranges
+    review              compare own decisions of a session with an agent
 
 options:
   -h, --help            show this help message and exit
@@ -312,14 +310,14 @@ usage: pokercollector sim match [-h] [--agents AGENTS] [--seed SEED] [--sb SB] [
 
 options:
   -h, --help       show this help message and exit
-  --agents AGENTS  Komma-Liste, z. B. tag,tag:tag2,random
+  --agents AGENTS  comma-separated list, e.g. tag,tag:tag2,random
   --seed SEED
   --sb SB
   --bb BB
-  --stack STACK    Startstack in Big Blinds
-  --hands HANDS    Anzahl Kartenblaetter
+  --stack STACK    starting stack in big blinds
+  --hands HANDS    number of card sheets
   --no-duplicate
-  --show SHOW      so viele Handverlaeufe ausgeben
+  --show SHOW      output this many hand histories
 ```
 
 ### `pokercollector sim hand`
@@ -330,11 +328,11 @@ usage: pokercollector sim hand [-h] [--agents AGENTS] [--seed SEED] [--sb SB] [-
 
 options:
   -h, --help       show this help message and exit
-  --agents AGENTS  Komma-Liste, z. B. tag,tag:tag2,random
+  --agents AGENTS  comma-separated list, e.g. tag,tag:tag2,random
   --seed SEED
   --sb SB
   --bb BB
-  --stack STACK    Startstack in Big Blinds
+  --stack STACK    starting stack in big blinds
   --button BUTTON
 ```
 
@@ -349,13 +347,13 @@ options:
   -h, --help            show this help message and exit
   --agents AGENTS
   --tournaments TOURNAMENTS
-                        Anzahl Kartenschemata (x Spielerzahl bei Duplicate)
+                        number of card schemas (x number of players for duplicates)
   --seed SEED
-  --stack STACK         Startchips
-  --blinds BLINDS       Start-Blinds SB/BB
+  --stack STACK         starting chips
+  --blinds BLINDS       starting blinds SB/BB
   --level-hands LEVEL_HANDS
-                        Haende bis zur Verdopplung der Blinds
-  --payouts PAYOUTS     Prozent je Platz, z. B. 100 (Sieger bekommt alles)
+                        hands until blinds double
+  --payouts PAYOUTS     percent per place, e.g. 100 (winner takes all)
   --no-duplicate
 ```
 
@@ -366,10 +364,10 @@ usage: pokercollector sim pushfold [-h] [--stack STACK] [--behind BEHIND] [--cal
 
 options:
   -h, --help       show this help message and exit
-  --stack STACK    effektiver Stack in BB
-  --behind BEHIND  Spieler hinter dem Pusher (1 = SB gegen BB)
-  --caller CALLER  welcher Caller (0 = erster hinter dem Pusher)
-  --overview       Push-Prozente fuer alle Stacks/Positionen
+  --stack STACK    effective stack in BB
+  --behind BEHIND  players behind the pusher (1 = SB vs BB)
+  --caller CALLER  which caller (0 = first behind pusher)
+  --overview       push percentages for all stacks/positions
 ```
 
 ### `pokercollector sim review`
@@ -397,18 +395,18 @@ options:
   -h, --help            show this help message and exit
   --mode {cash,tournament}
   --opponents OPPONENTS
-                        Bots/Ligaspieler, Komma-Liste
+                        bots/league players, comma-separated list
   --name NAME
   --blinds BLINDS
-  --stack STACK         Turnier: Startchips
+  --stack STACK         tournament: starting chips
   --level-hands LEVEL_HANDS
   --payouts PAYOUTS
-  --stack-bb STACK_BB   Cash: Stack in BB (Rebuy auf diesen Wert)
-  --hands HANDS         Cash: maximale Handzahl
+  --stack-bb STACK_BB   cash: stack in BB (rebuy to this value)
+  --hands HANDS         cash: maximum number of hands
   --seed SEED
-  --coach               nach deiner Entscheidung Push/Fold-Hinweis zeigen
-  --unrated             Turnier nicht in die Liga eintragen
-  --ascii               Kartenfarben als Buchstaben
+  --coach               show push/fold hint after your decision
+  --unrated             do not register tournament in the league
+  --ascii               card suits as letters
 ```
 
 ## `pokercollector play-stats`
@@ -428,11 +426,11 @@ usage: pokercollector league [-h] {show,add,retire,run,bench} ...
 
 positional arguments:
   {show,add,retire,run,bench}
-    show                Tabelle + Verlaufsgrafik (report.html)
-    add                 Bot-Version eintragen, z. B. add tag-v2 'tag?bluff=0.2'
-    retire              Bot aus automatischen Runden nehmen
-    run                 Ligaspiele zwischen den Bots austragen
-    bench               Benchmark gegen feste Gegner (alle Bots oder einer)
+    show                table + progress graph (report.html)
+    add                 enter bot version, e.g. add tag-v2 'tag?bluff=0.2'
+    retire              remove bot from automatic rounds
+    run                 play league games between bots
+    bench               benchmark against fixed opponents (all bots or one)
 
 options:
   -h, --help            show this help message and exit
@@ -511,19 +509,20 @@ usage: pokercollector train [-h]
 
 positional arguments:
   {cem,gate,bc,cfr,deepcfr,exploit,humans-fit,valuedata,valuenet,teacher-collect,teacher-fit,humanfold,rl}
-    cem                 Stil-Parameter optimieren, Aufnahmepruefung, ggf. in die Liga
-    gate                Aufnahmepruefung: Kandidat gegen Titelverteidiger
-    bc                  Lernender Bot, Schritt 1: Lehrer-Bot nachahmen -> Checkpoint 0
-    cfr                 Gleichgewicht per Monte-Carlo-CFR (Pluribus-Verfahren)
-    deepcfr             Deep CFR: Gleichgewicht mit neuronalen Netzen statt Tabelle
-    exploit             Ausbeuter-Test: wie stark laesst sich ein Bot gezielt ausnutzen?
-    humans-fit          Mensch-Bots: Stilbots an echte Spielertypen (data humans) anpassen
-    valuedata           Wertnetz-Daten: Situationen zu Strassenbeginn exakt loesen (Meilenstein 3)
-    valuenet            Wertnetz aus valuedata-Scherben trainieren (lokal klein; gross auf Kaggle)
-    teacher-collect     Suche als Lehrer (H5): Suchentscheidungen als weiche Ziele sammeln
-    teacher-fit         Suche als Lehrer (H5): Schueler auf gesammelte Ziele nachtrainieren (mit KL-Leine)
-    humanfold           Fold-Modell aus den kartenfreien HandHQ-Zeilen (H11 Schritt 2b)
-    rl                  Lernender Bot, Schritt 2: Selbstspiel mit PPO (setzt einen Lauf fort)
+    cem                 optimize style parameters, recording check, possibly add to league
+    gate                Qualification match: candidate against title defender
+    bc                  Learning bot, step 1: imitate teacher bot -> Checkpoint 0
+    cfr                 Equilibrium via Monte-Carlo CFR (Pluribus method)
+    deepcfr             Deep CFR: equilibrium with neural networks instead of table
+    exploit             Exploitability test: how strongly can a bot be exploited deliberately?
+    humans-fit          Human bots: Adapt style bots to real player types (data humans)
+    valuedata           Value network data: Solve situations exactly at the start of the street (milestone
+                        3)
+    valuenet            Train value network from value data shards (locally small; large on Kaggle)
+    teacher-collect     Search as teacher (H5): Collect search decisions as soft targets
+    teacher-fit         Search as teacher (H5): further train student on collected targets (with KL loss)
+    humanfold           Fold model from the card-free HandHQ lines (H11 step 2b)
+    rl                  Learning bot, step 2: self-play with PPO (continues a run)
 
 options:
   -h, --help            show this help message and exit
@@ -538,18 +537,18 @@ usage: pokercollector train cem [-h] [--start START] [--generations GENERATIONS]
 
 options:
   -h, --help            show this help message and exit
-  --start START         Ausgangsstil
+  --start START         starting style
   --generations GENERATIONS
   --population POPULATION
-  --schemes SCHEMES     Kartenschemata je Generation (x6 Turniere)
+  --schemes SCHEMES     Card schemas per generation (x6 tournaments)
   --gate-schemes GATE_SCHEMES
-  --champion CHAMPION   Ligaspieler, den der Kandidat schlagen muss
-  --name NAME           Name in der Liga (Standard: opt-<Datum>)
+  --champion CHAMPION   League player the candidate must beat
+  --name NAME           Name in the league (default: opt-<date>)
   --seed SEED
-  --resume RESUME       Trainingsordner (data\train\...) fortsetzen
+  --resume RESUME       Continue training folder (data\train\...)
   --opponents {league,fixed}
-                        league = Tische aus allen aktiven Ligabots, starke oefter, mit Self-Play (Standard);
-                        fixed = immer rock/tag/lag/station/maniac
+                        league = tables from all active league bots, strong more often, with self-play
+                        (default); fixed = always rock/tag/lag/station/maniac
 ```
 
 ### `pokercollector train gate`
@@ -560,14 +559,14 @@ usage: pokercollector train gate [-h] [--from FROM_DIR] [--champion CHAMPION] [-
                                  [candidate]
 
 positional arguments:
-  candidate             Bot-Spezifikation in Anfuehrungszeichen, z. B. "tag?push_bb=15&bluff=0.2"
+  candidate             Bot specification in quotes, e.g. "tag?push_bb=15&bluff=0.2"
 
 options:
   -h, --help            show this help message and exit
-  --from FROM_DIR       Kandidat aus einem Trainingsordner (result.json) nehmen
+  --from FROM_DIR       Take candidate from a training folder (result.json)
   --champion CHAMPION
   --schemes SCHEMES
-  --seed SEED           anderer Seed = andere, frische Kartenschemata
+  --seed SEED           Different seed = different, fresh card schemas
   --opponents {league,fixed}
 ```
 
@@ -581,12 +580,12 @@ usage: pokercollector train bc [-h] [--teacher TEACHER] [--run RUN] [--bc-tourna
 options:
   -h, --help            show this help message and exit
   --teacher TEACHER
-  --run RUN             Name des Laufs unter data\rl (Standard: nn-<Datum>)
+  --run RUN             Name of run under data\rl (default: nn-<date>)
   --bc-tournaments BC_TOURNAMENTS
-  --dataset DATASET     statt Lehrer-Bot: Datensatz unter data\datasets, z. B. pluribus
-  --players PLAYERS     nur diese Spieler des Datensatzes, Komma-getrennt, z. B. Pluribus
+  --dataset DATASET     Instead of teacher bot: dataset under data\datasets, e.g. pluribus
+  --players PLAYERS     Only these players from the dataset, comma-separated, e.g. Pluribus
   --epochs EPOCHS
-  --features FEATURES   Merkmalsversion des Datensatzes (Standard: aktuelle)
+  --features FEATURES   Feature version of the dataset (default: latest)
 ```
 
 ### `pokercollector train cfr`
@@ -598,9 +597,9 @@ usage: pokercollector train cfr [-h] [--run RUN] [--rounds ROUNDS] [--traversals
 options:
   -h, --help            show this help message and exit
   --run RUN
-  --rounds ROUNDS       Zielrunde (Gesamtzahl)
+  --rounds ROUNDS       Target round (total number)
   --traversals TRAVERSALS
-                        Durchlaeufe je Prozess und Runde
+                        Iterations per process and round
   --bench-every BENCH_EVERY
   --seed SEED
 ```
@@ -615,12 +614,12 @@ options:
   -h, --help            show this help message and exit
   --run RUN
   --iterations ITERATIONS
-                        Ziel-Iteration (Gesamtzahl)
+                        Target iteration (total number)
   --traversals TRAVERSALS
-                        Durchlaeufe je Prozess und Iteration
+                        Iterations per process and iteration
   --snapshot-every SNAPSHOT_EVERY
   --seed SEED
-  --buffer BUFFER       Eintraege je Datenpuffer (RAM ca. 220 MB je 1 Mio.; 2 Puffer)
+  --buffer BUFFER       Entries per data buffer (RAM approx. 220 MB per 1 million; 2 buffers)
 ```
 
 ### `pokercollector train exploit`
@@ -629,11 +628,11 @@ options:
 usage: pokercollector train exploit [-h] [--init INIT] [--iterations ITERATIONS] [--schemes SCHEMES] target
 
 positional arguments:
-  target                Bot-Spezifikation, z. B. rock oder "nn?run=pros-1@200"
+  target                Bot specification, e.g. rock or "nn?run=pros-1@200"
 
 options:
   -h, --help            show this help message and exit
-  --init INIT           Startpunkt des Ausbeuters (Lauf@Checkpoint)
+  --init INIT           Start point of exploiter (run@checkpoint)
   --iterations ITERATIONS
   --schemes SCHEMES
 ```
@@ -647,10 +646,10 @@ usage: pokercollector train humans-fit [-h] [--source SOURCE] [--name NAME] [--g
 options:
   -h, --help            show this help message and exit
   --source SOURCE       data\humans\<source>.json
-  --name NAME           Ergebnis data\humans\<name>.json
+  --name NAME           Result data\humans\<name>.json
   --generations GENERATIONS
   --population POPULATION
-  --hands HANDS         Haende je Messung
+  --hands HANDS         Hands per measurement
 ```
 
 ### `pokercollector train valuedata`
@@ -662,19 +661,20 @@ usage: pokercollector train valuedata [-h] [--n N] [--seed SEED] [--iters ITERS]
 
 positional arguments:
   {river,turn,flop,river-leaf,turn-leaf}
-                        Strasse, zu deren Beginn bewertet wird; river-leaf = River-Anfaenge aus echten Turn-
-                        Suchen (je Seed bis 24 Zeilen), turn-leaf = Turn-Anfaenge aus echten Flop-Suchen,
-                        River per Wertnetz (je Seed bis 12 Zeilen)
+                        Street at the start of which evaluation is done; river-leaf = river starts from real
+                        turn searches (up to 24 rows per seed), turn-leaf = turn starts from real flop
+                        searches, river via value network (up to 12 rows per seed)
 
 options:
   -h, --help            show this help message and exit
-  --n N                 Situationen in dieser Scherbe
-  --seed SEED           erster Seed (Scherben: seed, seed+n, ...)
-  --iters ITERS         CFR+-Iterationen (Standard river 300, turn 150, flop 60)
-  --workers WORKERS     Prozesse
-  --threads THREADS     numba-Faeden je Prozess (Standard: alle)
-  --out OUT             Zieldatei .npz (Standard data\valuenet\<street>-<seed>.npz)
-  --vnet VNET           River-Wertnetz als Blatt (turn/flop/turn-leaf; Standard bei turn-leaf: vnet-river-1)
+  --n N                 Situations in this shard
+  --seed SEED           First seed (shards: seed, seed+n, ...)
+  --iters ITERS         CFR+ iterations (default river 300, turn 150, flop 60)
+  --workers WORKERS     Processes
+  --threads THREADS     Numba threads per process (default: all)
+  --out OUT             Target file .npz (default data\valuenet\<street>-<seed>.npz)
+  --vnet VNET           River value network as leaf (turn/flop/turn-leaf; default with turn-leaf: vnet-
+                        river-1)
 ```
 
 ### `pokercollector train valuenet`
@@ -685,14 +685,14 @@ usage: pokercollector train valuenet [-h] --data DATA [--out OUT] [--epochs EPOC
 
 options:
   -h, --help       show this help message and exit
-  --data DATA      Glob auf .npz-Scherben, z. B. data\valuenet\river-*.npz
-  --out OUT        Name unter data\valuenet\<out>.pt oder Pfad
+  --data DATA      Glob on .npz shards, e.g. data\valuenet\river-*.npz
+  --out OUT        Name under data\valuenet\<out>.pt or path
   --epochs EPOCHS
   --batch BATCH
   --lr LR
   --width WIDTH
   --depth DEPTH
-  --resume RESUME  Checkpoint, von dem weitertrainiert wird
+  --resume RESUME  Checkpoint from which to continue training
 ```
 
 ### `pokercollector train teacher-collect`
@@ -704,14 +704,14 @@ usage: pokercollector train teacher-collect [-h] [--search SEARCH] [--student ST
 
 options:
   -h, --help            show this help message and exit
-  --search SEARCH       Spezifikation der Suche (Lehrer)
-  --student STUDENT     Schueler-Netz (bestimmt den Merkmalsraum)
+  --search SEARCH       Specification of the search (teacher)
+  --student STUDENT     Student network (determines feature space)
   --opponents OPPONENTS
-                        Gegner-Spezifikationen, Komma-getrennt
-  --stacks STACKS       Stacktiefen in BB, Komma-getrennt
-  --hands HANDS         Kartenblaetter je Match (duplicate -> doppelt so viele Haende)
+                        Opponent specifications, comma-separated
+  --stacks STACKS       Stack depths in BB, comma-separated
+  --hands HANDS         Card decks per match (duplicate -> twice as many hands)
   --seed SEED
-  --out OUT             Zieldatei .npz (z. B. data\teacher\t1-seed1.npz)
+  --out OUT             Target file .npz (e.g. data\teacher\t1-seed1.npz)
 ```
 
 ### `pokercollector train teacher-fit`
@@ -722,13 +722,13 @@ usage: pokercollector train teacher-fit [-h] --data DATA [--student STUDENT] --o
 
 options:
   -h, --help         show this help message and exit
-  --data DATA        Glob auf Lehrer-.npz, z. B. data\teacher\t1-*.npz
-  --student STUDENT  <Lauf>@<Checkpoint>
-  --out-run OUT_RUN  neuer Lauf unter data\rl\<out-run> (ckpt_000001.pt)
+  --data DATA        Glob on teacher-.npz, e.g. data\teacher\t1-*.npz
+  --student STUDENT  <run>@<checkpoint>
+  --out-run OUT_RUN  New run under data\rl\<out-run> (ckpt_000001.pt)
   --epochs EPOCHS
   --batch BATCH
   --lr LR
-  --kl KL            Gewicht der KL-Leine an den Anker (0 = aus)
+  --kl KL            Weight of the KL loss on the anchor (0 = off)
 ```
 
 ### `pokercollector train humanfold`
@@ -739,11 +739,11 @@ usage: pokercollector train humanfold [-h] [--rows ROWS] [--out OUT] [--max-rows
 
 options:
   -h, --help            show this help message and exit
-  --rows ROWS           Ordner mit public-*.npz (Standard data\humans\actions)
-  --out OUT             Name unter data\humans\<out>.npz
+  --rows ROWS           Folder with public-*.npz (default data\humans\actions)
+  --out OUT             Name under data\humans\<out>.npz
   --max-rows MAX_ROWS
   --max-shards MAX_SHARDS
-                        Speicher: Scherben begrenzen
+                        Memory: limit shards
   --epochs EPOCHS
 ```
 
@@ -763,48 +763,49 @@ usage: pokercollector train rl [-h] [--run RUN] [--teacher TEACHER] [--bc-tourna
 
 options:
   -h, --help            show this help message and exit
-  --run RUN             Lauf fortsetzen bzw. benennen (data\rl\<run>)
-  --teacher TEACHER     neuer Lauf: zuerst diesen Bot nachahmen (empfohlen: rock)
+  --run RUN             Continue or name run (data\rl\<run>)
+  --teacher TEACHER     New run: first imitate this bot (recommended: rock)
   --bc-tournaments BC_TOURNAMENTS
   --iterations ITERATIONS
-                        Ziel-Iteration (Gesamtzahl, nicht zusaetzlich)
+                        Target iteration (total number, not additional)
   --tournaments TOURNAMENTS
-                        Sit&Gos je Iteration
+                        Sit&Gos per iteration
   --champion CHAMPION
   --gate-schemes GATE_SCHEMES
-                        0 = keine Aufnahmepruefung am Ende
-  --name NAME           Name in der Liga bei bestandener Pruefung
+                        0 = no admission test at the end
+  --name NAME           Name in the league upon passing the exam
   --seed SEED
   --anchor-coef ANCHOR_COEF
-                        Leine: Strafe fuer Abweichung von der Ankerstrategie (z. B. 0.3); 0 = aus
-  --anchor ANCHOR       Anker '<lauf>:<ckpt>', Standard: Checkpoint 0 dieses Laufs
+                        Leash: Penalty for deviation from the anchor strategy (e.g., 0.3); 0 = off
+  --anchor ANCHOR       Anchor '<run>:<ckpt>', default: Checkpoint 0 of this run
   --random-share RANDOM_SHARE
-                        Anteil Tischplaetze mit Zufalls-Stilbots, z. B. 0.3 (immer neue Spielweisen)
+                        Proportion of table seats with random style bots, e.g., 0.3 (always new playing
+                        styles)
   --exploit-every EXPLOIT_EVERY
-                        alle N Iterationen Ausbeuter trainieren und als Gegner aufnehmen (0 = aus)
+                        Train and include exploiter as opponent every N iterations (0 = off)
   --exploit-iters EXPLOIT_ITERS
-                        Trainingsiterationen je Ausbeuter
-  --random-formats      je Turnier zufaellig 2-10 Spieler, 20-200 BB, Blind-Tempo 5-20 Haende, Auszahlung
-  --lr LR               Lernrate (gilt auch beim Fortsetzen)
+                        Training iterations per exploiter
+  --random-formats      Per tournament randomly 2-10 players, 20-200 BB, blind speed 5-20 hands, payout
+  --lr LR               Learning rate (also applies when resuming)
   --bench-every BENCH_EVERY
-                        alle N Iterationen auf den Pruefstand (0 = nie)
+                        Every N iterations to the test stage (0 = never)
   --bench-sets BENCH_SETS
-                        Testsets des Pruefstands, z. B. "praezise,pluribus"
+                        Test sets of the test stage, e.g., "praezise,pluribus"
   --bench-ref BENCH_REF
-                        Vergleichsbot (Name auf dem Pruefstand), bester Stand -> best.json
+                        Comparison bot (name at the test stage), best version -> best.json
   --widen-from WIDEN_FROM
-                        neuer Lauf: Start von '<lauf>@<ckpt>', Netz aufgeweitet auf --features
-  --features FEATURES   mit --widen-from: Merkmalsversion, z. B. feat-3
-  --actions ACTIONS     mit --widen-from: Aktionszahl (8 = act-2)
+                        New run: start from '<run>@<ckpt>', network widened to --features
+  --features FEATURES   With --widen-from: feature version, e.g., feat-3
+  --actions ACTIONS     With --widen-from: number of actions (8 = act-2)
   --anchor-min-players ANCHOR_MIN_PLAYERS
-                        Leine erst ab so vielen Spielern
+                        Leash starts only from this many players
   --table-weights TABLE_WEIGHTS
-                        mit --random-formats: Tischgroessen-Gewichte, z. B. "2:4,3:3,6:2"
+                        With --random-formats: table size weights, e.g., "2:4,3:3,6:2"
   --human-share HUMAN_SHARE
-                        Anteil Tischplaetze mit Mensch-Bots (echte Spielertypen, train humans-fit)
+                        Proportion of table seats with human bots (real player types, train humans-fit)
   --self-play-seats SELF_PLAY_SEATS
-                        je Gegnerplatz Wahrscheinlichkeit fuer eine fruehere eigene Version
-  --icm ICM             Anteil ICM-Belohnung (Aenderung des Turnier-Eigenkapitals statt Chips), z. B. 1.0
+                        Per opponent seat probability for a prior own version
+  --icm ICM             Proportion of ICM reward (change of tournament equity instead of chips), e.g., 1.0
 ```
 
 ## `pokercollector bench`
@@ -814,13 +815,14 @@ usage: pokercollector bench [-h] {run,show,slumbot,gtow,ziele,turnier,compare} .
 
 positional arguments:
   {run,show,slumbot,gtow,ziele,turnier,compare}
-    run                 Kandidaten auf den Pruefstand stellen
-    show                Tabelle aller Ergebnisse
-    slumbot             Heads-up gegen Slumbot (slumbot.com) spielen: absoluter Massstab
-    gtow                Heads-up gegen GTO Wizard AI (benchmark.gtowizard.com) spielen: 2. Massband, AIVAT
-    ziele               Anzeigetafel unserer Ziele (ZIELE.md) fuer einen Bot
-    turnier             Ergebnis eines echten PokerTH-Turniers eintragen (Ziel 1)
-    compare             Zwei Eintraege gepaart vergleichen (alle gemeinsamen Testsets)
+    run                 Put candidates on the test bench
+    show                Table of all results
+    slumbot             Play heads-up against Slumbot (slumbot.com): absolute benchmark
+    gtow                Play heads-up against GTO Wizard AI (benchmark.gtowizard.com): second benchmark,
+                        AIVAT
+    ziele               Scoreboard of our goals (GOALS.md) for a bot
+    turnier             Enter result of a real PokerTH tournament (goal 1)
+    compare             Compare two paired entries (all common test sets)
 
 options:
   -h, --help            show this help message and exit
@@ -832,14 +834,14 @@ options:
 usage: pokercollector bench run [-h] [--name NAME] [--sets SETS] [--exploit] spec
 
 positional arguments:
-  spec         Liga-Name (z. B. opt-1) oder Bot, z. B. "nn?run=pros-1@200"
+  spec         League name (e.g. opt-1) or bot, e.g. "nn?run=pros-1@200"
 
 options:
   -h, --help   show this help message and exit
-  --name NAME  Name in der Tabelle (Standard: wie angegeben)
-  --sets SETS  Testsets, Komma-getrennt; Formate: hu48,3max48,10max48,turbo48,deep48,pokerth48 (oder
-               "formate"); groesser z. B. mix960,pokerth480 (oder "praezise")
-  --exploit    zusaetzlich Ausbeuter-Test (ca. 10 min)
+  --name NAME  Name in the table (default: as specified)
+  --sets SETS  Test sets, comma-separated; formats: hu48,3max48,10max48,turbo48,deep48,pokerth48 (or
+               "formats"); larger e.g. mix960,pokerth480 (or "precise")
+  --exploit    Additionally exploitability test (approx. 10 min)
 ```
 
 ### `pokercollector bench show`
@@ -857,13 +859,13 @@ options:
 usage: pokercollector bench slumbot [-h] [--name NAME] [--hands HANDS] [--workers WORKERS] spec
 
 positional arguments:
-  spec               Liga-Name oder Bot, z. B. "nn?run=pros-r1@300"
+  spec               League name or bot, e.g. "nn?run=pros-r1@300"
 
 options:
   -h, --help         show this help message and exit
-  --name NAME        Name der Ergebnisdatei (Standard: wie angegeben); setzt fort
-  --hands HANDS      weitere Haende (0 = nur Auswertung)
-  --workers WORKERS  parallele Slumbot-Sitzungen
+  --name NAME        Name of result file (default: as specified); continues
+  --hands HANDS      Additional hands (0 = evaluation only)
+  --workers WORKERS  Parallel Slumbot sessions
 ```
 
 ### `pokercollector bench gtow`
@@ -874,15 +876,15 @@ usage: pokercollector bench gtow [-h] [--name NAME] [--hands HANDS] [--workers W
                                  spec
 
 positional arguments:
-  spec               Liga-Name oder Bot, z. B. lynx-4-300
+  spec               League name or bot, e.g. lynx-4-300
 
 options:
   -h, --help         show this help message and exit
-  --name NAME        Name der Ergebnisdatei (Standard: wie angegeben); setzt fort
-  --hands HANDS      weitere Haende (0 = nur Auswertung)
-  --workers WORKERS  parallele Haende (Anbieter-Client nutzt 5)
-  --key KEY          API-Schluessel (sonst GTOW_API_KEY oder data/bench/gtow/api_key.txt)
-  --server           zusaetzlich die Serverstatistik (AIVAT) abrufen
+  --name NAME        Name of result file (default: as specified); continues
+  --hands HANDS      Additional hands (0 = evaluation only)
+  --workers WORKERS  Parallel hands (provider client uses 5)
+  --key KEY          API key (otherwise GTOW_API_KEY or data/bench/gtow/api_key.txt)
+  --server           Additionally retrieve server statistics (AIVAT)
 ```
 
 ### `pokercollector bench ziele`
@@ -893,14 +895,14 @@ usage: pokercollector bench ziele [-h] [--name NAME] [--messen] [--exploit] [--s
                                   [bot]
 
 positional arguments:
-  bot                Liga-Name oder Bot
+  bot                League name or bot
 
 options:
   -h, --help         show this help message and exit
-  --name NAME        Name auf dem Pruefstand (Standard: wie bot)
-  --messen           mensch480, nash240, kurz240 neu messen (ca. 15-30 min)
-  --exploit          zusaetzlich Ausbeuter-Test (ca. 10-20 min)
-  --slumbot SLUMBOT  Name der Slumbot-Ergebnisdatei (Standard: wie --name)
+  --name NAME        Name on the test bench (default: same as bot)
+  --messen           Measure human480, nash240, kurz240 anew (approx. 15-30 min)
+  --exploit          Additionally exploitability test (approx. 10-20 min)
+  --slumbot SLUMBOT  Name of Slumbot result file (default: same as --name)
   --workers WORKERS
 ```
 
@@ -910,15 +912,15 @@ options:
 usage: pokercollector bench turnier [-h] [--spieler SPIELER] [--bot BOT] [--notiz NOTIZ] [--ersetzt] platz
 
 positional arguments:
-  platz              eigener Platz (1 = gewonnen)
+  platz              Own place (1 = won)
 
 options:
   -h, --help         show this help message and exit
-  --spieler SPIELER  Spieler am Start (Standard 6)
-  --bot BOT          welcher Lynx beraten hat
-  --notiz NOTIZ      z. B. 'gegen PokerTH-Bots' oder 'online'
-  --ersetzt          den letzten Eintrag dieses Bots (z. B. falsche automatische Erkennung) ersetzen statt
-                     anhaengen
+  --spieler SPIELER  Players at start (default 6)
+  --bot BOT          Which Lynx advised
+  --notiz NOTIZ      e.g. 'against PokerTH bots' or 'online'
+  --ersetzt          Replace last entry of this bot (e.g. incorrect automatic recognition) instead of
+                     appending
 ```
 
 ### `pokercollector bench compare`
@@ -927,8 +929,8 @@ options:
 usage: pokercollector bench compare [-h] a b
 
 positional arguments:
-  a           Name in der Tabelle
-  b           Name in der Tabelle
+  a           Name in the table
+  b           Name in the table
 
 options:
   -h, --help  show this help message and exit
@@ -941,12 +943,11 @@ usage: pokercollector data [-h] {pluribus,humans,humandata,humanpublic,agree} ..
 
 positional arguments:
   {pluribus,humans,humandata,humanpublic,agree}
-    pluribus            Pluribus-Haende nachspielen -> data\datasets\pluribus.npz
-    humans              Echte Spieler (HandHQ): Haeufigkeiten je Spieler und Spielertypen
-    humandata           HandHQ-Showdown-Entscheidungen mit bekannten Karten als Merkmale+Aktion (H11
-                        Menschenmodell)
-    humanpublic         HandHQ: ALLE Entscheidungen kartenfrei mit Folds (Fold-Modell, H11 Schritt 2b)
-    agree               Wie oft trifft ein Netz die Entscheidungen im Datensatz?
+    pluribus            Replay Pluribus hands -> data\datasets\pluribus.npz
+    humans              Real Players (HandHQ): Frequencies per player and player types
+    humandata           HandHQ showdown decisions with known cards as features + action (H11 human model)
+    humanpublic         HandHQ: ALL card-free decisions with folds (fold model, H11 step 2b)
+    agree               How often does a network make the decisions in the dataset?
 
 options:
   -h, --help            show this help message and exit
@@ -959,7 +960,7 @@ usage: pokercollector data pluribus [-h] [--source SOURCE]
 
 options:
   -h, --help       show this help message and exit
-  --source SOURCE  Ordner mit .phh-Dateien (Standard: data\external\phh-dataset\data\pluribus)
+  --source SOURCE  Folder with .phh files (default: data\external\phh-dataset\data\pluribus)
 ```
 
 ### `pokercollector data humans`
@@ -970,14 +971,14 @@ usage: pokercollector data humans [-h] [--sets SETS] [--name NAME] [--types TYPE
 
 options:
   -h, --help            show this help message and exit
-  --sets SETS           Ordner unter data\external\phh-dataset\data\handhq, Komma-getrennt (Standard: alle)
-  --name NAME           Ergebnis data\humans\<name>.json
-  --types TYPES         Anzahl Spielertypen
+  --sets SETS           Folder under data\external\phh-dataset\data\handhq, comma-separated (default: all)
+  --name NAME           Result data\humans\<name>.json
+  --types TYPES         Number of player types
   --min-hands MIN_HANDS
-                        Spieler mit weniger Haenden zaehlen nicht fuer Typen
+                        Players with fewer hands do not count towards types
   --max-files MAX_FILES
-                        nur die ersten N Dateien (Test)
-  --workers WORKERS     parallele Prozesse (RAM!)
+                        only the first N files (test)
+  --workers WORKERS     parallel processes (RAM!)
 ```
 
 ### `pokercollector data humandata`
@@ -988,13 +989,13 @@ usage: pokercollector data humandata [-h] [--sets SETS] [--out OUT] [--max-files
 
 options:
   -h, --help            show this help message and exit
-  --sets SETS           Ordner unter data\external\phh-dataset\data\handhq, Komma-getrennt (Standard: alle)
-  --out OUT             Zielordner (Standard data\humans\actions)
+  --sets SETS           Folder under data\external\phh-dataset\data\handhq, comma-separated (default: all)
+  --out OUT             Target folder (default data\humans\actions)
   --max-files MAX_FILES
-                        nur die ersten N Dateien (Test)
+                        only the first N files (test)
   --files-per-shard FILES_PER_SHARD
-                        Dateien je Scherbe human-<nr>.npz
-  --workers WORKERS     parallele Prozesse
+                        Files per shard human-<nr>.npz
+  --workers WORKERS     Parallel processes
 ```
 
 ### `pokercollector data humanpublic`
@@ -1005,12 +1006,12 @@ usage: pokercollector data humanpublic [-h] [--sets SETS] [--out OUT] [--max-fil
 
 options:
   -h, --help            show this help message and exit
-  --sets SETS           Ordner unter data\external\phh-dataset\data\handhq, Komma-getrennt (Standard: alle)
-  --out OUT             Zielordner (Standard data\humans\actions, Dateien public-<nr>.npz)
+  --sets SETS           Folder under data\external\phh-dataset\data\handhq, comma-separated (default: all)
+  --out OUT             Target folder (default data\humans\actions, files public-<nr>.npz)
   --max-files MAX_FILES
-                        nur die ersten N Dateien (Test)
+                        only the first N files (test)
   --files-per-shard FILES_PER_SHARD
-  --workers WORKERS     parallele Prozesse
+  --workers WORKERS     Parallel processes
 ```
 
 ### `pokercollector data agree`
@@ -1023,7 +1024,7 @@ positional arguments:
 
 options:
   -h, --help         show this help message and exit
-  --ckpt CKPT        Checkpoint(s), Komma-getrennt, z. B. 0,100,200
+  --ckpt CKPT        Checkpoint(s), comma-separated, e.g. 0,100,200
   --dataset DATASET
   --players PLAYERS
 ```

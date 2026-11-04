@@ -1,15 +1,14 @@
-"""Wertnetz fuer die Suche (Meilenstein 3): oeffentlicher Zustand + beide Ranges -> kontrafaktische Werte je
-Kombination fuer beide Spieler (in Pot-Einheiten), wie sie die exakte CFR+-Loesung liefert (valuedata.py).
+"""Value network for the search (Milestone 3): public state + both ranges -> counterfactual values per
+combo for both players (in pot units) as exact CFR+ solution delivers (valuedata.py).
 
-Diese Datei ist absichtlich EIGENSTAENDIG (nur numpy + torch, keine Paket-Importe), damit dieselbe Datei
-unveraendert als Trainingsskript auf Kaggle laeuft:  python valuenet.py train --data "*.npz" --out vnet.pt
-Privat: Daten sind synthetische, geloeste Kunst-Situationen; nichts davon stammt aus echten Haenden.
+This file is intentionally INDEPENDENT (only numpy + torch, no package imports), so the same file
+runs unchanged as a training script on Kaggle:  python valuenet.py train --data "*.npz" --out vnet.pt
+Private: data are synthetic, solved artificial situations; none of it comes from real hands.
 
-Eingabe (2712): Board als 52-Bit-Belegung, Strasse (3), log(Pot in BB), log(Stack in BB), log(SPR), wer zuerst
-handelt (oop), Range Spieler 0 (1326), Range Spieler 1 (1326).
-Ausgabe (2652): v0 (1326), v1 (1326). Verlust: Huber auf gueltigen Kombinationen (nicht vom Board blockiert) plus
-Strafe auf die Nullsummen-Verletzung r0.v0 + r1.v1 (muss 0 sein). Beim Vorhersagen wird die Nullsumme exakt
-hergestellt (haelftige Korrektur beider Seiten, wie in ReBeL).
+Input (2712): Board as 52-bit encoding, street (3), log(pot in BB), log(stack in BB), log(SPR), to act first (oop), range player 0 (1326), range player 1 (1326).
+Output (2652): v0 (1326), v1 (1326). Loss: Huber on valid combos (not blocked by board) plus
+penalty on zero-sum violation r0.v0 + r1.v1 (must be 0). Prediction enforces zero-sum exactly
+(half correction on both sides, like in ReBeL).
 """
 
 from __future__ import annotations
@@ -35,12 +34,12 @@ N_COMBOS = 1326
 N_IN = 52 + 3 + 4 + 2 * N_COMBOS
 N_OUT = 2 * N_COMBOS
 
-# Kombinationen in derselben Reihenfolge wie ranges.COMBOS: alle Paare (a, b) mit a < b ueber 52 Karten
+# Combinations in the same order as ranges.COMBOS: all pairs (a, b) with a < b over 52 cards
 _COMBOS = np.array([(a, b) for a in range(52) for b in range(a + 1, 52)], np.int64)
 
 
 def combo_mask(board: np.ndarray) -> np.ndarray:
-    """[n, 1326] True fuer Kombinationen ohne Boardkarte. board: int8[n, 5], -1 = leer."""
+    """[n, 1326] True for combos without board card. board: int8[n, 5], -1 = empty."""
     n = board.shape[0]
     blocked = np.zeros((n, 52), bool)
     for k in range(board.shape[1]):
@@ -67,7 +66,7 @@ def features(board: np.ndarray, pot_bb: np.ndarray, stack_bb: np.ndarray, oop: n
     x[:, 56] = np.log(stack) / 4.0
     x[:, 57] = np.log(stack / pot) / 3.0
     x[:, 58] = oop.astype(np.float32)
-    x[:, 59:59 + N_COMBOS] = r0.astype(np.float32) * 100.0            # Gewichte ~1/1326 -> Groessenordnung 0.1
+    x[:, 59:59 + N_COMBOS] = r0.astype(np.float32) * 100.0            #Weights ~1/1326 -> order of magnitude 0.1
     x[:, 59 + N_COMBOS:] = r1.astype(np.float32) * 100.0
     return x
 
@@ -89,8 +88,8 @@ class ValueMLP(nn.Module if nn else object):
 
 def zero_sum_fix(v0: np.ndarray, v1: np.ndarray, r0: np.ndarray, r1: np.ndarray,
                  mask: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
-    """Nullsumme exakt herstellen: Fehler e = r0.v0 + r1.v1 haelftig auf beide Seiten verteilen (ReBeL), nur auf
-    den gueltigen Kombinationen (mask), so skaliert, dass r.v sich je Seite um genau e/2 aendert."""
+    """Enforce exact zero-sum: error e = r0.v0 + r1.v1 distributed evenly on both sides (ReBeL), only on
+    the valid combinations (mask), scaled so that r.v changes by exactly e/2 on each side."""
     if mask is None:
         mask = np.ones_like(v0, dtype=bool)
     m = mask.astype(np.float64)
@@ -101,13 +100,13 @@ def zero_sum_fix(v0: np.ndarray, v1: np.ndarray, r0: np.ndarray, r1: np.ndarray,
 
 
 class ValueNet:
-    """Geladenes Netz fuer die Suche: predict(...) liefert v0, v1 in Pot-Einheiten (Nullsumme exakt)."""
+    """Loaded network for search: predict(...) returns v0, v1 in pot units (exact zero-sum)."""
 
     def __init__(self, model, device: str = "cpu", threads: int | None = 2):
         self.model = model.to(device).eval()
         self.device = device
         if threads and device == "cpu":
-            # kleine Matrizen: mehr Faeden kosten nur Start-Overhead und streiten mit dem numba-Kernel um die Kerne
+            #small matrices: more threads only cost start overhead and compete with the numba kernel for cores
             torch.set_num_threads(int(threads))
 
     @classmethod
@@ -126,7 +125,7 @@ class ValueNet:
         return zero_sum_fix(v0, v1, r0.astype(np.float64), r1.astype(np.float64), mask)
 
 
-# ---------------------------------------------------------------- Training (lokal klein, auf Kaggle gross)
+# ---------------------------------------------------------------- Training (small locally, large on Kaggle)
 
 def load_shards(paths: list[str]) -> dict:
     parts = [np.load(p, allow_pickle=False) for p in paths]
@@ -143,9 +142,9 @@ def train(paths: list[str], out: Path | str, epochs: int = 10, batch: int = 512,
     torch.manual_seed(seed)
     d = load_shards(paths)
     n = d["board"].shape[0]
-    # Speicher (500k Situationen auf Kaggle, ~29 GB RAM): Eingaben und Ziele als float16 halten (x 2,7 GB, y 2,6 GB),
-    # Maske einmal als bool (0,7 GB), Ranges NICHT getrennt speichern (stecken in x als r*100). Je Batch wird auf
-    # dem Geraet nach float32 gewandelt. Vorher: alles float32 und doppelt -> ~27 GB, zu viel.
+    #Memory (500k situations on Kaggle, ~29 GB RAM): keep inputs and targets as float16 (x 2.7 GB, y 2.6 GB),
+    #Mask as bool once (0.7 GB), do NOT store ranges separately (embedded in x as r*100). Each batch on
+    #the device is converted to float32. Before: everything float32 and doubled -> ~27 GB, too much.
     x = np.empty((n, N_IN), np.float16)
     for i in range(0, n, 20000):
         j = slice(i, min(n, i + 20000))
@@ -209,18 +208,18 @@ def train(paths: list[str], out: Path | str, epochs: int = 10, batch: int = 512,
         mae, zsv = evaluate(va)
         hist.append({"epoch": ep + 1, "train_loss": run / max(len(tr), 1), "val_mae_pot": mae, "val_zero_sum": zsv,
                      "secs": time.time() - t0})
-        log(f"Epoche {ep + 1}/{epochs}: Verlust {hist[-1]['train_loss']:.4f}, Hold-out MAE {mae:.4f} Pot, "
-            f"Nullsumme {zsv:.4f}, {time.time() - t0:.0f}s")
+        log(f"Epoch {ep + 1}/{epochs}: loss {hist[-1]['train_loss']:.4f}, hold-out MAE {mae:.4f} pot, "
+            f"zero-sum value {zsv:.4f}, {time.time() - t0:.0f}s")
         torch.save({"version": VALUENET_VERSION, "state": model.state_dict(), "width": width, "depth": depth,
                     "n_train": int(len(tr)), "hist": hist, "shards": shards_meta}, out)
     return {"n": n, "val_mae_pot": hist[-1]["val_mae_pot"], "hist": hist, "out": str(out), "device": device}
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Wertnetz trainieren (lokal oder Kaggle)")
+    ap = argparse.ArgumentParser(description='Train value network (locally or on Kaggle)')
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("train")
-    p.add_argument("--data", required=True, help="Glob auf .npz-Scherben, z. B. '/kaggle/input/lynx-vdata/river-*.npz'")
+    p.add_argument("--data", required=True, help="Glob for .npz shards, e.g. '/kaggle/input/lynx-vdata/river-*.npz'")
     p.add_argument("--out", default="vnet.pt")
     p.add_argument("--epochs", type=int, default=10)
     p.add_argument("--batch", type=int, default=512)
@@ -231,7 +230,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     paths = sorted(glob.glob(a.data))
     if not paths:
-        raise SystemExit(f"keine Dateien fuer {a.data}")
+        raise SystemExit(f"No files for {a.data}")
     res = train(paths, a.out, a.epochs, a.batch, a.lr, a.width, a.depth, resume=a.resume)
     print(json.dumps({k: v for k, v in res.items() if k != "hist"}, ensure_ascii=False))
 

@@ -1,9 +1,9 @@
-"""Server-Benchmark (1.11., Stufe 2): Suche mit Turn-Netz (leaf=4) und greedy Preflop gegen zwei Gegner,
-Heads-up Cash duplicate, 40 und 100 BB, 16 Prozesse. Vorbild cloud/bench_humanopp_srv.py (31.10.).
-Gegner: Menschen-Bot mit Folds (nn?run=human-1@1&fold=human-fold-1) und lynx-4@300 greedy (neue Referenz).
-Varianten: siehe VARIANTS. Aufruf auf dem Server:
+"""Server benchmark (1.11., level 2): Search with turn network (leaf=4) and greedy preflop against two opponents,
+heads-up cash duplicate, 40 and 100 BB, 16 processes. Modelled after cloud/bench_humanopp_srv.py (31.10.).
+Opponents: human bot with folds (nn?run=human-1@1&fold=human-fold-1) and lynx-4@300 greedy (new reference).
+Variants: see VARIANTS. Call on the server:
   uv run --quiet --project /opt/lynx/collector python /opt/lynx/cloud/bench_leaf4_srv.py 16 > /opt/lynx/data/bench/leaf4_srv.txt
-Braucht auf dem Server: data/valuenet/vnet-river-1.pt und vnet-2.pt, data/rl/lynx-4/ckpt_000300.pt, lynx-5t/ckpt_000001.pt,
+Requires on the server: data/valuenet/vnet-river-1.pt and vnet-2.pt, data/rl/lynx-4/ckpt_000300.pt, lynx-5t/ckpt_000001.pt,
 data/rl/human-1/ckpt_000001.pt, data/humans/human-fold-1.npz, data/league/players.json (cloud/upload-teacher-data.sh + vnet-2)."""
 import os
 import sys
@@ -23,8 +23,8 @@ VARIANTS = {
 }
 OPPONENTS = {"mensch": "nn?run=human-1@1&fold=human-fold-1", "lynx4g": "nn?run=lynx-4@300&greedy=1"}
 STACKS = (40, 100)
-BLOCKS = 32         # Seed-Bloecke je (Variante, Gegner, Stack); 32 x 120 = 3840 Haende je Zelle
-HANDS = 60          # Blaetter je Block (duplicate -> 120 Haende)
+BLOCKS = 32         # Seed blocks per (variant, opponent, stack); 32 x 120 = 3840 hands per cell
+HANDS = 60          # Leaves per block (duplicate -> 120 hands)
 
 
 def task(args):
@@ -45,20 +45,20 @@ def summary(acc, label):
         m = sum(xs) / len(xs)
         sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(len(xs) - 1, 1))
         half = 2.04 * sd / math.sqrt(len(xs)) if len(xs) > 1 else float("nan")
-        print(f"  {name:12} vs {oname:7} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] ueber {len(xs) * 2 * HANDS} Haende", flush=True)
+        print(f"  {name:12} vs {oname:7} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] over {len(xs) * 2 * HANDS} hands", flush=True)
 
 
 if __name__ == "__main__":
     jobs = [(n, s, on, os_, st, b) for b in range(BLOCKS) for on, os_ in OPPONENTS.items() for st in STACKS
             for n, s in VARIANTS.items()]
-    print(f"=== leaf=4 / greedy-Suche: {len(jobs)} Matches x {2 * HANDS} Haende ===", time.strftime("%H:%M"), flush=True)
+    print(f"=== leaf=4 / greedy search: {len(jobs)} matches x {2 * HANDS} hands ===", time.strftime("%H:%M"), flush=True)
     acc = {}
     per_block = len(VARIANTS) * len(OPPONENTS) * len(STACKS)
     with ProcessPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 4) as ex:
         for k, (name, oname, stack, block, bb100, hands, secs) in enumerate(ex.map(task, jobs)):
             acc.setdefault((name, oname, stack), []).append(bb100)
-            print(f"  {name:12} vs {oname:7} {stack:3d} BB Block {block:2d}: {bb100:+7.1f} bb/100 ({hands} Haende, {secs:.0f}s)", flush=True)
+            print(f"  {name:12} vs {oname:7} {stack:3d} BB Block {block:2d}: {bb100:+7.1f} bb/100 ({hands} hands, {secs:.0f}s)", flush=True)
             if (k + 1) % (per_block * 4) == 0:
-                summary(acc, f"Zwischenstand nach Block {block}")
-    summary(acc, "ERGEBNIS (Mittel der Bloecke, 95 %-Intervall ueber Bloecke)")
-    print("ALLE MESSUNGEN FERTIG", time.strftime("%H:%M"), flush=True)
+                summary(acc, f"Interim after block {block}")
+    summary(acc, 'RESULT (average of blocks, 95% interval over blocks)')
+    print('ALL MEASUREMENTS COMPLETE', time.strftime("%H:%M"), flush=True)

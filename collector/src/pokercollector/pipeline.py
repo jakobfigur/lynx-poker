@@ -1,15 +1,15 @@
-"""Verbindet Quelle -> Analyse -> Stabilisierung -> Journal -> Rekonstruktion.
+""" Connects source -> analysis -> stabilization -> journal -> reconstruction.
 
-Offline (Video/Bilder): jedes `step`-te Bild wird analysiert, das Originalvideo wird
-per Pfad + SHA-256 referenziert und nicht kopiert.
+Offline (video/images): every `step`-th image is analyzed, the original video is
+referenced by path + SHA-256 and not copied.
 
-Live (Fenster): Aufnahme hat Vorrang. Frames gehen sofort in den Recorder; die
-Analyse laeuft in einem eigenen Thread mit begrenzter Queue. Ist die Analyse zu
-langsam, werden Analyse-Frames ausgelassen (gezaehlt), nie Videoframes. Die Queue haelt nur das
-neueste Bild: ein aelteres, noch nicht analysiertes wird verworfen, damit die Analyse (und damit der
-Vorschlag) nie Sekunden hinter dem Bildschirm herlaeuft.
-Sitzung startet automatisch, sobald der Tisch stabil erkannt ist, und endet, wenn
-er laenger nicht sichtbar ist.
+Live (window): capture has priority. Frames go immediately to the recorder; the
+analysis runs in its own thread with limited queue. If analysis is too slow,
+analysis frames are dropped (counted), never video frames. The queue holds only the
+latest image: an older, not yet analyzed frame is discarded to keep analysis (and thus the
+suggestion) never seconds behind the screen.
+Session starts automatically once the table is stably detected, and ends if
+it is not visible for longer.
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ class RunStats:
     frames_skipped_analysis: int = 0
     frames_source_lost: int = 0
     analysis_errors: int = 0
-    event_errors: int = 0          # Fehler in Rekonstruktion/Bot/Leiste (Analyse laeuft weiter)
+    event_errors: int = 0          # Errors in reconstruction/bot/bar (analysis continues)
     events: int = 0
     analysis_ms: list[float] = field(default_factory=list)
 
@@ -103,7 +103,7 @@ def run_offline(source, sessions_dir: Path, profile: Profile, analyzer: FrameAna
                 dt = fr.t_mono - last_t
                 expected_dt = dt if expected_dt is None else min(expected_dt, dt)
                 if expected_dt and dt > max(1.0, 4 * expected_dt):
-                    session.gap(last_t, fr.t_mono, f"Zeitsprung {dt:.2f}s zwischen analysierten Frames")
+                    session.gap(last_t, fr.t_mono, f"Time jump {dt:.2f}s between analyzed frames")
             last_t = fr.t_mono
             t0 = time.perf_counter()
             try:
@@ -111,7 +111,7 @@ def run_offline(source, sessions_dir: Path, profile: Profile, analyzer: FrameAna
             except Exception as e:
                 stats.analysis_errors += 1
                 if stats.analysis_errors <= 20:
-                    session.error(f"Analysefehler: {type(e).__name__}: {e}", frame=fr.index)
+                    session.error(f"Analysis error: {type(e).__name__}: {e}", frame=fr.index)
                 continue
             stats.analysis_ms.append((time.perf_counter() - t0) * 1000)
             stats.frames_analyzed += 1
@@ -131,7 +131,7 @@ def run_offline(source, sessions_dir: Path, profile: Profile, analyzer: FrameAna
 
 
 class LiveRunner:
-    """Automatische Sitzungen fuer ein Live-Fenster."""
+    """ Automatic sessions for a live window."""
 
     def __init__(self, source, sessions_dir: Path, profile: Profile, analyzer: FrameAnalyzer,
                  fps: float, detect_frames: int = 5, stop_after_s: float = 20.0, segment_s: float = 120.0,
@@ -147,7 +147,7 @@ class LiveRunner:
         self.record_video = record_video
         self.on_status = on_status or (lambda s, d: None)
         self.on_event = on_event
-        self.status = "wartet"
+        self.status = 'waiting'
 
     def _set_status(self, s: str, detail: str = ""):
         if s != self.status:
@@ -158,7 +158,7 @@ class LiveRunner:
         detected = 0
         session: Session | None = None
         recorder: SegmentRecorder | None = None
-        q: queue.Queue = queue.Queue(maxsize=1)      # nur das neueste Bild (geringste Verzoegerung)
+        q: queue.Queue = queue.Queue(maxsize=1)      # only the latest image (lowest delay)
         stats = RunStats()
         stab = Stabilizer()
         worker = None
@@ -175,29 +175,29 @@ class LiveRunner:
                 t0 = time.perf_counter()
                 try:
                     snap = self.analyzer.analyze(fr.image, fr.index, fr.t_mono, fr.t_wall)
-                except Exception as e:          # ein schlechtes Bild darf die Aufnahme nie beenden
+                except Exception as e:          # a bad image must never end the capture
                     stats.analysis_errors += 1
                     if stats.analysis_errors <= 20:
-                        session.error(f"Analysefehler: {type(e).__name__}: {e}", frame=fr.index)
+                        session.error(f"Analysis error: {type(e).__name__}: {e}", frame=fr.index)
                     continue
                 stats.analysis_ms.append((time.perf_counter() - t0) * 1000)
                 stats.frames_analyzed += 1
                 try:
                     _log_events(session, stab, snap, fr.image, seg, stats, self.on_event)
-                except Exception as e:          # Rekonstruktion, Bot oder Leiste duerfen die Analyse nie beenden
+                except Exception as e:          # Reconstruction, bot or bar must never end the analysis
                     stats.event_errors += 1
                     if stats.event_errors <= 20:
                         try:
-                            session.error(f"Ereignisfehler: {type(e).__name__}: {e}", frame=fr.index)
+                            session.error(f"Event error: {type(e).__name__}: {e}", frame=fr.index)
                         except Exception:
                             pass
-                    self._set_status("Analyse verzoegert", f"Fehler {type(e).__name__}: {e}"[:90])
+                    self._set_status('Analysis delayed', f"error {type(e).__name__}: {e}"[:90])
                     continue
                 lag = time.time() - fr.t_wall if fr.t_wall else 0.0
-                self._set_status("Aufnahme" if lag < 1.5 else "Analyse verzoegert",
-                                 f"Bildalter {lag:.1f} s, Analyse {stats.analysis_ms[-1]:.0f} ms, "
-                                 f"uebersprungen {stats.frames_skipped_analysis}"
-                                 + (f", Fehler {stats.event_errors}" if stats.event_errors else ""))
+                self._set_status("Aufnahme" if lag < 1.5 else 'Analysis delayed',
+                                 f"Frame age {lag:.1f} s, analysis {stats.analysis_ms[-1]:.0f} ms, "
+                                 f"skipped {stats.frames_skipped_analysis}"
+                                 + (f", errors {stats.event_errors}" if stats.event_errors else ""))
 
         def end_session(reason: str):
             nonlocal session, recorder, worker, stab, stats
@@ -216,7 +216,7 @@ class LiveRunner:
             from .journal import build_index, write_manifest
             build_index(session.root)
             write_manifest(session.root)
-            self._set_status("wartet", f"Sitzung beendet ({reason}): {session.root}")
+            self._set_status('waiting', f"session ended ({reason}): {session.root}")
             session, recorder, worker = None, None, None
             stab, stats = Stabilizer(), RunStats()
 
@@ -232,17 +232,17 @@ class LiveRunner:
                             session.error(fr.note, t=fr.t_mono)
                         if fr.t_mono - lost_since > self.stop_after_s:
                             session.gap(lost_since, fr.t_mono, fr.note)
-                            end_session("Quelle verloren")
+                            end_session('Source lost')
                             lost_since = None
-                    self._set_status("Quelle verloren", fr.note)
+                    self._set_status('Source lost', fr.note)
                     detected = 0
                     continue
                 if session is None:
-                    # Vorpruefung nur im RAM: erst nach stabiler Erkennung wird aufgezeichnet
+                    # Preliminary check only in RAM: recording starts only after stable detection
                     lay = detect_layout(fr.image, self.profile)
                     ok = lay.found and len(lay.seats) >= 2
                     detected = detected + 1 if ok else 0
-                    self._set_status("wartet" if not ok else "Tisch erkannt", f"{detected}/{self.detect_frames}")
+                    self._set_status('waiting' if not ok else 'table detected', f"{detected}/{self.detect_frames}")
                     if detected >= self.detect_frames:
                         session = Session.create(self.sessions_dir, self.source.describe(), self.profile.id,
                                                  ANALYZER_VERSION, {"mode": "live"})
@@ -257,20 +257,20 @@ class LiveRunner:
                     else:
                         continue
                 if lost_since is not None:
-                    session.gap(lost_since, fr.t_mono, "Quelle verloren")
+                    session.gap(lost_since, fr.t_mono, 'Source lost')
                     lost_since = None
                 seg = None
                 if recorder:
                     try:
                         seg, _ = recorder.write(fr)
-                    except Exception as e:  # Speicher voll, Encoderfehler ...
-                        session.error(f"Aufnahmefehler: {e}", t=fr.t_mono)
+                    except Exception as e:  # Memory full, encoder error ...
+                        session.error(f"Recording error: {e}", t=fr.t_mono)
                         recorder = None
                 try:
                     q.put_nowait((fr, seg))
                 except queue.Full:
                     try:
-                        q.get_nowait()                  # aelteres Bild verwerfen, neuestes analysieren
+                        q.get_nowait()                  # discard older image, analyze latest
                     except queue.Empty:
                         pass
                     stats.frames_skipped_analysis += 1
@@ -278,16 +278,16 @@ class LiveRunner:
                         q.put_nowait((fr, seg))
                     except queue.Full:
                         pass
-                # Tisch noch sichtbar? Guenstige Pruefung ueber den Filz
+                # Table still visible? Favorable check over the felt
                 lay = detect_layout(fr.image, self.profile) if fr.index % max(1, int(self.fps)) == 0 else None
                 if lay is not None:
                     if lay.found:
                         last_seen_t = fr.t_mono
                     elif fr.t_mono - last_seen_t > self.stop_after_s:
-                        session.gap(last_seen_t, fr.t_mono, "Tisch nicht mehr sichtbar")
-                        end_session("Tisch nicht mehr sichtbar")
+                        session.gap(last_seen_t, fr.t_mono, 'table no longer visible')
+                        end_session('table no longer visible')
                         detected = 0
         except KeyboardInterrupt:
             pass
         finally:
-            end_session("beendet")
+            end_session('ended')

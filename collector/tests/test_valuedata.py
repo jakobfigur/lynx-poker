@@ -1,4 +1,4 @@
-"""Wertnetz-Daten (Meilenstein 3): Format, Reproduzierbarkeit, Nullsumme."""
+""" value net data (milestone 3): format, reproducibility, zero sum."""
 import numpy as np
 
 from pokercollector.ai.valuedata import generate, load, sample_ranges, sample_state, solve_sample
@@ -21,7 +21,7 @@ def test_solve_sample_reproduzierbar_und_nullsumme():
     b = solve_sample(11, "river", 40)
     assert np.array_equal(a["v0"], b["v0"]) and np.array_equal(a["board"], b["board"])
     r0, r1 = a["r0"].astype(float), a["r1"].astype(float)
-    assert abs(float(r0 @ a["v0"].astype(float) + r1 @ a["v1"].astype(float))) < 0.02      # Pot-Einheiten
+    assert abs(float(r0 @ a["v0"].astype(float) + r1 @ a["v1"].astype(float))) < 0.02      # pot units
 
 
 def test_generate_schreibt_scherbe(tmp_path):
@@ -33,8 +33,8 @@ def test_generate_schreibt_scherbe(tmp_path):
 
 
 def test_river_leaf_zeilen_aus_turnsuche():
-    """river-leaf: Turn-Baum loesen, Ranges an River-Anfaengen auslesen, exakt loesen. Zeilen haben das normale
-    Format, Ranges sind normiert und frei von Boardkarten, die Werte sind (bis auf Konvergenz) nullsummig."""
+    """ river-leaf: solve turn tree, read ranges at river starts, solve exactly. Rows have the normal
+    format, ranges are normalized and free of board cards, the values are (except for convergence) zero sum."""
     import numpy as np
     from pokercollector.ai.husearch import average_reaches, build_tree
     from pokercollector.ai.valuedata import sample_ranges, sample_state, solve_leaf_samples
@@ -50,7 +50,7 @@ def test_river_leaf_zeilen_aus_turnsuche():
         zs = float((r["r0"].astype(float) * r["v0"].astype(float)).sum() + (r["r1"].astype(float) * r["v1"].astype(float)).sum())
         assert abs(zs) < 0.05
         assert r["pot_bb"] > 0 and r["stack_bb"] > 0 and r["seed"] == 7
-    # average_reaches: an der Wurzel die Start-Ranges, an Zufallskindern ohne die gefallene Karte
+    # average_reaches: at the root the start ranges, at chance children without the dealt card
     rng = np.random.default_rng(1)
     st, board, _, _ = sample_state(rng, "turn")
     r0, r1 = sample_ranges(rng, board)
@@ -66,14 +66,14 @@ def test_river_leaf_zeilen_aus_turnsuche():
 
 
 def test_turn_leaf_zeilen_aus_flopsuche():
-    """turn-leaf (Stufe 2): Flop-Baum mit gezogenen Karten loesen, Ranges an Turn-Anfaengen auslesen, Turn-Teilbaum
-    mit dem River-Wertnetz als Blatt loesen. Zeilen haben 4 Boardkarten, normierte Ranges, Werte ~nullsummig."""
+    """turn-leaf (level 2): Solve flop tree with drawn cards, read ranges at turn starts, solve turn subtree
+    with the river value network as leaf. Rows have 4 board cards, normalized ranges, values approximately zero-sum."""
     import numpy as np
     import pytest
     from pokercollector.ai.valuedata import data_dir, solve_turn_leaf_samples
     from pokercollector.ai.valuenet import combo_mask
     if not (data_dir() / "vnet-river-1.pt").exists():
-        pytest.skip("kein River-Wertnetz vnet-river-1")
+        pytest.skip('no River value network vnet-river-1')
     rows = solve_turn_leaf_samples(seed=11, iters=20, vnet="vnet-river-1", iters_flop=6, max_per_flop=3)
     assert 1 <= len(rows) <= 3
     for r in rows:

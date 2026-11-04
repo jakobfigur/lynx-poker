@@ -19,12 +19,12 @@ def test_blind_schedule_double_and_list():
 def test_simultaneous_bust_bigger_stack_places_better():
     places = {}
     cfg = TournamentConfig(payouts=(0.5, 0.3, 0.2))
-    # 6 Spieler, zwei scheiden gleichzeitig aus, 2 bleiben -> Plaetze 3 und 4
+    # 6 players, two eliminated simultaneously, 2 remain -> places 3 and 4
     pays = _assign_places([1, 4], [0, 500, 0, 0, 900, 0], next_place=4, places=places,
                           payout_of=lambda p: cfg.payout_for_place(p, 6))
     assert places == {4: 3.0, 1: 4.0}
     assert pays[4] == pytest.approx(0.2 * 6) and pays[1] == 0
-    # Gleicher Stack -> Platz und Auszahlung geteilt
+    # same stack -> place and payout shared
     places = {}
     pays = _assign_places([1, 4], [0, 500, 0, 0, 500, 0], next_place=4, places=places,
                           payout_of=lambda p: cfg.payout_for_place(p, 6))
@@ -36,7 +36,7 @@ def test_tournament_runs_to_single_winner():
     res = play_tournament(agents, TournamentConfig(start_stack=1000), seed=3)
     assert res.finished
     assert sorted(res.places) == [1, 2, 3, 4]
-    assert sum(res.payouts) == pytest.approx(4.0)            # Preisgeld = 4 Buy-ins
+    assert sum(res.payouts) == pytest.approx(4.0)            # prize money = 4 buy-ins
     assert [e["place"] for e in res.eliminations] == sorted((e["place"] for e in res.eliminations), reverse=True)
     assert len(res.eliminations) == 3
 
@@ -58,12 +58,12 @@ def test_short_stack_pushes_or_folds():
     bot = make_agent("tag", 0)
     from pokercollector.poker import FULL_DECK
     deck = ["As", "Ah"] + [c for c in FULL_DECK if c not in ("As", "Ah")]
-    # Button 1 -> SB 2, BB 3, Platz 0 (8 BB, AA) handelt zuerst
+    # button 1 -> SB 2, BB 3, seat 0 (8 BB, AA) acts first
     h2 = Hand([160, 3000, 3000, 3000], button=1, small_blind=10, big_blind=20, deck=deck)
     o = h2.observation(h2.to_act)
     assert h2.to_act == 0 and o.stack_bb == 8
     a = bot.act(o)
-    assert a.kind == "raise" and a.amount == 160            # All-in, kein Mini-Raise
+    assert a.kind == "raise" and a.amount == 160            # all-in, no mini-raise
     deck = ["7c", "2d"] + [c for c in FULL_DECK if c not in ("7c", "2d")]
     h3 = Hand([160, 3000, 3000, 3000], button=1, small_blind=10, big_blind=20, deck=deck)
     assert bot.act(h3.observation(0)).kind == "fold"

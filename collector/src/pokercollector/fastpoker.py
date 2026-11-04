@@ -1,13 +1,13 @@
-"""Schnelle Handbewertung und Monte-Carlo-Equity (numba, Maschinencode).
+"""Fast hand evaluation and Monte-Carlo equity (numba, machine code).
 
-Profil vom 26.10.2026: 95 % der Simulationszeit steckten in mc_equity -> evaluate (reines Python,
-~70 us je Bewertung). Hier dieselbe Logik auf ganzen Zahlen, kompiliert: ~100x schneller.
+Profile from 26.10.2026: 95% of simulation time was in mc_equity -> evaluate (pure Python,
+~70 µs per evaluation). Here the same logic implemented on integers, compiled: ~100x faster.
 
-Karten als Zahl 0..51 = Rang * 4 + Farbe (Reihenfolge wie poker.FULL_DECK).
-Bewertung als eine Zahl: Kategorie << 20 | bis zu 5 Raenge je 4 Bit. Die Rangfolge ist identisch
-mit poker.evaluate (Test: tests/test_fastpoker.py vergleicht beide auf Zufallshaenden).
+Cards as number 0..51 = rank * 4 + suit (order like poker.FULL_DECK).
+Evaluation as a single number: category << 20 | up to 5 ranks each 4 bits. The ranking order is identical
+with poker.evaluate (Test: tests/test_fastpoker.py compares both on random hands).
 
-Ohne numba (z. B. nicht installiert) faellt alles auf die Python-Version zurueck.
+Without numba (e.g., not installed) it falls back to the Python version.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ CARD_INDEX = {c: i for i, c in enumerate(FULL_DECK)}
 try:
     from numba import njit, prange
     HAVE_NUMBA = True
-except ImportError:          # pragma: no cover - Rueckfall
+except ImportError:          # pragma: no cover - fallback
     HAVE_NUMBA = False
     prange = range
 
@@ -44,7 +44,7 @@ def _straight_high(mask):
 
 @njit(cache=True)
 def _top(mask, k):
-    """Die k hoechsten gesetzten Raenge, je 4 Bit, absteigend gepackt (linksbuendig in 5 Stellen)."""
+    """The k highest set ranks, each 4 bits, packed descending (left-aligned in 5 slots)."""
     v = 0
     got = 0
     r = 12
@@ -126,7 +126,7 @@ def eval_cards(cards, n):
 
 @njit(cache=True)
 def _mc(hole, board, n_board, opponents, iterations, seed):
-    """Summe der Anteile, Quadratsumme, Siege, Splits gegen `opponents` Zufallshaende."""
+    """Sum of shares, sum of squares, wins, splits versus `opponents` random hands."""
     np.random.seed(seed)
     known = np.zeros(52, np.bool_)
     known[hole[0]] = True
@@ -154,7 +154,7 @@ def _mc(hole, board, n_board, opponents, iterations, seed):
     wins = 0
     ties = 0
     for _ in range(iterations):
-        for j in range(draws):                      # teilweises Mischen (Fisher-Yates)
+        for j in range(draws):                      #partial shuffling (Fisher-Yates)
             x = j + np.random.randint(nd - j)
             tmp = deck[j]
             deck[j] = deck[x]
@@ -197,6 +197,6 @@ def evaluate_fast(cards: list[str]) -> int:
 
 def mc_stats(hole: list[str], board: list[str], opponents: int, iterations: int, seed: int,
              dead: list[str] | None = None) -> tuple[float, float, int, int]:
-    """(Summe, Quadratsumme, Siege, Splits). dead: zusaetzlich bekannte Karten (selten, Python-Weg)."""
+    """(Sum, sum of squares, wins, splits). dead: additionally known cards (rare, Python path)."""
     b = to_ints(board) if board else np.zeros(0, np.int64)
     return _mc(to_ints(hole), b, len(board), max(1, min(opponents, 9)), iterations, seed & 0x7FFFFFFF)

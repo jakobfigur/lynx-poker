@@ -1,17 +1,17 @@
-"""Import des PokerTH-Handverlaufs als unabhaengige Referenz.
+""" Import of the PokerTH hand history as an independent reference.
 
-Wird NIE von der visuellen Erfassung gelesen, nur von `compare`.
+NEVER read by visual capture, only by `compare`.
 
-Bekanntes Format (PokerTH-Desktop-Log, SQLite, '.pdb'):
+Known format (PokerTH desktop log, SQLite, '.pdb'):
   Game(UniqueGameID, GameID, ...), Player(UniqueGameID, Seat, Player),
   Hand(UniqueGameID, HandID, Dealer_Seat, Sb_Amount, Sb_Seat, Bb_Amount, Bb_Seat,
        Seat_<n>_Cash, Seat_<n>_Card_1, Seat_<n>_Card_2, ..., BoardCard_1..5),
   Action(ActionID, UniqueGameID, HandID, BeRo, Player, Action, Amount)
-Kartencodierung angenommen 0..51 = Rang 2..A je Farbe in Reihenfolge d, h, s, c.
+Card encoding assumed 0..51 = rank 2..A per suit in order d, h, s, c.
 
-ACHTUNG: Schema und Kartencodierung sind aus der PokerTH-Quelle uebernommen und
-NICHT an einem echten Export des Web-Clients geprueft. `inspect` zeigt das echte
-Schema; bei Abweichung hier die Zuordnung anpassen.
+WARNING: Schema and card encoding taken from the PokerTH source and
+NOT verified against a real export of the web client. `inspect` shows the real
+schema; adjust mapping here if there are deviations.
 """
 
 from __future__ import annotations
@@ -104,7 +104,7 @@ def _find(schema: dict[str, list[str]], name: str) -> str:
     for t in schema:
         if t.lower() == name.lower():
             return t
-    raise ReferenceFormatError(f"Tabelle '{name}' fehlt. Vorhanden: {schema}")
+    raise ReferenceFormatError(f"Table '{name}' missing. Present: {schema}")
 
 
 def _col(cols: list[str], *names: str) -> str | None:
@@ -120,7 +120,7 @@ def load_pokerth_log(path: Path) -> list[RefHand]:
     try:
         schema = inspect(path)
     except sqlite3.DatabaseError as e:
-        raise ReferenceFormatError(f"keine SQLite-Datei: {e}") from e
+        raise ReferenceFormatError(f"not an SQLite file: {e}") from e
     t_hand, t_action = _find(schema, "Hand"), _find(schema, "Action")
     t_player = _find(schema, "Player") if any(t.lower() == "player" for t in schema) else None
     hc, ac = schema[t_hand], schema[t_action]
@@ -176,9 +176,9 @@ def load_pokerth_log(path: Path) -> list[RefHand]:
         con.close()
 
 
-# ---- Text-Log des PokerTH-Web-Clients ("Log-File for PokerTH web ...", .txt) --------------------
-# Geprueft an einem echten Export (26.10.2026). Betraege wie im Log: 'bets $X' = Einsatz AUF X
-# (Strassensumme), 'calls $X' = zusaetzlich gezahlt, 'is all in with $X' = Strassensumme.
+# ---- Text log of the PokerTH web client ("Log-File for PokerTH web ...", .txt) --------------------
+# Verified on a real export (10/26/2026). Amounts as in the log: 'bets $X' = bet ON X
+# (street total), 'calls $X' = additionally paid, 'is all in with $X' = street total.
 
 TEXT_PARSER_VERSION = "pokerth-web-text-1"
 _HAND_RE = re.compile(r"^-+ Game: (\d+) \| Hand: (\d+) -+$")
@@ -260,7 +260,7 @@ def load_pokerth_text_log(path: Path) -> list[RefHand]:
 
 
 def load_reference(path: Path) -> list[RefHand]:
-    """Erkennt das Format: SQLite (.pdb) oder Text-Log des Web-Clients."""
+    """ Recognizes the format: SQLite (.pdb) or text log of the web client."""
     path = Path(path)
     head = path.read_bytes()[:64]
     if head.startswith(b"SQLite format"):

@@ -1,19 +1,19 @@
-"""Messung gegen Slumbot (slumbot.com) - ein starker, oeffentlicher Heads-up-Bot als absoluter Massstab.
+"""Measurement against Slumbot (slumbot.com) - a strong public heads-up bot as absolute benchmark.
 
-Format bei Slumbot: Heads-up No-Limit, Cash, Blinds 50/100, beide Stacks zu Beginn jeder Hand 20000 (200 BB).
-API: POST /api/new_hand {token?} und /api/act {token, incr}. Verlauf als Text, Strassen durch '/' getrennt:
-k = check, c = call, f = fold, b<N> = Einsatz AUF N (Strassensumme, wie Action.raise_to der Engine).
-client_pos 0 = Big Blind (handelt postflop zuerst), 1 = Small Blind/Button (handelt preflop zuerst).
+Format in Slumbot: Heads-up No-Limit, Cash, Blinds 50/100, both stacks at start of each hand 20000 (200 BB).
+API: POST /api/new_hand {token?} and /api/act {token, incr}. History as text, streets separated by '/':
+k = check, c = call, f = fold, b<N> = bet TO N (street total, like Action.raise_to in engine).
+client_pos 0 = Big Blind (acts postflop first), 1 = Small Blind/Button (acts preflop first).
 
-Am Handende liefert Slumbot neben 'winnings' auch 'baseline_winnings': so viel haette Slumbot selbst auf
-unserem Platz mit denselben Karten gewonnen (Kartenglueck; Erwartung 0, Slumbot gegen sich selbst).
-winnings - baseline schwankt kaum weniger als die rohen Gewinne (Korrelation nur ~0.4-0.6, Slumbot spielt die
-Karten anders) und ist bei Glueck/Pech stark verzerrt. Besser: 'bereinigt' = All-in-EV - beta * baseline mit dem
-geschaetzten optimalen beta (Kontrollvariable) - erwartungstreu und mit dem kleinsten Fehlerbalken; das ist das
-Hauptmass. All-in-EV: bei All-in vor dem River zaehlt die Equity statt der ausgeteilten Karten.
+At hand end, Slumbot provides 'winnings' plus 'baseline_winnings': how much Slumbot itself
+would have won from our seat with the same cards (card luck; expectation 0, Slumbot vs itself).
+winnings - baseline fluctuates almost as much as raw winnings (correlation only ~0.4-0.6, Slumbot plays cards differently)
+and is heavily skewed by luck. Better: 'adjusted' = All-in EV - beta * baseline with
+estimated optimal beta (control variable) - unbiased and with smallest error bars; this is the
+main measure. All-in EV: if all-in before the river, equity counts instead of dealt cards.
 
-Jede Hand wird sofort in data/bench/slumbot/<name>.jsonl geschrieben (fortsetzbar, nichts geht verloren).
-Hinweis: Hier werden nur Haende gegen Slumbot gespielt - nichts davon beruehrt PokerTH.
+Each hand is immediately written to data/bench/slumbot/<name>.jsonl (appendable, nothing lost).
+Note: Hands here are played only against Slumbot - none of this involves PokerTH.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from .observation import Action, clamp_action
 API = "https://slumbot.com/api"
 STACK, SB, BB = 20000, 50, 100
 SLUMBOT_VERSION = "slumbot-1"
-CLIENT, BOT = 0, 1                  # unsere Platznummern in der Engine
+CLIENT, BOT = 0, 1                  # our seat numbers in the engine
 
 
 class SlumbotError(RuntimeError):
@@ -77,14 +77,14 @@ def parse_action(action: str) -> list[list[tuple[str, int | None]]]:
                 toks.append((c, None))
                 i += 1
             else:
-                raise ValueError(f"unbekanntes Zeichen {c!r} in {action!r}")
+                raise ValueError(f"unknown character {c!r} in {action!r}")
         streets.append(toks)
     return streets
 
 
 def replay(action: str, client_pos: int, hole: list[str], board: list[str],
            bot_hole: list[str] | None = None, seed: int = 0) -> Hand:
-    """Baut den Spielstand in der Engine nach. Unbekannte Karten (Gegner, kommende Boardkarten) zufaellig."""
+    """Reconstructs game state in engine. Unknown cards (opponents, upcoming board cards) random."""
     known = set(hole) | set(board) | set(bot_hole or [])
     rest = [c for c in FULL_DECK if c not in known]
     random.Random(seed).shuffle(rest)
@@ -95,7 +95,7 @@ def replay(action: str, client_pos: int, hole: list[str], board: list[str],
     for k, c in enumerate(board):
         deck[20 + k] = c
     deck = [c if c is not None else next(it) for c in deck]
-    button = CLIENT if client_pos == 1 else BOT          # heads-up: Button = Small Blind
+    button = CLIENT if client_pos == 1 else BOT          # heads-up: button = small blind
     h = Hand([STACK, STACK], button, SB, BB, deck=deck, hand_id=f"slumbot|{seed}")
     for toks in parse_action(action):
         for kind, amt in toks:
@@ -123,7 +123,7 @@ def to_incr(obs, action: Action) -> str:
 
 
 def _equity(h1: list[str], h2: list[str], board: list[str], samples: int = 4000, seed: int = 0) -> float:
-    """Equity von h1 gegen h2 (Split zaehlt halb). Exakt bis 2 fehlende Karten, sonst Monte Carlo."""
+    """Equity of h1 against h2 (split counts half). Exact to 2 missing cards, otherwise Monte Carlo."""
     from ..fastpoker import evaluate_fast
     rest = [c for c in FULL_DECK if c not in set(h1) | set(h2) | set(board)]
     need = 5 - len(board)
@@ -142,7 +142,7 @@ def _equity(h1: list[str], h2: list[str], board: list[str], samples: int = 4000,
 
 
 def allin_ev(h: Hand, hole: list[str], bot_hole: list[str]) -> float | None:
-    """Netto (Chips) fuer uns nach All-in-EV, wenn vor dem River all-in gegangen und aufgedeckt wurde."""
+    """Net (chips) for us after all-in EV, if all-in occurred before the river and cards were shown."""
     rec = h.record
     if rec is None or not rec.went_to_showdown or not any(h.allin):
         return None
@@ -163,7 +163,7 @@ def play_hand(agent, token: str | None, seed: int) -> dict:
     while "winnings" not in r:
         h = replay(r["action"], r["client_pos"], r["hole_cards"], r["board"], seed=seed)
         if h.done or h.to_act != CLIENT:
-            raise SlumbotError(f"Spielstand passt nicht: {r}")
+            raise SlumbotError(f"Game state does not match: {r}")
         obs = h.observation(CLIENT)
         incr = to_incr(obs, agent.act(obs))
         decisions += 1
@@ -172,7 +172,7 @@ def play_hand(agent, token: str | None, seed: int) -> dict:
     out = {"token": token, "client_pos": r["client_pos"], "hole": r["hole_cards"], "board": r["board"],
            "bot_hole": r.get("bot_hole_cards"), "action": r["action"], "winnings": r["winnings"],
            "baseline": r.get("baseline_winnings"), "decisions": decisions}
-    # Gegenprobe: Engine rechnet dasselbe Ergebnis aus (prueft die Uebersetzung)
+    #Cross-check: engine calculates the same result (checks translation)
     h = replay(r["action"], r["client_pos"], r["hole_cards"], r["board"], r.get("bot_hole_cards"), seed=seed)
     if h.done and h.record is not None:
         net = h.record.results[CLIENT].net
@@ -216,7 +216,7 @@ def summarize(hands: list[dict]) -> dict:
 
 
 def adjusted(hands: list[dict]) -> dict:
-    """All-in-EV mit dem Kartenglueck (baseline, Erwartung 0) als Kontrollvariable bereinigt."""
+    """All-in EV adjusted with card luck (baseline, expectation 0) as control variable."""
     pairs = [(h["allin_ev"] if h.get("allin_ev") is not None else h["winnings"], h["baseline"])
              for h in hands if h.get("baseline") is not None]
     if len(pairs) < 3:
@@ -233,7 +233,7 @@ def adjusted(hands: list[dict]) -> dict:
 
 
 def run(spec: str, name: str, hands: int, workers: int = 4, progress=None) -> dict:
-    """Spielt bis zu `hands` weitere Haende mit `workers` parallelen Slumbot-Sitzungen."""
+    """Play up to `hands` more hands with `workers` parallel Slumbot sessions."""
     d = results_dir()
     d.mkdir(parents=True, exist_ok=True)
     path = d / f"{name}.jsonl"
@@ -252,13 +252,13 @@ def run(spec: str, name: str, hands: int, workers: int = 4, progress=None) -> di
                 res = play_hand(agent, token, seed=(done0 + i * 100_003 + k) & 0x7FFFFFFF)
             except (SlumbotError, ValueError) as e:
                 errors += 1
-                token = None                     # neue Sitzung
+                token = None                     # new session
                 if errors > 20:
                     raise
-                print(f"  Sitzung {i}: {e} - neue Sitzung", flush=True)
+                print(f"  Session {i}: {e} - new session", flush=True)
                 continue
             token = res.pop("token")
-            res["spec"], res["t"] = spec, time.strftime("%Y-%m-%d %H:%M:%S")
+            res["spec"], res["t"] = spec, time.strftime('%Y-%m-%d %H:%M:%S')
             with lock:
                 with open(path, "a", encoding="utf-8") as f:
                     f.write(json.dumps(res) + "\n")

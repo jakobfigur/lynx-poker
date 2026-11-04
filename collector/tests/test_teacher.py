@@ -14,8 +14,8 @@ def test_lehrer_sammelt_weiche_ziele_und_schueler_lernt(tmp_path):
     d = teacher.load([out])
     assert d["x"].shape[1] == 57 and d["mask"].shape[1] == 8 and d["target"].shape[1] == 8
     assert np.allclose(d["target"].sum(1), 1.0, atol=1e-5)
-    assert np.all(d["target"][~d["mask"]] == 0)                      # Ziele nur auf erlaubten Aktionen
-    assert set(np.unique(d["street"])) <= {2, 3}                      # nur Turn/River werden gesucht
+    assert np.all(d["target"][~d["mask"]] == 0)                      # targets only on allowed actions
+    assert set(np.unique(d["street"])) <= {2, 3}                      # only turn/river are searched
     run = "test-teacher-tmp"
     try:
         res = teacher.fit("lynx-3", 300, [out], run, epochs=2, batch=16, lr=1e-3, kl_coef=0.5, holdout=0.34,

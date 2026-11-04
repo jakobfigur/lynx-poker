@@ -1,4 +1,4 @@
-"""Wertnetz (Meilenstein 3): Merkmale, Maske, Nullsummen-Korrektur, Mini-Training lernt."""
+"""Value network (milestone 3): Features, mask, zero-sum correction, mini-training learns."""
 import numpy as np
 import pytest
 
@@ -44,4 +44,4 @@ def test_mini_training_lernt_und_predict_hat_nullsumme(tmp_path):
     r = np.full((1, 1326), 1 / 1326.0)
     v0, v1 = net.predict(board, np.array([10.0]), np.array([20.0]), np.array([0]), r, r)
     assert v0.shape == (1, 1326) and abs(float((r * v0).sum() + (r * v1).sum())) < 1e-9
-    assert np.all(v0[0][~combo_mask(board)[0]] == 0)                 # blockierte Kombinationen 0
+    assert np.all(v0[0][~combo_mask(board)[0]] == 0)                 # blocked combinations 0

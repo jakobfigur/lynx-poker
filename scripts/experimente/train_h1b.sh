@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 27.10.2026 abends: pros-h1 weiter ab @600 (gleiches Rezept), Abschnitte bis 900/1200/1500.
-# Pruefstand alle 100 It praezise gegen pros-h1@600 (best.json); am Abschnittsende Aufnahmepruefung mit
-# 600 frischen Schemata gegen den aktuellen Liga-Besten (pros-h1 bzw. spaeter eingetragene pros-h1-<N>).
+#27.10.2026 evening: pros-h1 continued from @600 (same recipe), sections up to 900/1200/1500.
+#Testbench every 100 iterations precisely against pros-h1@600 (best.json); at section end entry test with
+#600 fresh schemas against the current league best (pros-h1 or later registered pros-h1-<N>).
 cd <Projektordner>
 for TARGET in 900 1200 1500; do
   DONE=$(tail -1 data/rl/pros-h1/log.jsonl 2>/dev/null | sed -E 's/.*"iteration": ([0-9]+).*/\1/')

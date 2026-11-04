@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Nachtlauf Teil 2 (27.10.2026, ab 03:40): pros-r2 sank ab It 350 auf dem Pruefstand (mix96 +20 -> +10).
-# Neuer Lauf pros-r3 ab pros-r2@350 mit halber Lernrate und staerkerer Leine. Fortsetzbar.
+#Night run part 2 (27.10.2026, from 03:40): pros-r2 declined from iteration 350 on the testbench (mix96 +20 -> +10).
+#New run pros-r3 from pros-r2@350 with half the learning rate and stronger leash. Continuable.
 cd <Projektordner>
 RUN=pros-r3
 mkdir -p data/rl/$RUN

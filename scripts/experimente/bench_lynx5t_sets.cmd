@@ -14,5 +14,5 @@ echo === lynx-4-300-g = nn?run=lynx-4@300^&greedy=1 %TIME%
 "%ROOT%tools\uv\uv.exe" run --quiet --no-sync pokercollector bench run "nn?run=lynx-4@300&greedy=1" --name lynx-4-300-g --sets hu480,mensch480,mix960
 echo === lynx-5t-s = nn?run=lynx-5t@1 %TIME%
 "%ROOT%tools\uv\uv.exe" run --quiet --no-sync pokercollector bench run "nn?run=lynx-5t@1" --name lynx-5t-s --sets hu480,mensch480,mix960
-echo PRUEFSTAND FERTIG %TIME%
+echo BENCHMARK COMPLETE %TIME%
 endlocal

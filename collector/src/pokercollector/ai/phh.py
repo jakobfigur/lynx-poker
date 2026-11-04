@@ -1,16 +1,15 @@
-"""Fremde Handhistorien im PHH-Format (Poker Hand History, Univ. Toronto) einlesen.
+"""Import foreign hand histories in PHH format (Poker Hand History, Univ. Toronto).
 
-Quelle: github.com/uoftcprg/phh-dataset (MIT). Wichtigster Teil: die 10 000 Haende von Pluribus
-gegen Profis (Brown & Sandholm 2019), 6-max, 100 BB, ALLE Karten bekannt.
+Source: github.com/uoftcprg/phh-dataset (MIT). Most important part: the 10,000 hands by Pluribus
+against pros (Brown & Sandholm 2019), 6-max, 100 BB, ALL cards known.
 
-Jede Hand wird Zug fuer Zug durch unsere Engine gespielt. Dabei entsteht fuer jede Entscheidung
-genau die Observation, die der Spieler damals hatte, und daraus Merkmale + Aktion wie beim
-Nachahmen eines Bots. Nebenbei ist das ein unabhaengiger Test der Engine: Reihenfolge der
-Spieler und Endstacks muessen mit der Datei uebereinstimmen.
+Each hand is replayed move-by-move in our engine. For each decision, the exact observation
+available to the player at the time is recreated, from which features + action are derived as in
+imitating a bot. Incidentally, this is an independent test of the engine: player order and final stacks must match the file.
 
-PHH-Konventionen: p1 = Small Blind, p2 = Big Blind, letzter Spieler = Button.
-'d dh p1 AcKd' Startkarten, 'd db 7d5h9d' Boardkarten, 'p3 f' Fold, 'p3 cc' Check/Call,
-'p3 cbr 210' Bet/Raise AUF 210 (Strasseneinsatz), 'p1 sm AcKd' Karten zeigen ('p1 sm' = muck).
+PHH conventions: p1 = small blind, p2 = big blind, last player = button.
+'d dh p1 AcKd' hole cards, 'd db 7d5h9d' board cards, 'p3 f' fold, 'p3 cc' check/call,
+'p3 cbr 210' bet/raise TO 210 (street bet), 'p1 sm AcKd' show cards ('p1 sm' = muck).
 """
 
 from __future__ import annotations
@@ -34,7 +33,7 @@ PHH_VERSION = "phh-1"
 class ReplayResult:
     ok: bool
     problem: str | None
-    samples: list[tuple]          # (spieler, x, mask, aktion, ergebnis_in_bb)
+    samples: list[tuple]          # (player, x, mask, action, result_in_bb)
 
 
 def load_phh(path: Path) -> dict:
@@ -46,8 +45,8 @@ def _split(cards: str) -> list[str]:
 
 
 def _build_deck(holes: list[list[str]], board: list[str], seed: int) -> list[str]:
-    """Kartenstapel in Engine-Reihenfolge: Platz i -> deck[2i:2i+2], Board -> deck[20:25].
-    Unbekanntes wird mit unbenutzten Karten aufgefuellt."""
+    """Deck in engine order: seat i -> deck[2i:2i+2], board -> deck[20:25].
+    Unknown cards are filled with unused cards."""
     used = {c for h in holes for c in h} | set(board)
     rest = [c for c in FULL_DECK if c not in used]
     random.Random(seed).shuffle(rest)
@@ -61,14 +60,14 @@ def _build_deck(holes: list[list[str]], board: list[str], seed: int) -> list[str
 
 
 def replay(hand: dict, hand_no: int = 0) -> ReplayResult:
-    """Spielt eine PHH-Hand in unserer Engine nach und sammelt jede Entscheidung."""
+    """Replays a PHH hand in our engine and collects every decision."""
     if hand.get("variant") != "NT":
-        return ReplayResult(False, f"Variante {hand.get('variant')} nicht unterstuetzt", [])
+        return ReplayResult(False, f"Variant {hand.get('variant')} not supported", [])
     stacks = [int(round(s)) for s in hand["starting_stacks"]]
     n = len(stacks)
     blinds = hand["blinds_or_straddles"]
     if any(a for a in hand.get("antes", [])) or any(b for b in blinds[2:]):
-        return ReplayResult(False, "Antes/Straddles nicht unterstuetzt", [])
+        return ReplayResult(False, 'Antes/Straddles not supported', [])
     sb, bb = int(blinds[0]), int(blinds[1])
     holes: list[list[str] | None] = [None] * n
     board: list[str] = []
@@ -79,23 +78,23 @@ def replay(hand: dict, hand_no: int = 0) -> ReplayResult:
         elif p[0] == "d" and p[1] == "db":
             board += _split(p[2])
     if any(h is None for h in holes):
-        return ReplayResult(False, "nicht alle Startkarten bekannt", [])
+        return ReplayResult(False, 'not all hole cards known', [])
     names = hand.get("players") or [f"p{i + 1}" for i in range(n)]
-    # Engine: SB links vom Button -> Button = letzter Platz, dann SB = Platz 0, BB = Platz 1
+    # Engine: SB to the left of Button -> button = last seat, then SB = seat 0, BB = seat 1
     h = Hand(stacks, n - 1, sb, bb, deck=_build_deck(holes, board, hand_no), hand_id=f"phh-{hand_no}",
              names=list(names))
     if n == 2:
         return ReplayResult(False, "Heads-up: Blindreihenfolge abweichend, ausgelassen", [])
-    pending = []                      # (platz, x, mask, aktion)
+    pending = []                      # (seat, x, mask, action)
     for a in hand["actions"]:
         p = a.split()
         if p[0] == "d" or p[1] == "sm":
             continue
         seat = int(p[0][1:]) - 1
         if h.done:
-            return ReplayResult(False, f"Aktion nach Handende: {a}", [])
+            return ReplayResult(False, f"Action after hand ended: {a}", [])
         if h.to_act != seat:
-            return ReplayResult(False, f"Reihenfolge: Datei {a}, Engine erwartet p{h.to_act + 1}", [])
+            return ReplayResult(False, f"Action order: file {a}, Engine expects p{h.to_act + 1}", [])
         obs = h.observation(seat)
         if p[1] == "f":
             act = Action.fold()
@@ -104,17 +103,17 @@ def replay(hand: dict, hand_no: int = 0) -> ReplayResult:
         elif p[1] == "cbr":
             act = Action.raise_to(int(round(float(p[2]))))
         else:
-            return ReplayResult(False, f"unbekannte Aktion {a}", [])
+            return ReplayResult(False, f"unknown action {a}", [])
         legal = clamp_action(obs, act)
         if legal != act and not (act.kind == "fold" and obs.can_check):
-            return ReplayResult(False, f"nicht regelkonform in unserer Engine: {a} -> {legal}", [])
+            return ReplayResult(False, f"not rule-compliant in our engine: {a} -> {legal}", [])
         pending.append((seat, features(obs), action_mask(obs), from_action(obs, legal)))
         h.apply(seat, legal)
     if not h.done:
-        return ReplayResult(False, "Hand in der Datei unvollstaendig", [])
+        return ReplayResult(False, 'Hand incomplete in file', [])
     end = [r.end_stack for r in h.record.results]
     want = hand.get("finishing_stacks")
-    # bis 1 Chip Unterschied: die Datei teilt Pots auch in halbe Chips, wir geben den ungeraden Chip weiter
+    # up to 1 chip difference: the file splits pots into half chips, we carry the odd chip forward
     if want is not None and any(abs(w - e) > 1 for w, e in zip(want, end)):
         return ReplayResult(False, f"Endstacks: Datei {want}, Engine {end}", [])
     net_bb = [(end[i] - stacks[i]) / bb for i in range(n)]
@@ -123,7 +122,7 @@ def replay(hand: dict, hand_no: int = 0) -> ReplayResult:
 
 
 def build_dataset(files: list[Path], progress=None) -> tuple[dict, dict]:
-    """Alle Dateien nachspielen. Ergebnis: Arrays wie bei der Nachahmung + Pruefbericht."""
+    """Replay all files. Result: arrays like in imitation + validation report."""
     xs, ms, acts, rs, players = [], [], [], [], []
     report = {"hands": 0, "ok": 0, "problems": {}, "examples": []}
     for k, f in enumerate(sorted(files)):
@@ -153,9 +152,9 @@ def build_dataset(files: list[Path], progress=None) -> tuple[dict, dict]:
     return data, report
 
 
-# ---- Ablage und Kennzahlen -----------------------------------------------------------------
+# ---- storage and key figures -----------------------------------------------------------------
 
-# Belohnungsskala wie im Simulator: Chip-Aenderung / Startstack (150 BB) * 10 = BB / 15
+# Reward scale like in simulator: chip change / start stack (150 BB) * 10 = BB / 15
 BB_TO_REWARD = 1 / 15
 
 
@@ -165,7 +164,7 @@ def datasets_dir() -> Path:
 
 
 def dataset_file(name: str, version: str = FEATURES_VERSION) -> Path:
-    """feat-1 heisst wie bisher '<name>.npz', neuere Versionen '<name>-<version>.npz'."""
+    """feat-1 named like before '<name>.npz', newer versions '<name>-<version>.npz'."""
     return datasets_dir() / (f"{name}.npz" if version == "feat-1" else f"{name}-{version}.npz")
 
 
@@ -181,7 +180,7 @@ def save_dataset(name: str, data: dict, report: dict, version: str = FEATURES_VE
 
 def load_dataset(name: str, players: list[str] | None = None, version: str = FEATURES_VERSION) -> dict:
     if version == "feat-3" and not dataset_file(name, version).exists():
-        # Gegnermerkmale gibt es im Datensatz nicht: feat-2 + Durchschnittswerte (wie ohne Beobachtungen)
+        #Opponent features not in dataset: feat-2 + averages (like without observations)
         from .opponents import DEFAULT_FEATURES
         data = load_dataset(name, players, "feat-2")
         data["x"] = np.concatenate([data["x"], np.tile(DEFAULT_FEATURES, (len(data["x"]), 1))], 1)
@@ -197,7 +196,7 @@ def load_dataset(name: str, players: list[str] | None = None, version: str = FEA
 
 def forward_batch(w: dict, X: np.ndarray, M: np.ndarray) -> np.ndarray:
     na = w["bp"].shape[0]
-    if M.shape[1] < na:                  # Datensatz mit 6 Aktionen, Netz mit 8: neue Aktionen gab es dort nicht
+    if M.shape[1] < na:                  # Dataset with 6 actions, network with 8: no new actions appeared there
         M = np.concatenate([M, np.zeros((len(M), na - M.shape[1]), bool)], 1)
     h = np.maximum(X @ w["w1"].T + w["b1"], 0)
     h = np.maximum(h @ w["w2"].T + w["b2"], 0)
@@ -208,8 +207,8 @@ def forward_batch(w: dict, X: np.ndarray, M: np.ndarray) -> np.ndarray:
 
 
 def agreement(w: dict, data: dict) -> dict:
-    """Wie gut trifft ein Netz die Entscheidungen im Datensatz?
-    top1 = wahrscheinlichste Aktion stimmt; prob = mittlere Wahrscheinlichkeit fuer die echte Aktion."""
+    """How well does a network predict the decisions in the dataset?
+    top1 = most likely action matches; prob = average probability for the true action."""
     p = forward_batch(w, data["x"], data["mask"])
     a = data["a"]
     top = p.argmax(1)

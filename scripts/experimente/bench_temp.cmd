@@ -20,5 +20,5 @@ echo === Pruefstand lynx-4-300-t03 %TIME%
 "%ROOT%tools\uv\uv.exe" run --quiet --no-sync pokercollector bench run "nn?run=lynx-4@300&temp=0.3" --name lynx-4-300-t03 --sets hu480,mensch480,mix960
 echo === Pruefstand lynx-5t-t05 %TIME%
 "%ROOT%tools\uv\uv.exe" run --quiet --no-sync pokercollector bench run "nn?run=lynx-5t@1&temp=0.5" --name lynx-5t-t05 --sets hu480,mensch480,mix960
-echo TEMPERATUR-PRUEFSTAND FERTIG %TIME%
+echo TEMPERATUR-BENCHMARK COMPLETE %TIME%
 endlocal

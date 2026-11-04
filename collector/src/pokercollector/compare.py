@@ -1,9 +1,9 @@
-"""Feldweiser Vergleich der visuellen Rekonstruktion mit dem Referenzexport.
+"""Field-wise comparison of the visual reconstruction with the reference export.
 
-Der Vergleich laeuft erst, nachdem die visuelle Rekonstruktion feststeht
-(hands.json). Informationen, die im Export, aber nicht sichtbar waren (z. B.
-verdeckte Gegnerkarten), werden als 'nicht sichtbar' klassifiziert und nicht als
-Erkennungsfehler gezaehlt.
+The comparison only runs after the visual reconstruction is finalized
+(hands.json). Information present in the export but not visible (e.g.,
+hidden opponent cards) is classified as 'not visible' and not counted as
+recognition errors.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def _norm_name(n: str | None) -> str:
 
 
 def map_seats(visual_hands: list[dict], ref_hands: list[RefHand]) -> dict[int, int]:
-    """Visueller Sitz -> Referenzsitz ueber Spielernamen (Praefix, da Namen abgeschnitten sein koennen)."""
+    """Visual seat -> reference seat via player names (prefix, since names may be truncated)."""
     vis_names: dict[int, Counter] = defaultdict(Counter)
     for h in visual_hands:
         for s, si in h.get("seats", {}).items():
@@ -52,9 +52,9 @@ def map_seats(visual_hands: list[dict], ref_hands: list[RefHand]) -> dict[int, i
 class FieldTally:
     match: int = 0
     mismatch: int = 0
-    missing: int = 0       # in Referenz, visuell nicht erkannt
-    extra: int = 0         # visuell erkannt, nicht in Referenz
-    not_visible: int = 0   # in Referenz, aber nicht sichtbar gewesen
+    missing: int = 0       # in reference, not visually detected
+    extra: int = 0         # visually detected, not in reference
+    not_visible: int = 0   # in reference but was not visible
 
     def add(self, kind: str):
         setattr(self, kind, getattr(self, kind) + 1)
@@ -97,7 +97,7 @@ _ACTION_TYPES = {"fold", "check", "call", "bet", "raise", "post_sb", "post_bb", 
 
 
 def _align(vis: list[dict], ref: list) -> list[tuple]:
-    """LCS-Ausrichtung zweier Aktionsfolgen ueber (Sitz, Grobtyp)."""
+    """ LCS alignment of two action sequences over (seat, coarse type)."""
 
     def key_v(a):
         return (a["ref_seat"], "aggr" if a["type"] in ("bet", "raise") else a["type"])
@@ -147,12 +147,12 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
             cands = [r for r in cands if r.game_id == vh["game_no"]] or cands
         detail = {"visual_hand": hid, "game": vh.get("game_no"), "status": vh.get("status"), "issues": []}
         if not cands:
-            detail["issues"].append("keine passende Referenzhand (Handnummer)")
+            detail["issues"].append('no matching reference hand (hand number)')
             res.details.append(detail)
             T["hand"].add("extra")
             continue
         if len(cands) > 1:
-            detail["issues"].append(f"{len(cands)} Referenzhaende mit Nummer {hid} - mehrdeutig, erste genommen")
+            detail["issues"].append(f"{len(cands)} reference hands with number {hid} - ambiguous, first taken")
         rh = cands[0]
         used.add(id(rh))
         res.hands_matched += 1
@@ -163,12 +163,12 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                 return
             if vis_seat is None:
                 T[fieldname].add("missing")
-                detail["issues"].append(f"{fieldname}: nicht erkannt (Referenz Sitz {ref_seat})")
+                detail["issues"].append(f"{fieldname}: not recognized (reference seat {ref_seat})")
             elif seat_map.get(vis_seat) == ref_seat:
                 T[fieldname].add("match")
             else:
                 T[fieldname].add("mismatch")
-                detail["issues"].append(f"{fieldname}: visuell Sitz {vis_seat} -> {seat_map.get(vis_seat)}, Referenz {ref_seat}")
+                detail["issues"].append(f"{fieldname}: visual seat {vis_seat} -> {seat_map.get(vis_seat)}, reference {ref_seat}")
 
         seat_cmp("dealer", vh.get("dealer"), rh.dealer_seat)
         seat_cmp("sb_seat", vh.get("sb_seat"), rh.sb_seat)
@@ -182,9 +182,9 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                 T["blinds"].add("match")
             else:
                 T["blinds"].add("mismatch")
-                detail["issues"].append(f"Blinds: visuell {vb}, Referenz {rh.blinds}")
+                detail["issues"].append(f"Blinds: visual {vb}, reference {rh.blinds}")
 
-        # Startstacks
+        # Starting stacks
         for vs, si in vh.get("seats", {}).items():
             rs = seat_map.get(int(vs))
             if rs is None or rs not in rh.seats:
@@ -198,9 +198,9 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                 T["start_stack"].add("match")
             else:
                 T["start_stack"].add("mismatch")
-                detail["issues"].append(f"Startstack Sitz {vs}: visuell {si['start_stack']}, Referenz {ref_cash}")
+                detail["issues"].append(f"Start stack seat {vs}: visual {si['start_stack']}, reference {ref_cash}")
 
-        # Karten: eigene immer sichtbar; fremde nur bei Showdown
+        # Cards: own always visible; opponents’ only at showdown
         for vs, si in vh.get("seats", {}).items():
             rs = seat_map.get(int(vs))
             if rs is None or rs not in rh.seats:
@@ -219,7 +219,7 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                 T[fname].add("match")
             else:
                 T[fname].add("mismatch")
-                detail["issues"].append(f"Karten Sitz {vs}: visuell {vis_cards}, Referenz {ref_cards}")
+                detail["issues"].append(f"Cards seat {vs}: visual {vis_cards}, reference {ref_cards}")
 
         # Board
         vb = vh.get("board") or [None] * 5
@@ -235,9 +235,9 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                 T["board"].add("match")
             else:
                 T["board"].add("mismatch")
-                detail["issues"].append(f"Board {i + 1}: visuell {vc}, Referenz {rc}")
+                detail["issues"].append(f"Board {i + 1}: visual {vc}, reference {rc}")
 
-        # Aktionen je Strasse
+        # Actions per street
         for street in ("preflop", "flop", "turn", "river"):
             vis = [dict(a, ref_seat=seat_map.get(a["seat"])) for a in vh.get("actions", [])
                    if a["street"] == street and a["type"] in _ACTION_TYPES]
@@ -255,16 +255,16 @@ def compare(visual_hands: list[dict], ref_hands: list[RefHand], hero_seat_visual
                         else:
                             T["action_amount"].add("mismatch")
                             detail["issues"].append(
-                                f"{street} Sitz {va['seat']} {va['type']}: Betrag visuell auf {va.get('amount_to')}"
-                                f" (+{va.get('added')}), Referenz {ra.amount}")
+                                f"{street} seat {va['seat']} {va['type']}: amount visual at {va.get('amount_to')}"
+                                f" (+{va.get('added')}), reference {ra.amount}")
                 elif ra:
                     T["action"].add("missing")
-                    detail["issues"].append(f"{street}: Referenzaktion fehlt visuell: Sitz {ra.seat} {ra.raw} {ra.amount}")
+                    detail["issues"].append(f"{street}: reference action missing visually: seat {ra.seat} {ra.raw} {ra.amount}")
                 else:
                     T["action"].add("extra")
-                    detail["issues"].append(f"{street}: visuelle Aktion ohne Referenz: Sitz {va['seat']} {va['type']}")
+                    detail["issues"].append(f"{street}: visual action without reference: seat {va['seat']} {va['type']}")
 
-        # Gewinner
+        # Winner
         ref_win = {a.seat for a in rh.actions if a.type == "collect"}
         vis_win = {seat_map.get(a["seat"]) for a in vh.get("actions", []) if a["type"] == "collect"}
         for s in ref_win | vis_win:

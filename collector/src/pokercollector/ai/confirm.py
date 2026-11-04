@@ -1,8 +1,8 @@
-"""Einmalige Bestaetigung zweier Bots gegen Mensch-Bots auf FRISCHEN Tischen und Karten.
+"""One-time confirmation of two bots against human bots on FRESH tables and cards.
 
-Der Pruefstand mensch480 ist fest und wird oft angeschaut - wer dort vorn liegt, kann Glueck mit genau
-diesen Karten haben. Vor einer Entscheidung daher einmal mit neuen Tischen (eigener Seed) gepaart
-vergleichen. Regel: nicht wiederholen, bis es passt.
+The test bench mensch480 is fixed and watched often - whoever ranks first there might be lucky with exactly
+these cards. Therefore, before making decisions, compare once paired with new tables (own seed).
+Rule: don’t repeat until it fits.
 """
 
 from __future__ import annotations

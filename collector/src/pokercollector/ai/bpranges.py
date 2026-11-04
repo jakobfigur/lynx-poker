@@ -1,21 +1,17 @@
-"""Blueprint-Ranges fuer die Heads-up-Suche (husearch.py).
+"""Blueprint ranges for the heads-up search (husearch.py).
 
-Bisher schaetzte die Suche die Ranges beider Spieler zu Strassenbeginn mit einer Heuristik (ranges.py:
-"Button eroeffnet ~85 %, BB verteidigt ~70 %"). Die Nachtdiagnose 29./30.10. zeigte, dass die Suche damit
-gegen ihr eigenes Blueprint-Netz verliert. Hier kommen die Ranges stattdessen aus dem Blueprint selbst
-(Bayes mit der tatsaechlichen Strategie): die Hand wird mit der Engine von vorn nachgespielt, und bei jeder
-Entscheidung eines der beiden Spieler wird fuer JEDE moegliche Starthand gefragt, mit welcher
-Wahrscheinlichkeit das Netz genau diese Aktion gewaehlt haette. Das Produkt ueber alle Aktionen ist die
-Range (preflop ueber die 169 Handklassen, danach auf die 1326 Kombinationen verteilt; postflop, wenn
-gewuenscht, ueber alle Kombinationen ohne Boardkarten).
+Previously, the search estimated both players' ranges at street start with a heuristic (ranges.py:
+"Button opens ~85%, BB defends ~70%"). Night diagnosis 29/30.10. showed that the search loses against its own blueprint network with that. Here the ranges instead come from the blueprint itself
+(Bayes with the actual strategy): the hand is replayed from the start with the engine, and at every
+decision of either player, for EACH possible starting hand it is queried with what probability
+the network would have chosen exactly this action. The product over all actions is the range
+(preflop over 169 hand classes, afterward spread over 1326 combinations; postflop, if desired, over all combinations excluding board cards).
 
-Fuer den eigenen Spieler ist das exakt (er spielt ja das Blueprint, wo nicht gesucht wird); fuer den Gegner
-ist es die Annahme "er spielt wie unser Blueprint" - immer noch besser als eine Faustformel, weil das Netz
-Stacktiefe, Blindstufe und Turnierlage kennt. Gegnermerkmale (feat-3) werden mit den Vorgabewerten belegt.
+For the own player, this is exact (because they play the blueprint, where no search is done); for the opponent,
+it is the assumption "he plays like our blueprint" - still better than a rule of thumb, because the network
+knows stack depth, blind level, and tournament situation. Opponent features (feat-3) are filled with given values.
 
-Strassen, die nicht vom Blueprint modelliert werden (Standard: alles nach dem Preflop), bekommen weiter die
-Heuristik-Faktoren aus ranges.py. Passt der Verlauf nicht zur Engine (Live-Unsicherheit), liefert
-blueprint_ranges None und die Suche faellt auf public_ranges zurueck.
+Streets not modeled by the blueprint (default: everything after preflop) continue to get the heuristic factors from ranges.py. If the course does not match the engine (live uncertainty), blueprint_ranges returns None and the search falls back to public_ranges.
 """
 
 from __future__ import annotations
@@ -42,7 +38,7 @@ _CACHE_MAX = 512
 
 
 def forward_batch(w: dict, x: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Wahrscheinlichkeiten des Netzes fuer viele Situationen (Zeilen) mit gemeinsamer Aktionsmaske."""
+    """Network probabilities for many situations (rows) with a common action mask."""
     h = np.maximum(x @ w["w1"].T + w["b1"], 0)
     h = np.maximum(h @ w["w2"].T + w["b2"], 0)
     logits = h @ w["wp"].T + w["bp"]
@@ -63,7 +59,7 @@ def _action(a) -> Action:
 
 
 def _deck_for(board: list[str]) -> list[str]:
-    """Kartenstapel, dessen Board (Positionen 20-24) mit dem bekannten Board beginnt."""
+    """Deck whose board (positions 20-24) begins with the known board."""
     rest = [c for c in FULL_DECK if c not in board]
     full = list(board) + rest[: 5 - len(board)]
     remaining = rest[5 - len(board):]
@@ -71,7 +67,7 @@ def _deck_for(board: list[str]) -> list[str]:
 
 
 def _blueprint_probs(w: dict, obs_t: Observation, act: Action, cards: list[list[str]]) -> np.ndarray:
-    """P(act | Hand) fuer jede Handliste in `cards` in der Lage obs_t (ohne eigene Karten)."""
+    """P(act | hand) for each hand list in `cards` in state obs_t (without own cards)."""
     na = w.get("n_actions", 6)
     version = w.get("features", "feat-1")
     mask = action_mask(obs_t, na)
@@ -117,13 +113,13 @@ def _cache_key(obs: Observation, hero: int, opp: int, w: dict, bp_streets: tuple
 def blueprint_ranges(obs: Observation, hero: int, opp: int, blueprint,
                      bp_streets: tuple[str, ...] = ("preflop",), opp_weights: dict | None = None,
                      opp_fold=None) -> tuple[np.ndarray, np.ndarray] | None:
-    """Ranges (Summe 1) von hero und opp zu BEGINN der aktuellen Strasse aus dem Blueprint-Netz.
-    opp_weights: eigenes Netz fuer die Aktionen des GEGNERS (z. B. Menschenmodell human-1, H11); ohne
-    Angabe gilt 'der Gegner spielt wie unser Blueprint'. None, wenn kein Netz da ist oder der Verlauf
-    sich nicht nachspielen laesst."""
+    """Ranges (sum 1) of hero and opp at BEGINNING of current street from the blueprint network.
+    opp_weights: own network for the opponent’s actions (e.g., human model human-1, H11); if not
+    specified, 'the opponent plays like our blueprint' applies. None if no network is available or the history
+    cannot be replayed."""
     w = getattr(blueprint, "w", None)
     if not isinstance(w, dict) or "w1" not in w:
-        if not (bp_streets and set(bp_streets) <= {"eq"}):   # nur Gleichgewicht braucht kein Netz
+        if not (bp_streets and set(bp_streets) <= {"eq"}):   # equilibrium only needs no network
             return None
         w = {}
     key = _cache_key(obs, hero, opp, w, bp_streets) + (id(opp_weights) if opp_weights is not None else 0,
@@ -145,9 +141,8 @@ def blueprint_ranges(obs: Observation, hero: int, opp: int, blueprint,
 
 def _compute(obs: Observation, hero: int, opp: int, w: dict, bp_streets: tuple[str, ...],
              opp_weights: dict | None = None, opp_fold=None):
-    """opp_fold: humanfold.HumanFold - vor jeder (Nicht-Fold-)Aktion des Gegners wird seine Range mit der
-    Weiterspiel-Wahrscheinlichkeit je Kombination multipliziert (die Haende, die ein Mensch hier weggelegt
-    haette, verschwinden), danach bewertet opp_weights die gewaehlte Aktion."""
+    """opp_fold: humanfold.HumanFold - before each (non-fold) opponent action, their range is multiplied
+    with the continuation probability per combination (hands a human would have folded here disappear), then opp_weights assesses the chosen action."""
     n = obs.num_seats
     w_of = {hero: w, opp: opp_weights if opp_weights is not None else w}
     start = [int(obs.stacks[s] + obs.committed[s]) if obs.in_hand[s] else 0 for s in range(n)]
@@ -158,7 +153,7 @@ def _compute(obs: Observation, hero: int, opp: int, w: dict, bp_streets: tuple[s
     base = (~dead_mask(list(obs.board))).astype(np.float64)
     weights = {hero: base.copy(), opp: base.copy()}
     raises = {"preflop": 0, "flop": 0, "turn": 0, "river": 0}
-    eq = "eq" in bp_streets                 # Preflop aus dem Heads-up-Gleichgewicht (hupreflop) statt Netz/Heuristik
+    eq = "eq" in bp_streets                 # Preflop from heads-up equilibrium (hupreflop) instead of network/heuristic
     if eq:
         if obs.street == "preflop":
             return None

@@ -1,34 +1,34 @@
-"""Heads-up-Suche zur Laufzeit: Turn und River werden in jeder Entscheidung neu geloest (CFR ueber Ranges),
-preflop am Heads-up-Tisch spielt der Preflop-Loeser (hupreflop.py).
+"""Heads-up runtime search: Turn and River are solved anew at every decision (CFR over ranges),
+preflop at heads-up table the preflop solver is used (hupreflop.py).
 
-Das Netz (Blueprint) spielt den Flop (und preflop, wenn mehr als zwei Spieler am Tisch sind). Auf den
-gesuchten Strassen - heads-up, beide noch mit Chips - baut der Bot den Spielbaum AB STRASSENBEGINN bis zum
-Showdown (kleine Auswahl an Einsatzgroessen, alle Rivercards); die tatsaechlich gespielten Einsaetze dieser
-Strasse werden als Aeste eingefuegt und die aktuelle Entscheidung ist der Knoten am Ende dieses Pfads.
-Geloest wird mit CFR+ ueber ALLE 1326 Handkombinationen beider Spieler gleichzeitig:
+The net (Blueprint) plays the flop (and preflop if more than two players at the table). On the
+streets analyzed - heads-up, both still with chips - the bot builds the game tree FROM STREET START to showdown
+(small selection of bet sizes, all river cards); the actual bets played on that street are inserted as branches
+and the current decision is the node at the end of this path.
+Solution is with CFR+ over ALL 1326 hand combos of both players simultaneously:
 
-  Startverteilung   Ranges beider Spieler aus dem Verlauf bis Strassenbeginn (ranges.py, heads-up-Parameter)
-  Gegner            der unguenstigste: CFR sucht ein Gleichgewicht im Teilspiel, kein Ausbeuten
-  Ergebnis          Durchschnittsstrategie am Wurzelknoten fuer die eigene Hand -> Aktion ziehen
+  Starting distribution   Both players' ranges from history to street start (ranges.py, heads-up params)
+  Opponent                the worst-case: CFR finds equilibrium in subgame, no exploitation
+  Result                  average strategy at root node for own hand -> action selected
 
-Das ist "unsicheres" Neuloesen (ohne Garantie gegen Range-Fehler), aber sehr viel naeher an dem, was
-Libratus/DeepStack/ReBeL tun, als die alte Suche (search.py), die annahm, der Gegner spiele wie wir.
-Kartenentfernung (Blocker) ist exakt eingerechnet. Rechenkern in numba, Baum als flache Arrays.
+This is "uncertain" re-solving (no guarantee against range errors), but much closer to what
+Libratus/DeepStack/ReBeL do, than the old search (search.py) which assumed the opponent plays like us.
+Card removal (blockers) is exactly accounted for. Compute core in numba, tree as flat arrays.
 
-Spezifikation: 'hus?bp=<Liga-Name oder nn-Spec ohne ?>&iters=..&streets=turn,river' (Standard)
-z. B. 'hus?bp=lynx-3-300' oder 'hus?bp=run:lynx-3@300'. streets=preflop,... schaltet den Preflop-Loeser
-(hupreflop) zu - Nachtdiagnose 29./30.10.: im Turnierformat kostet er ~25 Punkte, darum nicht Standard.
+Specification: 'hus?bp=<league name or nn-spec without ?>&iters=..&streets=turn,river' (default)
+Examples: 'hus?bp=lynx-3-300' or 'hus?bp=run:lynx-3@300'. streets=preflop,... enables the preflop solver
+(hupreflop) - Night diagnosis 29/30.10: in tournament format it costs ~25 points, so not default.
 
-ranges=pre,flop (Standard) | pre | heur: woher die Ranges zu Strassenbeginn kommen. 'pre' = Preflop-Aktionen
-beider Spieler mit dem Blueprint-Netz bewertet (bpranges.py), danach Heuristik; 'pre,flop' auch die
-Flop-Aktionen ueber alle Kombinationen (~0,5 s je Strasse; hu480 30.10.: +6,0 gegen Heuristik, -2,5 n.s. gegen
-Netz, hus-1 lag bei -29,4); 'heur' = nur die alte Heuristik (ranges.py).
+ranges=pre,flop (default) | pre | heur: source of ranges at street start. 'pre' = preflop actions
+of both players evaluated with the blueprint net (bpranges.py), then heuristic; 'pre,flop' also
+flop actions evaluated over all combos (~0.5 s per street; hu480 30.10: +6.0 vs heuristic, -2.5 n.s. vs
+net, hus-1 was -29.4); 'heur' = only old heuristic (ranges.py).
 
-hus-2 (29.10.): auch der Flop kann gesucht werden (streets=preflop,flop,turn,river). Weil 49 x 48 Folgeboards zu
-viel waeren, werden an den Zufallsknoten k_turn Turn- und k_river Rivercards gezogen (Standard 6/6, fest je
-Situation); der Teiler je Zufallsknoten haelt den Erwartungswert unverzerrt. Einsatzgroessen als Preset
-(sizes=narrow|wide). Der Kernel rechnet ebenenweise parallel (numba prange); threads=N begrenzt die Faeden je
-Prozess (Pruefstand mit mehreren Workern: threads = Kerne / Worker).
+hus-2 (29.10): flop can also be solved (streets=preflop,flop,turn,river). Because 49 x 48 follow-up boards
+would be too many, random nodes k_turn Turn and k_river River cards are sampled (default 6/6, fixed per
+situation); the weight per random node keeps expected value unbiased. Bet sizes as preset
+(sizes=narrow|wide). Kernel computes layers in parallel (numba prange); threads=N limits threads per
+process (testbench with multiple workers: threads = cores / workers).
 """
 
 from __future__ import annotations
@@ -47,11 +47,11 @@ from .ranges import COMBO_HAS, COMBOS, _strengths, dead_mask, opponent_ranges
 HUSEARCH_VERSION = "hus-2"
 N_COMBOS = len(COMBOS)
 DECISION, FOLD, SHOWDOWN, CHANCE, LEAF = 0, 1, 2, 3, 4
-LEAF_EVERY = 10                     # Blattwerte alle so viele Iterationen neu aus dem Netz
-AUTO_DEEP_BB = 80                   # auto=1: ab diesem effektiven Stack (BB, Cash) gilt die Cash-Konfiguration
+LEAF_EVERY = 10                     #Hand values all re-evaluated from the net every so many iterations
+AUTO_DEEP_BB = 80                   #auto=1: from this effective stack (BB, Cash) the cash config applies
 
-# Einsatzgroessen (Anteil am Pot) je (Wurzelstrasse, aktuelle Strasse) in Boardkarten - tiefer im Baum sparsamer,
-# weil jede Folgestrasse mit allen (oder den gezogenen) Karten vorkommt. 'narrow' = Stand hus-1 (Turn/River).
+#Bet sizes (fraction of pot) per (root street, current street) in board cards - more conservative deeper in the tree,
+#because every following street occurs with all (or drawn) cards. 'narrow' = hus-1 standard (turn/river).
 SIZE_PRESETS = {
     "narrow": {
         (5, 5): {"bet": (0.33, 0.75, 1.5), "raise": (1.0,)},
@@ -70,31 +70,31 @@ SIZE_PRESETS = {
         (3, 5): {"bet": (0.75,), "raise": ()},
     },
 }
-# Rueckwaertskompatible Namen (Tests, aeltere Aufrufer)
+#Backward compatible names (tests, older callers)
 SIZES_RIVER = SIZE_PRESETS["narrow"][(5, 5)]
 SIZES_TURN = SIZE_PRESETS["narrow"][(4, 4)]
 SIZES_RIVER_IN_TURN = SIZE_PRESETS["narrow"][(4, 5)]
-# Kartenziehung an Zufallsknoten: ab dem Flop werden nicht alle Turn-/Rivercards aufgezaehlt (49 x 48 Boards
-# waeren zu viel), sondern je Zufallsknoten K Karten gezogen; jede gezogene Karte steht fuer (Anzahl moeglicher
-# Karten / K) Karten, der Erwartungswert bleibt unverzerrt. None = alle Karten (Stand hus-1 fuer den Turn).
-K_TURN_DEFAULT = 6                  # Turnkarten im Flop-Baum
-K_RIVER_DEFAULT = 6                 # Rivercards unter einer gezogenen Turnkarte im Flop-Baum
-MAX_RAISES = 4                      # je Strasse insgesamt (danach nur noch Fold/Call)
-SAME_SIZE = 0.04                    # tatsaechliche Groesse innerhalb 4 % = vorhandener Ast
-ALLIN_SNAP = 0.85                   # Groessen ueber 85 % des Stacks -> All-in
+#Card sampling at chance nodes: from the flop onwards not all turn/river cards are enumerated (49 x 48 boards
+#would be too many), but K cards are drawn per chance node; each drawn card represents (number of possible
+#cards / K) cards, expectation stays unbiased. None = all cards (hus-1 standard for the turn).
+K_TURN_DEFAULT = 6                  #Turn cards in flop tree
+K_RIVER_DEFAULT = 6                 #River cards under a drawn turn card in flop tree
+MAX_RAISES = 4                      #per street total (afterwards only fold/call)
+SAME_SIZE = 0.04                    #actual size within 4% = existing branch
+ALLIN_SNAP = 0.85                   #sizes over 85% of stack -> All-in
 
 
 @dataclass
 class State:
-    board: tuple[int, ...]          # Kartenindizes
-    committed: tuple[int, int]      # insgesamt in der Hand (0 = wir, 1 = Gegner)
-    bets: tuple[int, int]           # diese Strasse
+    board: tuple[int, ...]          #card indices
+    committed: tuple[int, int]      #total in hand (0 = us, 1 = opponent)
+    bets: tuple[int, int]           #this street
     stacks: tuple[int, int]
     to_act: int
-    last_inc: int                   # letzte Erhoehung (Mindest-Raise)
-    raises: int                     # Bets/Raises dieser Strasse
+    last_inc: int                   #last raise (minimum raise)
+    raises: int                     #bets/raises on this street
     acted: tuple[bool, bool]
-    oop: int                        # handelt postflop zuerst
+    oop: int                        #acts first postflop
     bb: int
 
 
@@ -104,23 +104,23 @@ class Tree:
     player: np.ndarray
     first_child: np.ndarray
     n_children: np.ndarray
-    util0: np.ndarray               # Fold: Gewinn fuer uns
-    stake: np.ndarray               # Showdown: Einsatz je Spieler
+    util0: np.ndarray               #fold: winning for us
+    stake: np.ndarray               #showdown: bet each player
     board_id: np.ndarray
-    card: np.ndarray                # Karte, die beim Erreichen dieses Knotens fiel (-1 = keine)
-    root_actions: list              # (Art, Betrag 'raise auf') je Kind des AKTUELLEN Knotens
-    boards: list                    # Boards (5 Karten) fuer die Showdown-Auswertung
-    div: float                      # Anzahl moeglicher Rivercards je Handpaar (voller Turn-Baum), sonst 1
-    current: int = 0                # Knoten der aktuellen Entscheidung (Ende des tatsaechlichen Pfads)
-    cdiv: np.ndarray | None = None  # je Zufallsknoten: Teiler fuer den Erwartungswert ueber die Kinder
-    levels: np.ndarray | None = None  # Grenzen der Baumebenen (BFS-Reihenfolge): Ebene k = [levels[k], levels[k+1])
-    leaf_ix: np.ndarray | None = None  # je Knoten: Index in der Blattliste (-1 = kein Blatt)
-    leaf_pot: np.ndarray | None = None  # je Blatt: Pot (Chips)
-    leaf_stack: np.ndarray | None = None  # je Blatt: effektiver Stack (Chips)
-    leaf_board: np.ndarray | None = None  # je Blatt: Board (int8[5], -1 = leer)
+    card: np.ndarray                #card that fell to reach this node (-1 = none)
+    root_actions: list              #(type, amount 'raise to') per child of CURRENT node
+    boards: list                    #boards (5 cards) for showdown evaluation
+    div: float                      # Number of possible river cards per hand pair (full turn tree), otherwise 1
+    current: int = 0                # Node of the current decision (end of the actual path)
+    cdiv: np.ndarray | None = None  # per chance node: divisor for the expected value over the children
+    levels: np.ndarray | None = None  # Limits of tree levels (BFS order): Level k = [levels[k], levels[k+1])
+    leaf_ix: np.ndarray | None = None  # per node: index in the leaf list (-1 = no leaf)
+    leaf_pot: np.ndarray | None = None  # per leaf: pot (chips)
+    leaf_stack: np.ndarray | None = None  # per leaf: effective stack (chips)
+    leaf_board: np.ndarray | None = None  # per leaf: board (int8[5], -1 = empty)
     leaf_oop: int = 0
-    river_roots: list | None = None   # (Knoten, State) je River-Anfang im vollen Turn-Baum (valuedata river-leaf)
-    turn_roots: list | None = None    # (Knoten, State) je Turn-Anfang eines Flop-Baums (valuedata turn-leaf)
+    river_roots: list | None = None   # (node, state) per river start in the full turn tree (valuedata river-leaf)
+    turn_roots: list | None = None    # (node, state) per turn start of a flop tree (valuedata turn-leaf)
 
 
 def _sizes(st: State, root_street: int, preset: str = "narrow") -> dict:
@@ -128,8 +128,8 @@ def _sizes(st: State, root_street: int, preset: str = "narrow") -> dict:
 
 
 def _children(st: State, root_street: int, extra: int | None = None, preset: str = "narrow"):
-    """Abstrahierte Aktionen: Liste (Art, Betrag, Folgezustand oder Terminal). extra: tatsaechlich
-    gespielter Betrag ('raise auf'), der als eigener Ast dazukommt, wenn keine Groesse nahe genug ist."""
+    """ Abstracted actions: list (type, amount, next state or terminal). extra: actually
+    played amount ('raise to'), which is added as its own branch if no size is close enough."""
     p, q = st.to_act, 1 - st.to_act
     to_call = st.bets[q] - st.bets[p]
     pot = sum(st.committed)
@@ -209,7 +209,7 @@ def _matches(label: str, amt, step: tuple[str, int | None]) -> bool:
 
 
 def chance_cards(board: tuple[int, ...], k: int | None, rng) -> list[int]:
-    """Karten fuer einen Zufallsknoten: alle nicht auf dem Board (k None) oder k davon gezogen."""
+    """ Cards for a chance node: all not on the board (k None) or k of them drawn."""
     avail = [c for c in range(52) if c not in board]
     if k is None or k >= len(avail):
         return avail
@@ -219,17 +219,17 @@ def chance_cards(board: tuple[int, ...], k: int | None, rng) -> list[int]:
 
 def build_tree(root: State, path: tuple = (), k_turn: int | None = None, k_river: int | None = None,
                preset: str = "narrow", seed: int = 0, leaf_street: int | None = None) -> Tree:
-    """Baum breitenweise aufbauen: Kinder eines Knotens liegen zusammenhaengend, Eltern vor Kindern.
-    path: tatsaechliche Aktionen der Strasse seit root ((Art, Betrag auf) je Schritt) - deren Groessen
-    kommen als Aeste in den Baum, der Knoten danach ist die aktuelle Entscheidung.
-    k_turn/k_river: Anzahl gezogener Karten an Zufallsknoten (None = alle); der Teiler je Zufallsknoten ist
-    so gewaehlt, dass der Erwartungswert je Handpaar unverzerrt bleibt (gezogene Karte steht fuer
-    verfuegbare/K Karten, jede davon hat beim festen Handpaar die Wahrscheinlichkeit 1/(verfuegbare - 4))."""
+    """ Build tree breadth-first: children of a node are contiguous, parents before children.
+    path: actual street actions since root ((type, amount to) per step) - their sizes
+    appear as branches in the tree, the node after is the current decision.
+    k_turn/k_river: number of cards drawn at chance nodes (None = all); the divisor per chance node is
+    chosen so that the expected value per hand pair remains unbiased (drawn card represents
+    available/K cards, each of which has probability 1/(available - 4) for a fixed hand pair)."""
     root_street = len(root.board)
     kind, player, first, nch, util0, stake, bid, card = [], [], [], [], [], [], [], []
     cdiv: list[float] = []
     leaf_ix: list[int] = []
-    leaves: list[State] = []            # Zustand zu Beginn der Blattstrasse (Karte schon gefallen)
+    leaves: list[State] = []            # State at the start of the leaf street (card already dealt)
     boards: list[tuple[int, ...]] = []
     board_ix: dict[tuple[int, ...], int] = {}
     root_actions = []
@@ -258,17 +258,17 @@ def build_tree(root: State, path: tuple = (), k_turn: int | None = None, k_river
             k = k_turn if len(st.board) == 3 else k_river
             cards = chance_cards(st.board, k, rng)
             avail = 52 - len(st.board)
-            cdiv[n] = (avail - 4) * len(cards) / avail       # voller Turn-Baum: 44 * 48 / 48 = 44
+            cdiv[n] = (avail - 4) * len(cards) / avail       # full turn tree: 44 * 48 / 48 = 44
             kids = []
             for c in cards:
                 child_st = replace(st, board=st.board + (c,))
-                if min(child_st.stacks) == 0:                 # all-in: Showdown, davor ggf. noch eine Karte
+                if min(child_st.stacks) == 0:                 # all-in: showdown, possibly one more card before
                     if len(child_st.board) == 5:
                         kids.append((SHOWDOWN, None, min(st.committed), board_id(child_st.board), c))
                     else:
                         kids.append((CHANCE, child_st, 0.0, -1, c))
                 elif leaf_street is not None and len(child_st.board) == leaf_street:
-                    kids.append((LEAF, child_st, 0.0, -1, c))     # Wertnetz bewertet ab hier
+                    kids.append((LEAF, child_st, 0.0, -1, c))     # Valuenet evaluates from here
                 else:
                     kids.append((DECISION, child_st, 0.0, -1, c))
             first[n] = len(kind)
@@ -296,7 +296,7 @@ def build_tree(root: State, path: tuple = (), k_turn: int | None = None, k_river
         if step is not None:
             cands = [i for i, (label, amt, _) in enumerate(acts) if _matches(label, amt, step)]
             if not cands:
-                raise ValueError(f"Aktion {step} passt nicht in den Baum")
+                raise ValueError(f"Action {step} does not fit in tree")
             nxt = min(cands, key=lambda i: abs((acts[i][1] or 0) - (step[1] or 0)))
         pending = []
         for i, (label, amt, res) in enumerate(acts):
@@ -314,7 +314,7 @@ def build_tree(root: State, path: tuple = (), k_turn: int | None = None, k_river
                 pending.append((m, res, d))
         queue.extend(pending)
     if current < 0:
-        raise ValueError("aktuelle Entscheidung nicht im Baum")
+        raise ValueError('Current decision not in tree')
     a = lambda x, t: np.asarray(x, t)
     div = 44.0 if root_street == 4 and k_river is None else 1.0
     lb = np.full((len(leaves), 5), -1, np.int8)
@@ -328,9 +328,9 @@ def build_tree(root: State, path: tuple = (), k_turn: int | None = None, k_river
 
 
 def average_reaches(tree: Tree, avg: np.ndarray, r0: np.ndarray, r1: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Reach (= unnormierte Range) beider Spieler an JEDEM Knoten unter der Durchschnittsstrategie avg
-    (Kantengewichte wie in solve/_best_response), Zufallskarten blocken die passenden Haende.
-    Damit lassen sich echte Ranges an Strassenanfaengen auslesen (valuedata 'river-leaf')."""
+    """ Reach (= unnormalized range) of both players at EVERY node under the average strategy avg
+    (edge weights as in solve/_best_response), chance cards block matching hands.
+    This allows reading out actual ranges at street starts (valuedata 'river-leaf')."""
     n = len(tree.kind)
     R = np.zeros((2, n, N_COMBOS))
     R[0, 0], R[1, 0] = r0, r1
@@ -353,20 +353,20 @@ def average_reaches(tree: Tree, avg: np.ndarray, r0: np.ndarray, r1: np.ndarray)
 
 
 def tree_levels(first: np.ndarray, nch: np.ndarray) -> np.ndarray:
-    """Ebenengrenzen: der Baum ist breitenweise gebaut, Kinder liegen hinter allen Knoten ihrer Elternebene.
-    Innerhalb einer Ebene sind die Knoten unabhaengig (disjunkte Kinder) -> parallel abarbeitbar."""
+    """ Level boundaries: the tree is built breadth-first, children are after all nodes of their parent level.
+    Within a level, nodes are independent (disjoint children) -> can be processed in parallel."""
     n = len(first)
     depth = np.zeros(n, np.int64)
     for i in range(n):
         if nch[i] > 0:
             depth[first[i]:first[i] + nch[i]] = depth[i] + 1
-    assert np.all(np.diff(depth) >= 0), "Baum nicht ebenenweise geordnet"
+    assert np.all(np.diff(depth) >= 0), 'Tree not level-ordered'
     bounds = [0] + [i for i in range(1, n) if depth[i] != depth[i - 1]] + [n]
     return np.asarray(bounds, np.int64)
 
 
 def board_tables(boards: list[tuple[int, ...]]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Je Board: Handwerte aller Kombinationen (-1 = blockiert) und aufsteigende Reihenfolge der gueltigen."""
+    """ Per board: hand values of all combinations (-1 = blocked) and ascending order of valid ones."""
     vals = np.empty((len(boards), N_COMBOS), np.int64)
     order = np.zeros((len(boards), N_COMBOS), np.int64)
     nvalid = np.zeros(len(boards), np.int64)
@@ -382,7 +382,7 @@ def board_tables(boards: list[tuple[int, ...]]) -> tuple[np.ndarray, np.ndarray,
 
 @njit(cache=True, nogil=True)
 def _fold_sums(r, combos, out):
-    """out[h] = Summe der Gegner-Reach ueber Kombinationen ohne gemeinsame Karte mit h."""
+    """ out[h] = sum of opponent reach over combinations without common card with h."""
     per = np.zeros(52)
     tot = 0.0
     for o in range(r.shape[0]):
@@ -395,13 +395,13 @@ def _fold_sums(r, combos, out):
 
 @njit(cache=True, nogil=True)
 def _showdown(r, vals, order, nvalid, combos, out):
-    """out[h] = Reach der Gegnerhaende, die h schlaegt, minus die, die h schlagen (ohne Blocker)."""
+    """ out[h] = reach of opponent hands that h beats minus those that beat h (no blockers)."""
     for h in range(out.shape[0]):
         out[h] = 0.0
     per = np.zeros(52)
     tot = 0.0
     i = 0
-    while i < nvalid:                 # aufwaerts: gegen schwaechere Haende gewinnen
+    while i < nvalid:                 # upwards: winning against weaker hands
         j = i
         while j < nvalid and vals[order[j]] == vals[order[i]]:
             j += 1
@@ -417,7 +417,7 @@ def _showdown(r, vals, order, nvalid, combos, out):
     per[:] = 0.0
     tot = 0.0
     i = nvalid - 1
-    while i >= 0:                     # abwaerts: gegen staerkere verlieren
+    while i >= 0:                     # downwards: losing against stronger hands
         j = i
         while j >= 0 and vals[order[j]] == vals[order[i]]:
             j -= 1
@@ -435,15 +435,15 @@ def _showdown(r, vals, order, nvalid, combos, out):
 @njit(cache=True, nogil=True, parallel=True)
 def _solve(kind, player, first, nch, util0, stake, bid, card, vals, order, nvalid, combos, has,
            r0, r1, t_start, t_end, cdiv, gamma, levels, leaf_ix, leafval, regret, reach, val, avg, own, root_val):
-    """CFR+ ueber alle Handkombinationen, Iterationen t_start..t_end-1 auf dem uebergebenen Zustand (regret, avg
-    usw. bleiben zwischen Aufrufen erhalten, damit Blattwerte zwischendurch neu bewertet werden koennen).
-    Ebenenweise: die Knoten einer Baumebene haben disjunkte Kinder und werden parallel bearbeitet.
-    Blatt (LEAF): val[n,h] = leafval[Blatt, upd, h] * Summe der Gegner-Reach am Blatt (Netzwert je Einheit
-    Gegnermasse, in Chips)."""
+    """ CFR+ over all hand combinations, iterations t_start..t_end-1 on the passed state (regret, avg
+    etc. remain between calls so that leaf values can be re-evaluated in between).
+    Level-wise: nodes of a tree level have disjoint children and are processed in parallel.
+    Leaf (LEAF): val[n,h] = leafval[leaf, upd, h] * sum of opponent reach at the leaf (net value per unit
+    of opponent mass, in chips)."""
     H = r0.shape[0]
     n_lev = levels.shape[0] - 1
     for t in range(t_start, t_end):
-        for upd in range(2):              # abwechselnd: erst Spieler 0, dann 1 (CFR+)
+        for upd in range(2):              # alternating: first player 0, then 1 (CFR+)
             q = 1 - upd
             wt = float(t) ** gamma
             for h in range(H):
@@ -513,7 +513,7 @@ def _solve(kind, player, first, nch, util0, stake, bid, card, vals, order, nvali
                         f, m = first[n], nch[n]
                         if p == upd:
                             for h in range(H):
-                                # Strategie wie im Vorwaertsgang: aus den Regrets VOR dem Update dieses Knotens
+                                # strategy as in the forward pass: from the regrets BEFORE updating this node
                                 s = 0.0
                                 for c in range(f, f + m):
                                     if regret[c, h] > 0:
@@ -540,15 +540,15 @@ def _solve(kind, player, first, nch, util0, stake, bid, card, vals, order, nvali
 @njit(cache=True, nogil=True)
 def _solve_small(kind, player, first, nch, util0, stake, bid, card, vals, order, nvalid, combos, has,
            r0, r1, t_start, t_end, cdiv, gamma, levels, leaf_ix, leafval, regret, reach, val, avg, own, root_val):
-    """CFR+ ueber alle Handkombinationen, Iterationen t_start..t_end-1 auf dem uebergebenen Zustand (regret, avg
-    usw. bleiben zwischen Aufrufen erhalten, damit Blattwerte zwischendurch neu bewertet werden koennen).
-    Ebenenweise: die Knoten einer Baumebene haben disjunkte Kinder und werden parallel bearbeitet.
-    Blatt (LEAF): val[n,h] = leafval[Blatt, upd, h] * Summe der Gegner-Reach am Blatt (Netzwert je Einheit
-    Gegnermasse, in Chips)."""
+    """CFR+ over all hand combinations, iterations t_start..t_end-1 on the passed state (regret, avg
+    etc. remain between calls so that leaf values can be re-evaluated in between).
+    Level-wise: nodes of a tree level have disjoint children and are processed in parallel.
+    Leaf (LEAF): val[n,h] = leafval[leaf, upd, h] * sum of opponent reach at the leaf (net value per unit
+    of opponent mass, in chips)."""
     H = r0.shape[0]
     n_lev = levels.shape[0] - 1
     for t in range(t_start, t_end):
-        for upd in range(2):              # abwechselnd: erst Spieler 0, dann 1 (CFR+)
+        for upd in range(2):              # alternating: first player 0, then 1 (CFR+)
             q = 1 - upd
             wt = float(t) ** gamma
             for h in range(H):
@@ -618,7 +618,7 @@ def _solve_small(kind, player, first, nch, util0, stake, bid, card, vals, order,
                         f, m = first[n], nch[n]
                         if p == upd:
                             for h in range(H):
-                                # Strategie wie im Vorwaertsgang: aus den Regrets VOR dem Update dieses Knotens
+                                # strategy as in the forward pass: from the regrets BEFORE updating this node
                                 s = 0.0
                                 for c in range(f, f + m):
                                     if regret[c, h] > 0:
@@ -642,8 +642,8 @@ def _solve_small(kind, player, first, nch, util0, stake, bid, card, vals, order,
     return avg, root_val
 
 
-PARALLEL_MIN_NODES = 256            # unter Last gemessen: 357 Knoten x 100 It parallel 0,9 s, seriell 1,75 s
-                                    # als er bringt (357 Knoten x 100 It: 0,8 s parallel, deutlich weniger seriell)
+PARALLEL_MIN_NODES = 256            # measured under load: 357 nodes x 100 iterations parallel 0.9 s, serial 1.75 s
+                                    # as it delivers (357 nodes x 100 iterations: 0.8 s parallel, significantly less serial)
 
 
 def _solve_any(*args):
@@ -654,8 +654,8 @@ def _solve_any(*args):
 @njit(cache=True, nogil=True)
 def _best_response(kind, player, first, nch, util0, stake, bid, card, vals, order, nvalid, combos, has,
                    r0, r1, cdiv, avg, b):
-    """Wert der besten Antwort von Spieler b auf die Durchschnittsstrategie des anderen
-    (Summe ueber b's Haende, mit b's Range gewichtet)."""
+    """ Value of the best response of player b to the average strategy of the other
+    (sum over b’s hands, weighted by b’s range)."""
     n_nodes = kind.shape[0]
     H = r0.shape[0]
     q = 1 - b
@@ -724,13 +724,13 @@ def _best_response(kind, player, first, nch, util0, stake, bid, card, vals, orde
     return tot
 
 
-GAMMA = 2.0                         # Durchschnittsstrategie: Iteration t zaehlt t^GAMMA (spaete, bessere mehr)
+GAMMA = 2.0                         # Average strategy: iteration t counts as t^GAMMA (later, better counts more)
 
 
 def leaf_values(tree: Tree, valuenet, reach: np.ndarray, own: np.ndarray, bb: int) -> np.ndarray:
-    """Blattwerte aus dem Wertnetz: je Blatt die (normierten) Ranges beider Spieler aus den aktuellen Reaches,
-    Ausgabe leafval[Blatt, Spieler, Hand] in Chips je Einheit Gegnermasse. Nach einer vollen Iteration (upd=1
-    zuletzt) ist reach = Reach von Spieler 0 und own = Reach von Spieler 1."""
+    """ Leaf values from the valuenet: per leaf the (normalized) ranges of both players from current reaches,
+    output leafval[leaf, player, hand] in chips per unit opponent mass. After a full iteration (upd=1
+    last) reach = reach of player 0 and own = reach of player 1."""
     idx = np.nonzero(tree.leaf_ix >= 0)[0]
     n = len(idx)
     out = np.zeros((max(n, 1), 2, N_COMBOS), np.float32)
@@ -756,11 +756,11 @@ def solve(root: State, r0: np.ndarray, r1: np.ndarray, iters: int = 200, exploit
           gamma: float = GAMMA, path: tuple = (), k_turn: int | None = None, k_river: int | None = None,
           preset: str = "narrow", seed: int = 0, valuenet=None, leaf_street: int | None = None,
           leaf_every: int = LEAF_EVERY, return_avg: bool = False):
-    """Loest das Teilspiel ab root. Rueckgabe: Baum, Durchschnittsstrategie am aktuellen Knoten (Ende von
-    path; Aktionen x 1326), Werte an der Wurzel; mit exploit=True zusaetzlich die Ausnutzbarkeit in Chips
-    ((BR0 + BR1) / 2, im Gleichgewicht 0). k_turn/k_river/preset/seed: siehe build_tree.
-    valuenet + leaf_street: Teilbaeume ab Beginn dieser Strasse (Kartenzahl, z. B. 5 = River) werden durch
-    Netzwerte ersetzt, die alle leaf_every Iterationen aus den aktuellen Ranges neu bewertet werden."""
+    """ Solves the subgame from root. Returns: tree, average strategy at current node (end of
+    path; actions x 1326), values at root; with exploit=True additionally exploitability in chips
+    ((BR0 + BR1) / 2, zero at equilibrium). k_turn/k_river/preset/seed: see build_tree.
+    valuenet + leaf_street: subtrees from start of this street (card count, e.g. 5 = river) are replaced by
+    net values which are re-evaluated every leaf_every iterations from current ranges."""
     tree = build_tree(root, path, k_turn, k_river, preset, seed, leaf_street if valuenet is not None else None)
     vals, order, nvalid = board_tables(tree.boards) if tree.boards else (
         np.zeros((1, N_COMBOS), np.int64), np.zeros((1, N_COMBOS), np.int64), np.zeros(1, np.int64))
@@ -768,11 +768,11 @@ def solve(root: State, r0: np.ndarray, r1: np.ndarray, iters: int = 200, exploit
             tree.board_id, tree.card, vals, order, nvalid, COMBOS, COMBO_HAS,
             r0.astype(np.float64), r1.astype(np.float64))
     n_nodes, H = len(tree.kind), N_COMBOS
-    regret = np.zeros((n_nodes, H), np.float32)       # je Kante (Kindknoten), fuer den Handelnden am Elternknoten
-    reach = np.zeros((n_nodes, H), np.float32)        # Reach des GEGENSPIELERS des gerade aktualisierten Spielers
-    val = np.zeros((n_nodes, H), np.float32)          # kontrafaktische Werte des aktualisierten Spielers
-    avg = np.zeros((n_nodes, H), np.float32)          # Summe Gewicht * eigener Reach * Strategie (je Kante)
-    own = np.zeros((n_nodes, H), np.float32)          # eigener Reach des aktualisierten Spielers
+    regret = np.zeros((n_nodes, H), np.float32)       # per edge (child node), for the acting player at the parent node
+    reach = np.zeros((n_nodes, H), np.float32)        # Reach of the OPPONENT of the currently updated player
+    val = np.zeros((n_nodes, H), np.float32)          # counterfactual values of the updated player
+    avg = np.zeros((n_nodes, H), np.float32)          # sum weight * own reach * strategy (per edge)
+    own = np.zeros((n_nodes, H), np.float32)          # own reach of the updated player
     root_val = np.zeros((2, H))
     n_leaves = int((tree.leaf_ix >= 0).sum())
     leafval = np.zeros((max(n_leaves, 1), 2, H), np.float32)
@@ -781,15 +781,15 @@ def solve(root: State, r0: np.ndarray, r1: np.ndarray, iters: int = 200, exploit
         avg, v = _solve_any(*args, 1, iters + 1, tree.cdiv, gamma, tree.levels, tree.leaf_ix, leafval, *state)
     else:
         if exploit:
-            raise ValueError("Ausnutzbarkeit mit Wertnetz-Blaettern nicht definiert")
-        # erste Iteration mit Blattwert 0 liefert die Reaches der gleichverteilten Strategie, dann bewerten
+            raise ValueError('Exploitability with value network leaves not defined')
+        # first iteration with leaf value 0 yields the reaches of the uniform strategy, then evaluate
         t = 1
         while t <= iters:
             t_end = min(iters + 1, t + leaf_every)
             if t == 1:
                 _solve_any(*args, 1, 2, tree.cdiv, gamma, tree.levels, tree.leaf_ix, leafval, *state)
                 leafval[:] = leaf_values(tree, valuenet, reach, own, root.bb)
-                # Zustand zuruecksetzen: die Null-Blatt-Iteration soll nicht in Regrets/Durchschnitt eingehen
+                # reset state: the zero-leaf iteration should not count into regrets/average
                 regret[:] = 0.0
                 avg[:] = 0.0
             avg, v = _solve_any(*args, t, t_end, tree.cdiv, gamma, tree.levels, tree.leaf_ix, leafval, *state)
@@ -810,30 +810,30 @@ def solve(root: State, r0: np.ndarray, r1: np.ndarray, iters: int = 200, exploit
 # --- Ranges heads-up -------------------------------------------------------------------------------
 
 def public_ranges(obs: Observation, hero: int, opp: int) -> tuple[np.ndarray, np.ndarray]:
-    """Ranges beider Spieler zu BEGINN der aktuellen Strasse, nur aus oeffentlicher Information - die
-    eigene so, wie der Gegner sie sieht. Was auf dieser Strasse passiert ist, ergibt sich im Baum selbst
-    aus dem Gleichgewicht (wer hier erhoeht, hat, womit das Gleichgewicht erhoeht). Blocker der eigenen
-    Karten rechnet der Loeser ein."""
+    """ Ranges of both players at BEGINNING of the current street, only from public information - the
+    own as the opponent sees it. What happens on this street is determined in the tree itself
+    from equilibrium (who raises here has with what the equilibrium raises). Blockers of own
+    cards are accounted for by the solver."""
     pub = replace(obs, hole_cards=[], history=[a for a in obs.history if a.street != obs.street])
-    hu = sum(obs.in_hand) == 2          # Tisch heads-up gestartet (sonst: Pot nur heads-up geworden)
+    hu = sum(obs.in_hand) == 2          # Table heads-up started (otherwise: pot only became heads-up)
     r_opp = opponent_ranges(replace(pub, seat=hero), heads_up=hu)[opp]
     r_hero = opponent_ranges(replace(pub, seat=opp), heads_up=hu)[hero]
     return r_hero, r_opp
 
 
 def root_state(obs: Observation) -> tuple[State, int, tuple]:
-    """Zustand zu Beginn der aktuellen Strasse (0 = wir, 1 = Gegner) und die Aktionen seitdem."""
+    """ State at the start of the current street (0 = us, 1 = opponent) and actions since then."""
     hero = obs.seat
     live = [s for s in range(obs.num_seats) if obs.in_hand[s] and not obs.folded[s]]
     opp = next(s for s in live if s != hero)
     idx = {hero: 0, opp: 1}
-    # Wer handelt postflop zuerst? Der erste der beiden links vom Button (engine._next) - am vollen Tisch kann
-    # das auch der Gegner sein, obwohl wir nicht den Button haben
+    # Who acts postflop first? The first of the two left of the button (engine._next) - at a full table the
+    # opponent can also be that, even though we do not have the button
     order = [(obs.button + k) % obs.num_seats for k in range(1, obs.num_seats + 1)]
     first = next(s for s in order if s in (hero, opp))
     oop = 0 if first == hero else 1
-    # totes Geld gefoldeter Spieler (Blinds, Limps, 3-Bet-Folds) gehoert in den Pot: haelftig beiden zugeschlagen
-    # (konstante Verschiebung, Gleichgewicht unveraendert, Showdown-/Fold-Nutzen stimmen automatisch)
+    # dead money of folded players (blinds, limps, 3-bet-folds) belongs in the pot: split evenly assigned
+    # (constant shift, equilibrium unchanged, showdown/fold utilities match automatically)
     dead = int(sum(obs.committed) - obs.committed[hero] - obs.committed[opp])
     st = State(board=tuple(CARD_INDEX[c] for c in obs.board),
                committed=(obs.committed[hero] - obs.bets[hero] + dead // 2,
@@ -857,8 +857,8 @@ def hand_index(cards: list[str]) -> int:
 
 
 class HUSearchAgent(BaseAgent):
-    """Blueprint-Netz, wo nicht gesucht wird; heads-up Neuloesen per CFR auf den gewaehlten Strassen
-    (Flop mit gezogenen Turn-/Rivercards, Turn mit allen Rivercards, River exakt)."""
+    """ Blueprint net where no search is done; heads-up re-solving by CFR on chosen streets
+    (flop with drawn turn/river cards, turn with all river cards, river exactly)."""
     name = "hus"
 
     def __init__(self, blueprint: BaseAgent, iters_turn: int = 120, iters_river: int = 300,
@@ -869,19 +869,19 @@ class HUSearchAgent(BaseAgent):
                  auto: bool = False, opp_fold=None, leaf: int = 5, k_turn_leaf: bool = False, greedy: bool = False):
         super().__init__(seed)
         self.bp = blueprint
-        self.bp_streets = bp_streets        # Strassen, deren Aktionen das Blueprint in Ranges uebersetzt (None = Heuristik)
-        self.opp_weights = opp_weights      # Gegnermodell (z. B. Menschen-Netz human-1) fuer die Ranges des Gegners
-        self.opp_fold = opp_fold            # Fold-Modell (humanfold.HumanFold): Weiterspiel-Faktor je Hand vor jeder Gegneraktion
-        self.auto = auto                    # Format je Hand waehlen: Turnier/kurz -> turn,river + pre,flop; tief -> + Preflop-Loeser, eq,flop
+        self.bp_streets = bp_streets        # Streets whose actions translate blueprint into ranges (None = heuristic)
+        self.opp_weights = opp_weights      # Opponent model (e.g. human network human-1) for opponent ranges
+        self.opp_fold = opp_fold            # Fold model (humanfold.HumanFold): continuation factor per hand before each opponent action
+        self.auto = auto                    # Choose hand format: tournament/short -> turn,river + pre,flop; deep -> + preflop solver, eq,flop
         self.iters = {"flop": iters_flop, "turn": iters_turn, "river": iters_river}
         self.streets = streets
         self.k_turn, self.k_river, self.preset = k_turn, k_river, preset
         self.threads = threads
-        self.k_river_turn = k_river_turn    # Rivercards im Turn-Baum (None = alle 48, exakt)
-        self.valuenet = valuenet            # Wertnetz: River-Teilbaeume werden zu Blaettern (hus-3)
-        self.leaf = leaf                    # Blattstrasse (Kartenzahl): 5 = River-Anfaenge; 4 = Turn-Anfaenge (Stufe 2, braucht Turn-Netz)
-        self.greedy = greedy                # Suche: wahrscheinlichste Aktion der gemischten Strategie statt Ziehen (31.10.)
-        self.k_turn_leaf = k_turn_leaf      # leaf=4: Turncards trotzdem ziehen (k_turn), statt alle 47 zu nehmen (31.10.: 8 gezogene ~ gleiche Zeit wie 6x6, naeher an der Referenz)
+        self.k_river_turn = k_river_turn    # River cards in the turn tree (None = all 48, exact)
+        self.valuenet = valuenet            # Valuenet: River subtrees become leaves (hus-3)
+        self.leaf = leaf                    # Street (card count): 5 = River beginnings; 4 = Turn beginnings (level 2, requires Turn network)
+        self.greedy = greedy                # Search: most likely action from the mixed strategy instead of fold (31.10.)
+        self.k_turn_leaf = k_turn_leaf      # leaf=4: still draw Turn cards (k_turn), instead of taking all 47 (31.10.: 8 drawn ~ same time as 6x6, closer to reference)
         self.last = None
 
     def hand_over(self, rec, seat):
@@ -894,7 +894,7 @@ class HUSearchAgent(BaseAgent):
                 and not any(obs.allin[s] for s in live) and obs.stacks[obs.seat] > 0)
 
     def preflop(self, obs: Observation) -> Action | None:
-        """Heads-up-Tisch preflop: Gleichgewicht aus hupreflop (None = nicht anwendbar)."""
+        """ Heads-up table preflop: equilibrium from hupreflop (None = not applicable)."""
         from .hupreflop import decide
         if obs.street != "preflop" or sum(obs.in_hand) != 2 or len(obs.hole_cards) != 2 or obs.stacks[obs.seat] <= 0:
             return None
@@ -915,8 +915,8 @@ class HUSearchAgent(BaseAgent):
         return Action.raise_to(amt)
 
     def choose_format(self, obs: Observation) -> None:
-        """auto: tiefes Cash (kein Turnier, effektiver Stack >= 80 BB) -> Preflop-Loeser + Gleichgewichts-Ranges
-        (Slumbot hus-5: +-0 statt -39); sonst Turnier-Konfiguration (hu480: Netz-Ranges, kein Preflop-Loeser)."""
+        """ auto: deep cash (no tournament, effective stack >= 80 BB) -> Preflop solver + equilibrium ranges
+        (Slumbot hus-5: +-0 instead of -39); otherwise tournament configuration (hu480: network ranges, no preflop solver)."""
         from .hupreflop import effective_stack_bb
         deep = obs.tournament is None and sum(obs.in_hand) == 2 and effective_stack_bb(obs) >= AUTO_DEEP_BB
         if deep:
@@ -945,18 +945,18 @@ class HUSearchAgent(BaseAgent):
         r_hero, r_opp = rr if rr is not None else public_ranges(obs, obs.seat, opp)
         h = hand_index(obs.hole_cards)
         r_hero = r_hero.copy()
-        r_hero[h] = max(r_hero[h], 1e-4)            # eigene Hand nie ganz ausschliessen
+        r_hero[h] = max(r_hero[h], 1e-4)            # never completely exclude own hand
         r_opp = r_opp * ~dead_mask(obs.hole_cards)
         if r_opp.sum() <= 0:
             return self.bp.act(obs)
-        # Flop: Turn- und Rivercards ziehen (fest je Situation, damit dieselbe Lage denselben Baum bekommt);
-        # Turn: alle Rivercards wie bisher
+        # Flop: draw Turn and River cards (fixed per situation, so the same situation gets the same tree);
+        # Turn: all River cards as before
         flop = obs.street == "flop"
         import zlib
         seed = zlib.crc32(f"{obs.board}|{obs.hole_cards}|{path}".encode()) & 0x7FFFFFFF
         try:
-            # Blattstrasse: am Flop mit Turn-Netz (leaf=4) enden die Teilbaeume schon an den Turn-Anfaengen (alle
-            # 47 Turncards, kein Ziehen noetig), sonst an den River-Anfaengen
+            # Street: at the Flop with Turn network (leaf=4) the subtrees already end at the Turn beginnings (all
+            # 47 Turn cards, no drawing needed), otherwise at the River beginnings
             leaf_street = 4 if (self.leaf == 4 and obs.street == "flop") else 5
             use_net = self.valuenet is not None and obs.street in ("flop", "turn")
             tree, strat, _ = solve(st, r_hero / r_hero.sum(), r_opp / r_opp.sum(), self.iters[obs.street], path=path,
@@ -964,7 +964,7 @@ class HUSearchAgent(BaseAgent):
                                    k_river=self.k_river if flop else (self.k_river_turn if obs.street == "turn" else None),
                                    preset=self.preset, seed=seed,
                                    valuenet=self.valuenet if use_net else None, leaf_street=leaf_street if use_net else None)
-        except ValueError:                          # Verlauf passt nicht (z. B. mehr Raises als erlaubt)
+        except ValueError:                          # Sequence does not fit (e.g. more raises than allowed)
             return self.bp.act(obs)
         p = strat[:, h].astype(np.float64)
         p /= p.sum()
@@ -985,8 +985,8 @@ class HUSearchAgent(BaseAgent):
 
 
 def warmup(streets: tuple[str, ...] = ("flop", "turn", "river")) -> None:
-    """Kernel fuer die gesuchten Strassen einmal uebersetzen bzw. aus dem Cache laden (sonst wartet die erste
-    Entscheidung einer Sitzung bis zu 20 s auf numba)."""
+    """ Kernel for the requested streets translated once or loaded from cache (otherwise the first
+    decision of a session waits up to 20 s for numba)."""
     r = np.full(N_COMBOS, 1.0 / N_COMBOS)
     for street, board in (("flop", (0, 5, 10)), ("turn", (0, 5, 10, 15)), ("river", (0, 5, 10, 15, 20))):
         if street not in streets:
@@ -997,7 +997,7 @@ def warmup(streets: tuple[str, ...] = ("flop", "turn", "river")) -> None:
 
 
 def load_valuenet(name: str):
-    """Wertnetz laden: Pfad oder Name unter data/valuenet/<name>.pt."""
+    """ Load value network: path or name under data/valuenet/<name>.pt."""
     from pathlib import Path
     from .nn_agent import rl_root
     from .valuenet import ValueNet
@@ -1008,11 +1008,11 @@ def load_valuenet(name: str):
 
 
 def set_threads(n: int) -> None:
-    """Numba-Faeden je Prozess begrenzen (wirkt prozessweit; ohne numba wirkungslos)."""
+    """ Limit numba threads per process (affects process-wide; no effect without numba)."""
     try:
         import numba
         numba.set_num_threads(max(1, min(int(n), numba.config.NUMBA_NUM_THREADS)))
-    except Exception:       # pragma: no cover - kein numba oder nicht unterstuetzt
+    except Exception:       # pragma: no cover - no numba or not supported
         pass
 
 
@@ -1021,15 +1021,12 @@ def make_husearch_agent(params: str, seed: int = 0) -> HUSearchAgent:
     kv = dict(p.partition("=")[::2] for p in params.split("&") if p)
     unknown = set(kv) - {"bp", "iters", "iters_river", "iters_flop", "streets", "k_turn", "k_river", "sizes", "threads",
                          "k_river_turn", "vnet", "ranges", "opp", "auto", "oppfold", "leaf", "bpgreedy", "greedy"}
-    ranges = kv.get("ranges", "pre,flop")      # Standard seit 30.10. 14:08 (Messung E: +6,0 vs Heuristik, -2,5 vs Netz)
+    ranges = kv.get("ranges", "pre,flop")      # Standard since 30.10. 14:08 (Measurement E: +6.0 vs heuristic, -2.5 vs network)
     if unknown or "bp" not in kv or kv.get("sizes", "narrow") not in SIZE_PRESETS \
             or ranges not in ("pre", "pre,flop", "eq", "eq,flop", "heur") or kv.get("leaf", "5") not in ("4", "5"):
-        raise ValueError("hus-Bot: 'hus?bp=<Liga-Name>|run:<Lauf>@<Ckpt>&iters=120&iters_river=300&iters_flop=40"
-                         "&streets=preflop,flop,turn,river&k_turn=6&k_river=6&k_river_turn=16&sizes=narrow|wide&threads=12"
-                         "&vnet=vnet-river-1&leaf=5|4&ranges=pre|pre,flop|eq|eq,flop|heur&opp=human-1@1&auto=1"
-                         "&bpgreedy=1 (Blueprint spielt greedy, wo nicht gesucht wird) &greedy=1 (Suche nimmt Top-Aktion)'")
-    # ranges=eq[,flop]: Preflop-Ranges aus dem Heads-up-Gleichgewicht (hupreflop.path_ranges) statt aus dem Netz -
-    # fuer tiefes Cash (Slumbot), wo der Gegner nicht wie unser Turnier-Netz spielt (hus-4 30.10.)
+        raise ValueError("hus-Bot: 'hus?bp=<League-Name>|run:<Run>@<Ckpt>&iters=120&iters_river=300&iters_flop=40&streets=preflop,flop,turn,river&k_turn=6&k_river=6&k_river_turn=16&sizes=narrow|wide&threads=12&vnet=vnet-river-1&leaf=5|4&ranges=pre|pre,flop|eq|eq,flop|heur&opp=human-1@1&auto=1&bpgreedy=1 (Blueprint plays greedy where no search) &greedy=1 (Search takes top action)'")
+    # ranges=eq[,flop]: Preflop ranges from heads-up equilibrium (hupreflop.path_ranges) instead of from network -
+    # for deep cash (Slumbot), where opponent does not play like our tournament network (hus-4 30.10.)
     bp_streets = None if ranges == "heur" else tuple({"pre": "preflop", "flop": "flop", "eq": "eq"}[x] for x in ranges.split(","))
     bp = kv["bp"]
     if bp.startswith("run:"):
@@ -1039,7 +1036,7 @@ def make_husearch_agent(params: str, seed: int = 0) -> HUSearchAgent:
         from .nn_agent import rl_root
         blueprint = League(rl_root().parent / "league").agent(bp, seed)
     if kv.get("bpgreedy") == "1" and hasattr(blueprint, "greedy"):
-        blueprint.greedy = True             # Ranges (blueprint_ranges) bleiben die gelernte Mischung, nur die Aktion wird greedy
+        blueprint.greedy = True             # Ranges (blueprint_ranges) remain the learned mixture, only the action becomes greedy
     streets = tuple(kv.get("streets", "turn,river").split(","))
     warmup(streets)
     return HUSearchAgent(blueprint, int(kv.get("iters", 120)), int(kv.get("iters_river", 300)), streets, seed,
@@ -1054,7 +1051,7 @@ def make_husearch_agent(params: str, seed: int = 0) -> HUSearchAgent:
 
 
 def load_opp_fold(name: str):
-    """Fold-Modell (humanfold.HumanFold) aus data/humans/<name>.npz oder Pfad."""
+    """ Fold model (humanfold.HumanFold) from data/humans/<name>.npz or path."""
     from .humanfold import HumanFold
     from .nn_agent import rl_root
     p = Path(name) if name.endswith(".npz") else rl_root().parent / "humans" / f"{name}.npz"
@@ -1062,7 +1059,7 @@ def load_opp_fold(name: str):
 
 
 def load_opp_weights(spec: str) -> dict:
-    """Gegnermodell '<Lauf>@<Checkpoint>' (z. B. human-1@1, Menschen-Netz aus HandHQ) als numpy-Gewichte."""
+    """ Opponent model '<Run>@<Checkpoint>' (e.g. human-1@1, human network from HandHQ) as numpy weights."""
     from .nn_agent import load_weights
     run, _, ck = spec.partition("@")
     return load_weights(run, ck or "latest")

@@ -1,10 +1,10 @@
-"""Frame -> TableSnapshot: alle sichtbaren Felder mit Rohwert, Konfidenz und Bildbereich.
+"""Frame -> TableSnapshot: all visible fields with raw value, confidence and image region.
 
-Feldschluessel (Beispiele):
+Field keys (examples):
   table.found, info.street, info.game_hand, info.blinds, info.total, info.bets, pot.total,
   board.cards, board.count, hero.to_act, hero.buttons,
   seat.<n>.present|name|stack|bet|folded|active|cards_state|cards|action_label|marker
-Werte sind JSON-faehig und vergleichbar (Listen/Tupel als Listen).
+Values are JSON-capable and comparable (lists/tuples as lists).
 """
 
 from __future__ import annotations
@@ -58,14 +58,14 @@ _STACK_LIKE = re.compile(r"[$S§]\s*[0-9OolI]|^\s*[0-9][0-9 .,]*\s*$")
 
 
 def _up(base: float, scale: float) -> float:
-    """OCR-Vergroesserung so waehlen, dass Text unabhaengig vom Tischmassstab gleich gross wird."""
+    """Choose OCR magnification so that text size is independent of the table scale and remains constant."""
     return float(min(5.0, max(1.5, base / max(scale, 0.1))))
 
 
 def _strict_money(text: str) -> bool:
-    """Betrag mit Waehrungszeichen, nicht nur Ziffern (die sind oft Teilverleser)."""
+    """Amount with currency sign, not just digits (digits often partial misreads)."""
     p = parse.extract_money(text)
-    return p.ok and "ohne Waehrungszeichen" not in p.note
+    return p.ok and 'without currency symbol' not in p.note
 
 
 def _has_money(res) -> bool:
@@ -95,12 +95,12 @@ def _yellow_border_share(hsv: np.ndarray, rect: Rect, profile: Profile, scale: f
 
 
 def _panel_tint(frame: np.ndarray, hsv: np.ndarray, rect: Rect) -> float:
-    """Mittleres (G - B) der dunklen Panel-Hintergrundpixel. Ausgeblendete (gefoldete)
-    Panels lassen den gruenen Filz durchscheinen -> positiver Wert."""
+    """Mean (G - B) of the dark panel background pixels. Hidden (folded)
+    panels let the green felt shine through -> positive value."""
     r = rect.clip(frame.shape[1], frame.shape[0])
     sub = r.crop(frame).astype(int)
     hs = r.crop(hsv)
-    # nur dunkle, wenig gesaettigte Pixel: Filzecken und gelbe Schrift ausschliessen
+    #only dark, low-saturation pixels: exclude felt edges and yellow text
     bg = (hs[..., 2] < 90) & (hs[..., 1] < 150)
     if bg.sum() < 20:
         return 0.0
@@ -115,7 +115,7 @@ class FrameAnalyzer:
         self.seat_memory = SeatMemory(profile["anchor_tolerance"])
 
     def reset(self):
-        """Neue Sitzung/neuer Tisch: gelernte Sitzpositionen vergessen."""
+        """New session/new table: forget learned seat positions."""
         self.seat_memory.reset()
 
     def analyze(self, frame: np.ndarray, frame_index: int = 0, t_mono: float = 0.0, t_wall: float = 0.0) -> TableSnapshot:
@@ -136,8 +136,8 @@ class FrameAnalyzer:
         self._action_bar(frame, lay, snap)
 
         markers = {m.kind: m for m in lay.markers}
-        # Marker VOR den Sitzen (wie _priority offline): ein neuer Dealer-Button wird so vor den neuen Blinds
-        # gemeldet, und die Live-Rekonstruktion sieht dieselbe Reihenfolge wie die Nachauswertung
+        #Marker BEFORE the seats (like _priority offline): a new dealer button is reported     so before the new blinds
+        #and the live reconstruction sees the same order as the post-analysis
         for kind in ("D", "SB", "BB"):
             m = markers.get(kind)
             snap.set(f"marker.{kind}", m.seat if m else None, rect=m.rect if m else None,
@@ -151,7 +151,7 @@ class FrameAnalyzer:
             self._seat(frame, hsv, lay, panel, snap)
         return snap
 
-    # ---- Bereiche -------------------------------------------------------
+    # ---- Regions -------------------------------------------------------
 
     def _info_row(self, frame, lay: TableLayout, snap: TableSnapshot):
         if lay.info_left:
@@ -198,11 +198,11 @@ class FrameAnalyzer:
                          confidence=0.9 if not p.corrected else 0.6)
                 return
         snap.set("pot.total", None, raw=res.text or None, rect=lay.pot, method="ocr", confidence=0.0,
-                 note="kein Pot lesbar")
+                 note='no pot readable')
 
     def _board(self, frame, hsv, lay: TableLayout, snap: TableSnapshot):
-        """Board-Karten direkt als Kartenflaechen in der Tischmitte suchen (Groesse/Abstand haengen vom
-        Layout ab), links nach rechts sortiert."""
+        """Board cards searched directly as card areas in the table center (size/distance depend on
+        layout), sorted left to right."""
         f = lay.felt
         top = lay.pot.y2 if lay.pot else int(f.y + 0.3 * f.h)
         hero = lay.seats.get(0)
@@ -216,7 +216,7 @@ class FrameAnalyzer:
         count = len(faces)
         snap.set("board.count", count, method="card-detect", rect=union,
                  confidence=0.9 if count in (0, 3, 4, 5) else 0.3,
-                 note="" if count in (0, 3, 4, 5) else "ungewoehnliche Kartenzahl auf dem Board")
+                 note="" if count in (0, 3, 4, 5) else 'unusual number of cards on the board')
         snap.set("board.cards", cards, method="card-read", rect=union,
                  confidence=min(confs) if confs else (0.9 if count == 0 else 0.0))
 
@@ -229,7 +229,7 @@ class FrameAnalyzer:
         res = self.ocr.read(frame, lay.action_bar, key="actionbar", upscale=1.5)
         buttons = []
         lines = sorted(res.lines, key=lambda l: (l.rect.x // 40, l.rect.y))
-        # Knopfbeschriftung (z. B. 'Call') und Betrag ('$20') stehen in zwei Zeilen untereinander
+        #Button label (e.g. 'Call') and amount ('$20') are in two lines underneath
         used = set()
         for i, line in enumerate(lines):
             act = parse.parse_action_label(line.text)
@@ -249,11 +249,11 @@ class FrameAnalyzer:
                             amount = pm.value
                             used.add(j)
                             break
-            # Schnellwahlknoepfe ('All-In', '1/2', 'Pot') liegen oberhalb der grossen Knoepfe
+            #Quick-action buttons ('All-In', '1/2', 'Pot') lie above the large buttons
             big = line.rect.y > lay.action_bar.y + lay.action_bar.h * 0.45
             buttons.append({"action": act.value, "amount": amount, "primary": big, "raw": line.text})
-        # Leiste erkannt, kein Knopf gelesen = eine Aussage (keine Knoepfe), kein Lesefehler: sonst bleibt der
-        # alte Call-Knopf bis unknown_after_ms stehen und 'du bist dran' leuchtet nach dem Klick nach
+        #Bar detected, no button read = a statement (no buttons), no read error: otherwise the
+        #old call button remains until unknown_after_ms and 'your turn' lights after the click
         snap.set("hero.buttons", [b for b in buttons if b["primary"]], raw=res.text, method="ocr",
                  rect=lay.action_bar, confidence=0.8 if buttons else 0.5)
 
@@ -263,11 +263,11 @@ class FrameAnalyzer:
         regions = _panel_regions(self.profile, panel.hero)
         r_cards = panel.rect.sub(*regions["cards"], scale=s)
         r_text = panel.rect.sub(*regions["text"], scale=s)
-        # Text ist rechtsbuendig (Stack): bis zur gemessenen rechten Panelkante lesen, auch wenn
-        # das Panel durch angrenzende Elemente (z. B. SB-Button) breiter erkannt wurde
+        #Text is right-aligned (Stack): read up to the measured right panel edge, even if
+        #the panel was recognized wider by adjacent elements (e.g. SB button)
         r_text = Rect(r_text.x, r_text.y, panel.rect.x2 - r_text.x, r_text.h)
 
-        # Name + Stack: Textzeilen im unteren Panelteil
+        #Name + Stack: text lines in the lower panel part
         res = self.ocr.read(frame, r_text, key=f"seat.{n}.text", upscale=_up(3.0, s), accept=_has_name_and_stack)
         name_lines, stack = [], None
         for line in sorted(res.lines, key=lambda l: l.rect.y):
@@ -284,15 +284,15 @@ class FrameAnalyzer:
         if stack:
             p, line = stack
             conf = 0.9 if not p.corrected else 0.6
-            if "ohne Waehrungszeichen" in p.note:
+            if 'without currency symbol' in p.note:
                 conf = 0.3
             snap.set(f"seat.{n}.stack", p.value, raw=line.text, rect=line.rect, method="ocr",
                      confidence=conf, note=p.note)
         else:
             snap.set(f"seat.{n}.stack", None, raw=res.text or None, rect=r_text, method="ocr",
-                     confidence=0.0, note="kein Stack lesbar")
+                     confidence=0.0, note='no stack readable')
 
-        # Einsatz in der Zeile unter dem Panel
+        #Bet in the line below the panel
         if panel.has_bet_row:
             r_bet = panel.rect.sub(*regions["bet"], scale=s)
             r_bet = Rect(r_bet.x, r_bet.y, panel.rect.x2 - r_bet.x, r_bet.h)
@@ -309,11 +309,11 @@ class FrameAnalyzer:
                          confidence=0.9 if not p.corrected else 0.6)
             else:
                 snap.set(f"seat.{n}.bet", None, raw=rb.text or None, rect=r_bet, method="ocr",
-                         confidence=0.0, note="Einsatzzeile sichtbar, Betrag unlesbar")
+                         confidence=0.0, note='bet line visible, amount unreadable')
         else:
             snap.set(f"seat.{n}.bet", 0, rect=panel.rect, method="no-bet-row", confidence=0.8)
 
-        # Karten, Fold, Aktionslabel
+        #Cards, fold, action label
         slot = self.cards.read_region(frame, hsv, r_cards, s)
         snap.card_reads.extend((f"seat.{n}", c) for c in slot.faces)
         rc = self.ocr.read(frame, r_cards, key=f"seat.{n}.cards", upscale=_up(3.0, s))

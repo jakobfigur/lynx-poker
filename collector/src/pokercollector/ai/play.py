@@ -1,9 +1,9 @@
-"""Spielsitzungen Mensch gegen Bots und deren Auswertung.
+"""Game sessions human versus bots and their evaluation.
 
-Jede Sitzung wird als JSONL gespeichert (data/play/<Zeit>_<Modus>.jsonl):
-  1. Zeile  {"type": "meta", ...}
-  je Hand   {"type": "hand", "record": {...}}     (vollstaendiger Verlauf inkl. aller Karten)
-  Ende      {"type": "end", "pf": [...], "summary": {...}}
+Each session is saved as JSONL (data/play/<Time>_<Mode>.jsonl):
+  1st line {"type": "meta", ...}
+  per hand {"type": "hand", "record": {...}}     (complete history including all cards)
+  end      {"type": "end", "pf": [...], "summary": {...}}
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ class SessionWriter:
 
 def play_cash(human: HumanAgent, bots: list, out_dir: Path, hands: int = 1000, stack_bb: int = 100,
               blinds: tuple[int, int] = (10, 20), seed: int | None = None) -> Path:
-    """Cash-Game: Stacks bleiben bestehen; wer unter 1 BB faellt, kauft automatisch nach (rebuy)."""
+    """Cash game: stacks remain; anyone falling below 1 BB automatically rebuys."""
     seed = seed if seed is not None else int(time.time())
     rec_human = RecordingAgent(human)
     agents = [rec_human] + bots
@@ -68,8 +68,8 @@ def play_cash(human: HumanAgent, bots: list, out_dir: Path, hands: int = 1000, s
     w = SessionWriter(path, {"mode": "cash", "version": PLAY_VERSION, "seed": seed, "names": names,
                              "human_seat": 0, "human": human.name, "blinds": [sb, bb], "stack_bb": stack_bb})
     played, rebuys = 0, {nm: 0 for nm in names}
-    human.out(f"Cash-Game gegen {', '.join(names[1:])}. Blinds {sb}/{bb}, Start {start} ({stack_bb} BB). "
-              f"'q' beendet.")
+    human.out(f"Cash game against {', '.join(names[1:])}. Blinds {sb}/{bb}, Start {start} ({stack_bb} BB). "
+              f"'q' quits.")
     try:
         for k in range(hands):
             for s in range(n):
@@ -77,14 +77,14 @@ def play_cash(human: HumanAgent, bots: list, out_dir: Path, hands: int = 1000, s
                     stacks[s] = start
                     rebuys[names[s]] += 1
                     if s == 0:
-                        human.out(f"  (Du kaufst nach: {start})")
+                        human.out(f"  (You rebuy at: {start})")
             rec = play_hand(agents, stacks, k % n, sb, bb, seed=seed * 1_000_003 + k, hand_id=str(k + 1),
                             names=names)
             stacks = [r.end_stack for r in rec.results]
             w.write({"type": "hand", "record": _rec_to_dict(rec)})
             played += 1
     except (QuitGame, KeyboardInterrupt, EOFError):
-        human.out("\nSitzung beendet (laufende Hand wird nicht gewertet).")
+        human.out('\nSession ended (current hand not counted).')
     w.close({"hands": played, "rebuys": rebuys, "pf": rec_human.log.pf_spots,
              "summary": rec_human.log.summary()})
     return path
@@ -102,34 +102,34 @@ def play_tournament_session(human: HumanAgent, bots: list, out_dir: Path, config
                              "blinds": [config.blinds.small_blind, config.blinds.big_blind],
                              "hands_per_level": config.blinds.hands_per_level, "payouts": list(config.payouts)})
     real_out = human.out
-    human.out(f"Turnier gegen {', '.join(names[1:])}: {config.start_stack} Chips, Blinds "
-              f"{config.blinds.small_blind}/{config.blinds.big_blind}, Verdopplung alle "
-              f"{config.blinds.hands_per_level} Haende. 'q' beendet.")
+    human.out(f"Tournament against {', '.join(names[1:])}: {config.start_stack} chips, blinds "
+              f"{config.blinds.small_blind}/{config.blinds.big_blind}, doubling every "
+              f"{config.blinds.hands_per_level} hands. 'q' to quit.")
 
     def on_hand(rec, hand_no, before):
         w.write({"type": "hand", "record": _rec_to_dict(rec)})
         if before[0] > 0 and rec.results[0].end_stack == 0:
-            real_out("\n*** Du bist ausgeschieden. Der Rest des Turniers wird ohne Ausgabe zu Ende simuliert. ***")
+            real_out('\n*** You are out. The rest of the tournament is simulated to the end without output. ***')
             human.out = lambda *a, **k: None
 
     try:
         res = play_tournament(agents, config, seed=seed, on_hand=on_hand)
     except (QuitGame, KeyboardInterrupt, EOFError):
         human.out = real_out
-        human.out("\nTurnier abgebrochen - wird nicht gewertet.")
+        human.out('\nTournament aborted — not counted.')
         w.close({"aborted": True, "pf": rec_human.log.pf_spots, "summary": rec_human.log.summary()})
         return path, None
     human.out = real_out
-    human.out(f"\nTurnier beendet nach {res.hands} Haenden. Dein Platz: {res.places[0]:g} von {len(names)}, "
-              f"Auszahlung {res.payouts[0]:.2f} Buy-ins.")
+    human.out(f"\nTournament ended after {res.hands} hands. Your place: {res.places[0]:g} out of {len(names)}, "
+              f"payout {res.payouts[0]:.2f} buy-ins.")
     for e in res.eliminations:
-        human.out(f"  Hand {e['hand']:4d}: {e['name']} -> Platz {e['place']:g}")
+        human.out(f"  Hand {e['hand']:4d}: {e['name']} -> Place {e['place']:g}")
     w.close({"places": res.places, "payouts": res.payouts, "hands": res.hands, "finished": res.finished,
              "pf": rec_human.log.pf_spots, "summary": rec_human.log.summary()})
     return path, res
 
 
-# ---- Auswertung ------------------------------------------------------------------
+# ---- Evaluation ------------------------------------------------------------------
 
 def load_sessions(play_dir: Path) -> list[dict]:
     out = []
@@ -151,7 +151,7 @@ def load_sessions(play_dir: Path) -> list[dict]:
 
 
 def player_stats(sessions: list[dict]) -> dict:
-    """Kennzahlen je Spielername ueber alle Sitzungen (Mensch und Bots)."""
+    """Key figures per player name over all sessions (human and bots)."""
     stats: dict[str, AgentStats] = {}
     per_hand: dict[str, list[float]] = {}
     for s in sessions:
@@ -179,11 +179,11 @@ def player_stats(sessions: list[dict]) -> dict:
 
 def stats_markdown(sessions: list[dict], human: str = "du") -> str:
     if not sessions:
-        return "Noch keine Spielsitzungen."
+        return 'No game sessions yet.'
     st = player_stats(sessions)
-    lines = [f"# Deine Partien gegen die Bots", "",
-             f"{len(sessions)} Sitzung(en), {sum(len(s['hands']) for s in sessions)} Haende", "",
-             "| Spieler | Haende | bb/100 | 95-%-Intervall | VPIP | PFR | Aggr. | WTSD | W$SD |",
+    lines = [f"# Your matches against the bots", "",
+             f"{len(sessions)} session(s), {sum(len(s['hands']) for s in sessions)} hands", "",
+             '| Player | Hands | bb/100 | 95% interval | VPIP | PFR | Agg. | WTSD | W$SD |',
              "|---|---|---|---|---|---|---|---|---|"]
     for nm, r in sorted(st.items(), key=lambda kv: (kv[0] != human, -kv[1]["bb_per_100"])):
         who = f"**{nm}**" if nm == human else nm
@@ -193,17 +193,16 @@ def stats_markdown(sessions: list[dict], human: str = "du") -> str:
     if tours:
         places = [s["end"]["places"][0] for s in tours]
         pay = [s["end"]["payouts"][0] - 1 for s in tours]
-        lines += ["", f"Turniere: {len(tours)}, Ø Platz {sum(places) / len(places):.2f}, "
-                      f"ROI {100 * sum(pay) / len(pay):+.0f} %, Siege {sum(1 for p in places if p == 1)}"]
+        lines += ["", f"Tournaments: {len(tours)}, avg. place {sum(places) / len(places):.2f}, "
+                      f"ROI {100 * sum(pay) / len(pay):+.0f} %, wins {sum(1 for p in places if p == 1)}"]
     pf = [x for s in sessions if s["end"] for x in s["end"].get("pf", [])]
     if pf:
         loss = sum(x["ev_loss"] for x in pf)
         wrong = [x for x in pf if x["ev_loss"] > 0.01]
-        lines += ["", f"Push/Fold-Situationen: {len(pf)}, davon {len(wrong)} abweichend von Nash, "
-                      f"EV-Verlust gesamt {loss:.2f} BB ({loss / len(pf):.3f} BB je Situation)"]
+        lines += ["", f"Push/Fold situations: {len(pf)}, of which {len(wrong)} differ from Nash, "
+                      f"total EV loss {loss:.2f} BB ({loss / len(pf):.3f} BB per situation)"]
         for x in sorted(wrong, key=lambda x: -x["ev_loss"])[:10]:
-            lines.append(f"- {x['hand']} bei {x['stack_bb']:g} BB, {x['behind']} dahinter: du {x['chose']}, "
-                         f"besser {x['best']} (-{x['ev_loss']:.2f} BB)")
-    lines += ["", "Hinweis: Wenige hundert Haende sind statistisch wenig - das Intervall zeigt, wie unsicher "
-                  "die Zahl noch ist."]
+            lines.append(f"- {x['hand']} at {x['stack_bb']:g} BB, {x['behind']} behind: you {x['chose']}, "
+                         f"better {x['best']} (-{x['ev_loss']:.2f} BB)")
+    lines += ["", 'Note: A few hundred hands is statistically small – the interval shows how uncertain the figure still is.']
     return "\n".join(lines)

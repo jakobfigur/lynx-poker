@@ -1,16 +1,16 @@
-"""ICM (Independent Chip Model, Malmuth-Harville): Turnier-Eigenkapital aus den Stacks.
+""" ICM (Independent Chip Model, Malmuth-Harville): tournament equity from the stacks.
 
-P(Spieler i wird Erster) = s_i / S. P(i wird Zweiter) = Summe ueber j != i von P(j Erster) * s_i / (S - s_j),
-usw. bis zum letzten bezahlten Platz. Preise in Buy-ins je Platz (z. B. 6 Spieler, 50/30/20 % -> 3.0, 1.8, 1.2).
+P(player i finishes first) = s_i / S. P(i is second) = sum over j != i of P(j first) * s_i / (S - s_j),
+and so on until the last paid place. Prizes in buy-ins per place (e.g. 6 players, 50/30/20% -> 3.0, 1.8, 1.2).
 
-Nur fuer die Belohnung im Training und fuer Auswertungen; der Bot sieht ICM nicht direkt.
+Only for the reward in training and for evaluations; the bot does not see ICM directly.
 """
 
 from __future__ import annotations
 
 
 def icm_equity(stacks: list[int] | list[float], prizes: list[float], seat: int) -> float:
-    """Erwartete Auszahlung (in Buy-ins) fuer `seat` bei diesen Stacks. Ausgeschiedene (0) haben 0."""
+    """ Expected payout (in buy-ins) for `seat` given these stacks. Eliminated (0) have 0."""
     if stacks[seat] <= 0 or not prizes:
         return 0.0
     alive = [i for i, s in enumerate(stacks) if s > 0]
@@ -22,8 +22,8 @@ def icm_equity(stacks: list[int] | list[float], prizes: list[float], seat: int) 
     places = min(len(prizes), len(alive))
 
     def finish_prob(remaining_total: float, excluded: tuple[int, ...], depth: int) -> list[float]:
-        """Wahrscheinlichkeiten, dass seat Platz depth, depth+1, ... belegt, gegeben die in `excluded`
-        schon vor ihm fertig sind (remaining_total = Summe der uebrigen Stacks inkl. seat)."""
+        """ Probabilities that seat finishes at place depth, depth+1, ... given those in `excluded`
+        have already finished ahead (remaining_total = sum of remaining stacks including seat)."""
         out = [0.0] * (places - depth + 1)
         out[0] = s_i / remaining_total
         if depth < places:
@@ -45,5 +45,5 @@ def icm_equities(stacks: list[int] | list[float], prizes: list[float]) -> list[f
 
 
 def prizes_from(payouts, players: int) -> list[float]:
-    """Auszahlungsanteile (0.5, 0.3, 0.2) -> Preise in Buy-ins bei `players` Buy-ins Preisgeld."""
+    """ Payout shares (0.5, 0.3, 0.2) -> prizes in buy-ins with `players` buy-ins prize pool."""
     return [float(f) * players for f in (payouts or ())]

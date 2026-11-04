@@ -1,4 +1,4 @@
-"""Laden versionierter Tischprofile."""
+"""Load versioned table profiles."""
 
 from __future__ import annotations
 

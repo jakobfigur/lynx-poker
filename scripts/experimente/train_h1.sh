@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# 27.10.2026: pros-h1 = pros-r1@300 aufgeweitet auf feat-3 + act-2 (8 Aktionen: + 1/3 Pot, Min-Raise).
-# Staerkere Gegner: 40 % der Plaetze fruehere eigene Versionen, nur 15 % Zufalls-Stilbots, Ausbeuter alle 100.
-# Viel mehr Heads-up/3er-Tische, Leine (Pluribus = 6er) erst ab 4 Spielern.
-# Gesteuert ueber den praezisen Pruefstand gegen pros-r1@300 (best.json). Fortsetzbar.
+#27.10.2026: pros-h1 = pros-r1@300 expanded to feat-3 + act-2 (8 actions: + 1/3 pot, min-raise).
+#Stronger opponents: 40% of seats earlier own versions, only 15% random-style bots, exploiter every 100.
+#Much more heads-up/3-player tables, leash (Pluribus = 6-player) only from 4 players.
+#Controlled via the precise testbench against pros-r1@300 (best.json). Continuable.
 cd <Projektordner>
 ./pc.cmd train rl --run pros-h1 --widen-from pros-r1@300 --features feat-3 --actions 8 --iterations 600 \
     --tournaments 512 --anchor-coef 0.3 --anchor pros-r1:0 --anchor-min-players 4 \

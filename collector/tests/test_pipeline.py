@@ -1,4 +1,4 @@
-"""Ende-zu-Ende: Video -> Analyse -> Journal -> Rekonstruktion, plus Recorder."""
+"""End-to-end: video -> analysis -> log -> reconstruction, plus recorder."""
 
 import json
 from pathlib import Path
@@ -40,7 +40,7 @@ def test_offline_session_end_to_end(tmp_path):
         from pokercollector.pipeline import make_analyzer, run_offline
         an = make_analyzer(Profile.load())
     except Exception as e:
-        pytest.skip(f"Windows-OCR nicht verfuegbar: {e}")
+        pytest.skip(f"Windows OCR not available: {e}")
     img = cv2.imread(str(IMG))
     blank = np.zeros_like(img)
     video = tmp_path / "in.mp4"
@@ -61,8 +61,8 @@ def test_offline_session_end_to_end(tmp_path):
     assert (h["dealer"], h["sb_seat"], h["bb_seat"]) == (0, 1, 2)
     types = [(a["seat"], a["type"]) for a in h["actions"]]
     assert (1, "post_sb") in types and (2, "post_bb") in types and (3, "fold") in types
-    assert h["status"] == "partial"           # Hand endet im Video nicht
-    # Einstieg mitten in der Hand: Startstacks aus Stack + gesetzten Blinds abgeleitet
+    assert h["status"] == "partial"           # hand does not end in video
+    # entry mid-hand: starting stacks derived from stack + posted blinds
     assert h["seats"]["1"]["start_stack"] == 3000 and h["seats"]["2"]["start_stack"] == 3000
     assert h["contradictions"] == []
     assert verify_manifest(root) == []

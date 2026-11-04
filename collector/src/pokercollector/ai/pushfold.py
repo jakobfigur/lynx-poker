@@ -1,18 +1,18 @@
-"""Push/Fold-Gleichgewicht (Nash) fuer kurze Stacks.
+"""Push/Fold equilibrium (Nash) for short stacks.
 
-Spiel: Der erste Spieler, der freiwillig setzt, kann nur All-in gehen (Push) oder folden.
-Die Spieler dahinter koennen nur callen oder folden. Bewertet wird in Chips (chip EV),
-nicht mit ICM.
+Game: The first player to voluntarily bet can only go all-in (push) or fold.
+Players behind can only call or fold. Evaluation is done in chips (chip EV),
+not with ICM.
 
-- k = 1 (Small Blind gegen Big Blind, Heads-up): exaktes Gleichgewicht dieses Spiels.
-- k >= 2 Spieler dahinter: Gleichgewicht eines vereinfachten Modells. Annahmen:
-  hoechstens ein Caller (Overcalls ignoriert), Caller entscheiden unabhaengig,
-  Kartenblocker nur zwischen Pusher und jeweiligem Caller beruecksichtigt.
+- k = 1 (Small Blind vs Big Blind, heads-up): exact equilibrium of this game.
+- k >= 2 players behind: equilibrium of a simplified model. Assumptions:
+  at most one caller (ignoring overcalls), callers decide independently,
+  card blockers only considered between pusher and respective caller.
 
-Berechnung: Equity-Matrix aller 169x169 Starthand-Klassen (Monte-Carlo, Kartenblocker
-exakt gewichtet), dann fiktives Spiel (fictitious play) bis zum Gleichgewicht. Die
-Qualitaet wird ueber die Ausnutzbarkeit gemessen: Wie viel BB gewinnt eine perfekte
-Gegenstrategie? Im exakten Gleichgewicht ist das 0.
+Calculation: Equity matrix of all 169x169 starting hand classes (Monte-Carlo, card
+blockers weighted exactly), then fictitious play until equilibrium.
+Quality is measured by exploitability: how many BB does a perfect
+counter-strategy win? In exact equilibrium this is 0.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ STACKS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 MAX_BEHIND = 8
 
 
-# ---- Kombinationen und Blocker ---------------------------------------------
+# ---- Combinations and Blockers ---------------------------------------------
 
 @lru_cache(maxsize=None)
 def class_combos_concrete(cls: str) -> tuple[tuple[str, str], ...]:
@@ -55,7 +55,7 @@ def class_combos_concrete(cls: str) -> tuple[tuple[str, str], ...]:
 
 
 def combo_weights() -> np.ndarray:
-    """W[a, b] = Anzahl kompatibler (kartenfremder) Kombinationspaare von Klasse a und b."""
+    """W[a, b] = number of compatible (card-independent) combination pairs of class a and b."""
     n = len(CLASSES)
     W = np.zeros((n, n))
     for i, a in enumerate(CLASSES):
@@ -66,7 +66,7 @@ def combo_weights() -> np.ndarray:
     return W
 
 
-# ---- Equity-Matrix -----------------------------------------------------------
+# ---- Equity Matrix -----------------------------------------------------------
 
 def _equity_row(args) -> list[float]:
     i, samples, seed = args
@@ -76,7 +76,7 @@ def _equity_row(args) -> list[float]:
     row = []
     for j, b in enumerate(CLASSES):
         if j < i:
-            row.append(None)            # wird aus Symmetrie ergaenzt
+            row.append(None)            # complemented by symmetry
             continue
         pairs = [(x, y) for x in ca for y in class_combos_concrete(b) if not (set(x) & set(y))]
         total = 0.0
@@ -103,7 +103,7 @@ def build_matrix(samples: int = 3000, seed: int = 11, processes: int | None = No
                     E[j, i] = 1.0 - v
             if progress:
                 progress(k + 1, n)
-    np.fill_diagonal(E, 0.5)            # gleiche Klasse gegeneinander: aus Symmetrie exakt 0.5
+    np.fill_diagonal(E, 0.5)            # same class against each other: exactly 0.5 by symmetry
     W = combo_weights()
     return {"version": PUSHFOLD_VERSION, "samples_per_pair": samples, "seed": seed,
             "std_error_per_pair": round(0.5 / samples ** 0.5, 4), "classes": CLASSES,
@@ -116,10 +116,10 @@ def matrix() -> tuple[np.ndarray, np.ndarray]:
     return np.array(d["equity"]), np.array(d["weights"], dtype=float)
 
 
-# ---- Gleichgewicht -----------------------------------------------------------
+# ---- Equilibrium -----------------------------------------------------------
 
 def _blinds(k: int) -> tuple[float, list[float]]:
-    """Gepostete Blinds von Pusher und Callern (in BB). k Caller, die letzten sind SB/BB."""
+    """Posted blinds of pusher and callers (in BB). k callers, the last ones are SB/BB."""
     if k == 1:
         return 0.5, [1.0]                       # Pusher = SB, Caller = BB
     callers = [0.0] * (k - 2) + [0.5, 1.0]
@@ -127,7 +127,7 @@ def _blinds(k: int) -> tuple[float, list[float]]:
 
 
 class PushFoldGame:
-    """Pusher + k Caller, alle mit effektivem Stack S (in BB)."""
+    """Pusher + k callers, all with effective stack S (in BB)."""
 
     def __init__(self, S: float, k: int, E: np.ndarray, W: np.ndarray):
         self.S, self.k, self.E, self.W = S, k, E, W
@@ -137,13 +137,13 @@ class PushFoldGame:
         self.pot = [2 * S + self.dead - self.bp - b for b in self.bc]
 
     def pusher_ev(self, calls: list[np.ndarray]) -> np.ndarray:
-        """EV (netto, BB) des Pushens je Pusher-Hand gegen Call-Wahrscheinlichkeiten je Caller."""
+        """EV (net, BB) of pushing per pusher hand against call probabilities per caller."""
         W, E, S = self.W, self.E, self.S
         wsum = W.sum(axis=1)
         none_call = np.ones(len(CLASSES))
         ev = np.zeros(len(CLASSES))
         for i, c in enumerate(calls):
-            wc = W @ c                                   # Gewicht der callenden Haende je Pusher-Hand
+            wc = W @ c                                   # Weight of calling hands per pusher hand
             p_call = wc / wsum
             eq = np.divide((W * E) @ c, wc, out=np.zeros_like(wc), where=wc > 0)
             ev += none_call * p_call * (eq * self.pot[i] - S)
@@ -152,9 +152,9 @@ class PushFoldGame:
         return ev
 
     def caller_ev(self, push: np.ndarray, i: int) -> np.ndarray:
-        """EV (netto) des Callens je Caller-Hand gegen die Push-Range (frueherer Caller hat gefoldet)."""
+        """EV (net) of calling per caller hand against the push range (earlier caller folded)."""
         W, E, S = self.W, self.E, self.S
-        wp = W.T @ push                                  # Gewicht pushender Haende je Caller-Hand
+        wp = W.T @ push                                  # Weight of pushing hands per caller hand
         eq_c = np.divide((W.T * (1 - E.T)) @ push, wp, out=np.zeros_like(wp), where=wp > 0)
         return eq_c * self.pot[i] - S
 
@@ -171,7 +171,7 @@ class PushFoldGame:
         return {"push": push_avg, "calls": calls_avg}
 
     def exploitability(self, push: np.ndarray, calls: list[np.ndarray]) -> dict:
-        """Gewinn (BB je Hand des jeweiligen Spielers) einer perfekten Gegenstrategie je Rolle."""
+        """Gain (BB per hand of the respective player) of a perfect counter-strategy per role."""
         ev_push = self.pusher_ev(calls)
         cur = push * ev_push + (1 - push) * (-self.bp)
         best = np.maximum(ev_push, -self.bp)
@@ -180,7 +180,7 @@ class PushFoldGame:
             ev_c = self.caller_ev(push, i)
             cur_c = calls[i] * ev_c + (1 - calls[i]) * (-self.bc[i])
             best_c = np.maximum(ev_c, -self.bc[i])
-            # Gewichtet mit der Wahrscheinlichkeit, ueberhaupt vor einem Push zu stehen
+            # Weighted by the probability of facing a push at all
             reach = (self.W.T @ push) / self.W.sum(axis=0)
             out[f"caller{i + 1}"] = float(self.prior @ (reach * (best_c - cur_c)))
         out["total"] = sum(out.values())
@@ -239,14 +239,14 @@ def _entry(stack_bb: float, behind: int) -> dict | None:
     if stack_bb > t["stacks_bb"][-1] or behind < 1:
         return None
     behind = min(behind, t["max_behind"])
-    # naechstgelegene tabellierte Stackgroesse
+    # nearest tabulated stack size
     S = min(t["stacks_bb"], key=lambda s: abs(s - stack_bb))
     return t["entries"][f"{behind}|{S:g}"]
 
 
 def push_probability(hole: list[str], stack_bb: float, behind: int) -> float | None:
-    """Gleichgewichts-Wahrscheinlichkeit fuer Push als erster Spieler mit `behind` Spielern dahinter.
-    None, wenn der Stack groesser als die Tabelle ist."""
+    """Equilibrium probability for push as first player with `behind` players behind.
+    None if the stack is larger than the table."""
     e = _entry(stack_bb, behind)
     if e is None:
         return None
@@ -254,8 +254,8 @@ def push_probability(hole: list[str], stack_bb: float, behind: int) -> float | N
 
 
 def call_probability(hole: list[str], stack_bb: float, behind_at_push: int, my_index: int) -> float | None:
-    """Gleichgewichts-Call gegen einen Push. behind_at_push = Spieler hinter dem Pusher,
-    my_index = 0 fuer den ersten davon."""
+    """Equilibrium call against a push. behind_at_push = player behind the pusher,
+    my_index = 0 for the first of them."""
     e = _entry(stack_bb, behind_at_push)
     if e is None:
         return None
@@ -271,11 +271,11 @@ def range_classes(stack_bb: float, behind: int, role: str = "push", caller: int 
     return [c for c, ch in zip(CLASSES, s) if _ENC.index(ch) >= 5]
 
 def grid_text(stack_bb: float, behind: int, role: str = "push", caller: int = 0) -> str:
-    """13x13-Raster: oben rechts suited, unten links offsuit, Diagonale Paare.
-    '#' = immer, '+' = gemischt (Wahrscheinlichkeit 0.5-0.9), '.' = selten, ' ' = nie."""
+    """13x13 grid: top right suited, bottom left offsuit, diagonal pairs.
+    '#' = always, '+' = mixed (probability 0.5-0.9), '.' = rare, ' ' = never."""
     e = _entry(stack_bb, behind)
     if e is None:
-        return f"Keine Tabelle fuer {stack_bb} BB (Tabelle bis {nash_table()['stacks_bb'][-1]} BB)"
+        return f"No table for {stack_bb} BB (table up to {nash_table()['stacks_bb'][-1]} BB)"
     s = e["push"] if role == "push" else e["calls"][caller]
     probs = {c: _ENC.index(ch) / 10 for c, ch in zip(CLASSES, s)}
     order = RANKS[::-1]
@@ -293,12 +293,12 @@ def grid_text(stack_bb: float, behind: int, role: str = "push", caller: int = 0)
             row.append("#" if p >= 0.95 else "+" if p >= 0.5 else "." if p > 0 else " ")
         lines.append(f" {r1}  " + "  ".join(row))
     pct = e["push_pct"] if role == "push" else e["call_pct"][caller]
-    who = "Push (erster Spieler)" if role == "push" else f"Call (Spieler {caller + 1} hinter dem Pusher)"
-    lines.append(f"{who}, {stack_bb:g} BB effektiv, {behind} Spieler dahinter: {pct}% der Haende; "
-                 f"Ausnutzbarkeit {e['exploitability_bb']} BB")
+    who = 'Push (first player)' if role == "push" else f"Call (player {caller + 1} after the pusher)"
+    lines.append(f"{who}, {stack_bb:g} BB effective, {behind} players behind: {pct}% of hands; "
+                 f"Exploitability {e['exploitability_bb']} BB")
     return "\n".join(lines)
 
-# ---- Bewertung einzelner Entscheidungen ---------------------------------------
+# ---- Evaluation of individual decisions ---------------------------------------
 
 @lru_cache(maxsize=512)
 def _game_and_nash(S: float, k: int):
@@ -308,9 +308,9 @@ def _game_and_nash(S: float, k: int):
 
 
 def decision_ev(hole: list[str], spot: dict, chose: str) -> dict | None:
-    """Bewertet eine Push/Fold-Entscheidung gegen Gegner, die Nash spielen.
-    spot: Ergebnis von agents.push_fold_spot(); chose: 'push' | 'call' | 'fold'.
-    Rueckgabe: EVs (BB), Nash-Wahrscheinlichkeit und EV-Verlust der gewaehlten Aktion."""
+    """Evaluates a push/fold decision against opponents playing Nash.
+    spot: result from agents.push_fold_spot(); chose: 'push' | 'call' | 'fold'.
+    Return: EVs (BB), Nash probability and EV loss of the chosen action."""
     if spot.get("kind") not in ("first_in", "facing_push"):
         return None
     t = nash_table()

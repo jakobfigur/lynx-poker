@@ -19,7 +19,7 @@ def test_tables():
 
 @pytest.mark.parametrize("kind", sorted(REGISTRY))
 def test_agents_always_choose_legal_actions(kind):
-    """Ohne Korrektur (on_illegal='raise') muss jeder Agent nur erlaubte Aktionen liefern."""
+    """ Without correction (on_illegal='raise'), each agent must only provide allowed actions."""
     from pokercollector.ai.engine import play_hand
     agents = [make_agent(f"{kind}:{kind}{i}", i) if i == 0 else make_agent(f"maniac:m{i}", i) for i in range(4)]
     for k in range(40):
@@ -44,7 +44,7 @@ def test_match_is_reproducible_and_random_loses():
     r2 = run_match(mk(), hands=150, seed=9)
     assert r1["results"] == r2["results"]
     res = {r["agent"]: r for r in r1["results"]}
-    assert res["random"]["ci95"][1] < 0          # Zufallsspieler verliert statistisch belastbar
+    assert res["random"]["ci95"][1] < 0          # Random player statistically loses reliably
     assert res["tag"]["bb_per_100"] > res["random"]["bb_per_100"]
     assert sum(r["net_bb"] for r in r1["results"]) == pytest.approx(0, abs=0.01)
 

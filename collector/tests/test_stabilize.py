@@ -14,7 +14,7 @@ def test_change_needs_confirmation_and_transients_are_reported():
     assert st.update(snap(0, 0.0, pot__total=30)) == []
     ev = st.update(snap(1, 0.2, pot__total=30))
     assert [(e.kind, e.new, e.t_first) for e in ev] == [("change", 30, 0.0)]
-    # Ein einzelner Fehlleser wird nicht uebernommen, aber gemeldet
+    # a single misreader is not adopted, but reported
     assert st.update(snap(2, 0.4, pot__total=80)) == []
     ev = st.update(snap(3, 0.6, pot__total=30))
     assert [(e.kind, e.new) for e in ev] == [("transient", 80)]

@@ -1,12 +1,12 @@
-"""Unsere Ziele (ZIELE.md im Projektordner) und die Anzeigetafel: wo steht ein Bot je Benchmark?
+"""Our targets (GOALS.md in the project folder) and the scoreboard: where does a bot rank per benchmark?
 
-  1  Echte PokerTH-Partien  - Jakob spielt, Lynx beraet; Ergebnis je Turnier von Hand eingetragen
-  2  Mensch-Tische          - mensch480 (PokerTH-Format, Mensch-Bots aus HandHQ)
-  3  Slumbot                - heads-up 200 BB gegen einen fast fehlerfreien Bot
-  4  Ausnutzbarkeit         - Ausbeuter lernt gegen 5 Kopien; sein ROI ist das Mass
-  5  Endspiel               - heads-up 20 BB: gegen Push/Fold-Nash (nash240) und Mensch-Bots (kurz240)
+  1  Real PokerTH matches  - Jakob plays, Lynx advises; results per tournament entered manually
+  2  Human tables           - human480 (PokerTH format, human-bots from HandHQ)
+  3  Slumbot                - heads-up 200 BB vs. an almost flawless bot
+  4  Exploitability         - exploiter learns against 5 copies; his ROI is the measure
+  5  Endgame                - heads-up 20 BB: against push/fold Nash (nash240) and human bots (kurz240)
 
-Gemessen wird mit dem Pruefstand (bench.py, results.jsonl); die Tafel liest immer den neuesten Eintrag.
+Measured with the testbench (bench.py, results.jsonl); the board always reads the latest entry.
 """
 
 from __future__ import annotations
@@ -21,15 +21,15 @@ from .tournament import TournamentConfig
 
 ZIELE_VERSION = "ziele-1"
 MEASURE_SETS = ("mensch480", "nash240", "kurz240")
-PAYOUTS = TournamentConfig().payouts            # wie im Simulator: 50/30/20 % des Preisgelds
+PAYOUTS = TournamentConfig().payouts            #as in the simulator: 50/30/20 % of the prize money
 
-# Stufen je Ziel: (Bezeichnung, Bedingung als Text) - die Pruefung steht in _stage()
+#Stages per target: (designation, condition as text) - the check is in _stage()
 GOALS = {
-    1: ("Echte PokerTH-Partien", ["50 Turniere, ROI > 0", "200 Turniere, ROI > +20 % und Siegquote > 1/6"]),
-    2: ("Mensch-Tische (mensch480)", ["ROI >= +100 %", "ROI >= +120 %"]),
-    3: ("Slumbot (HU 200 BB)", ["> -15 bb/100", "> 0 bb/100", "untere Grenze 95 % > 0"]),
-    4: ("Ausnutzbarkeit", ["Ausbeuter <= +5 %"]),
-    5: ("Endspiel HU 20 BB", ["nash240 >= 0 %", "kurz240 > +20 %"]),
+    1: ('Real PokerTH games', ['50 tournaments, ROI > 0', '200 tournaments, ROI > +20% and win rate > 1/6']),
+    2: ('Human tables (human480)', ['ROI >= +100 %', 'ROI >= +120 %']),
+    3: ('Slumbot (HU 200 BB)', ['> -15 bb/100', '> 0 bb/100', 'lower bound 95 % > 0']),
+    4: ("Ausnutzbarkeit", ['exploiter <= +5 %']),
+    5: ('Endgame HU 20 BB', ['nash240 >= 0 %', 'short240 > +20 %']),
 }
 
 
@@ -38,10 +38,10 @@ def pokerth_log() -> Path:
 
 
 def add_tournament(place: int, players: int, bot: str, note: str = "", **extra) -> dict:
-    """extra: weitere Angaben (z. B. Haende, Sitzung, Quelle 'auto'), werden mitgeschrieben."""
+    """extra: further information (e.g. hands, session, source 'auto'), is recorded."""
     if not 1 <= place <= players <= 10:
-        raise ValueError("Platz zwischen 1 und Spielerzahl (2..10)")
-    rec = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "platz": place, "spieler": players, "bot": bot, "notiz": note,
+        raise ValueError('Place between 1 and player count (2..10)')
+    rec = {"t": time.strftime('%Y-%m-%d %H:%M:%S'), "platz": place, "spieler": players, "bot": bot, "notiz": note,
            **extra}
     p = pokerth_log()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -51,7 +51,7 @@ def add_tournament(place: int, players: int, bot: str, note: str = "", **extra) 
 
 
 def remove_last_tournament(bot: str) -> dict | None:
-    """Letzten Eintrag dieses Bots entfernen (Korrektur einer falschen automatischen Erkennung)."""
+    """Remove last entry for this bot (correction of an incorrect automatic detection)."""
     p = pokerth_log()
     if not p.exists():
         return None
@@ -87,7 +87,7 @@ def pokerth_summary(bot: str | None = None) -> dict | None:
 
 
 def latest(name: str) -> dict:
-    """Neueste Werte je Testset fuer diesen Namen (spaetere Eintraege ueberschreiben fruehere)."""
+    """Latest values per test set for this name (later entries overwrite earlier ones)."""
     out: dict = {}
     for r in load_results():
         if r.get("name") == name:
@@ -96,46 +96,46 @@ def latest(name: str) -> dict:
 
 
 def _stage(goal: int, v: dict) -> tuple[int, str]:
-    """(erreichte Stufen, Messwert als Text)."""
+    """(achieved stages, measured value as text)."""
     if goal == 1:
         s = v.get("pokerth")
         if not s:
-            return 0, "noch keine Turniere eingetragen"
+            return 0, 'No tournaments recorded yet'
         k = 0
         if s["n"] >= 50 and s["roi"] > 0:
             k = 1
         if s["n"] >= 200 and s["roi"] > 20 and s["win_rate"] > 1 / 6:
             k = 2
-        return k, (f"{s['n']} Turniere, ROI {s['roi']:+.1f} % [{s['ci95'][0]:+.0f}; {s['ci95'][1]:+.0f}], "
-                   f"Siege {s['wins']} ({s['win_rate']:.0%}, fair {s['fair_win']:.0%})")
+        return k, (f"{s['n']} tournaments, ROI {s['roi']:+.1f} % [{s['ci95'][0]:+.0f}; {s['ci95'][1]:+.0f}], "
+                   f"wins {s['wins']} ({s['win_rate']:.0%}, fair {s['fair_win']:.0%})")
     if goal == 2:
         r = v.get("mensch480")
         if not r:
-            return 0, "nicht gemessen"
+            return 0, 'not measured'
         return (r["roi"] >= 100) + (r["roi"] >= 120), f"ROI {r['roi']:+.1f} % [{r['ci95'][0]:+.1f}; {r['ci95'][1]:+.1f}]"
     if goal == 3:
         s = v.get("slumbot")
         if not s or not s.get("hands"):
-            return 0, "nicht gemessen"
+            return 0, 'not measured'
         e = s.get("bereinigt") if s.get("bereinigt", {}).get("n", 0) >= 2 else s["allin_ev"]
         what = "bereinigt" if e is s.get("bereinigt") else "All-in-EV"
         k = (e["bb100"] > -15) + (e["bb100"] > 0) + (e["ci95"][0] > 0)
-        return k, f"{s['hands']} Haende, {what} {e['bb100']:+.1f} bb/100 [{e['ci95'][0]:+.0f}; {e['ci95'][1]:+.0f}]"
+        return k, f"{s['hands']} hands, {what} {e['bb100']:+.1f} bb/100 [{e['ci95'][0]:+.0f}; {e['ci95'][1]:+.0f}]"
     if goal == 4:
         x = v.get("exploit")
         if not x:
-            return 0, "nicht gemessen"
-        return int(x["exploiter_roi"] <= 5), f"Ausbeuter {x['exploiter_roi']:+.1f} % [{x['ci95'][0]:+.1f}; {x['ci95'][1]:+.1f}]"
+            return 0, 'not measured'
+        return int(x["exploiter_roi"] <= 5), f"Exploiter {x['exploiter_roi']:+.1f} % [{x['ci95'][0]:+.1f}; {x['ci95'][1]:+.1f}]"
     if goal == 5:
         a, b = v.get("nash240"), v.get("kurz240")
         if not a and not b:
-            return 0, "nicht gemessen"
+            return 0, 'not measured'
         k = int(bool(a) and a["roi"] >= 0) + int(bool(b) and b["roi"] > 20)
         txt = []
         if a:
             txt.append(f"nash240 {a['roi']:+.1f} % [{a['ci95'][0]:+.1f}; {a['ci95'][1]:+.1f}]")
         if b:
-            txt.append(f"kurz240 {b['roi']:+.1f} % [{b['ci95'][0]:+.1f}; {b['ci95'][1]:+.1f}]")
+            txt.append(f"short240 {b['roi']:+.1f} % [{b['ci95'][0]:+.1f}; {b['ci95'][1]:+.1f}]")
         return k, ", ".join(txt)
     raise ValueError(goal)
 
@@ -155,11 +155,11 @@ def scoreboard(name: str, slumbot_name: str | None = None, pokerth_bot: str | No
 
 
 def scoreboard_text(name: str, rows: list[dict]) -> str:
-    lines = [f"Ziele fuer {name}:"]
+    lines = [f"Goals for {name}:"]
     for r in rows:
         n = len(r["stufen"])
         bar = "#" * r["erreicht"] + "." * (n - r["erreicht"])
-        nxt = r["stufen"][r["erreicht"]] if r["erreicht"] < n else "alle Stufen erreicht"
-        lines.append(f"  {r['ziel']}  {r['titel']:26s} [{bar}]  {r['wert']}")
-        lines.append(f"     {'':26s}  naechste Stufe: {nxt}")
+        nxt = r["stufen"][r["erreicht"]] if r["erreicht"] < n else 'all levels reached'
+        lines.append(f"  {r['target']}  {r['title']:26s} [{bar}]  {r['value']}")
+        lines.append(f"     {'':26s}  next level: {nxt}")
     return "\n".join(lines)

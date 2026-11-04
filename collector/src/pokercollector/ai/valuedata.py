@@ -1,19 +1,18 @@
-"""Trainingsdaten fuer das Wertnetz der Suche (Meilenstein 3, Stufe 1b).
+"""Training data for the value network of the search (Milestone 3, level 1b).
 
-Eine Situation = oeffentlicher Zustand zu Beginn einer Strasse (Board, Pot, effektiver Stack, wer zuerst handelt)
-plus die Ranges beider Spieler (je 1326 Gewichte). Ziel = kontrafaktische Werte je Kombination fuer beide Spieler
-an der Wurzel, wie sie die exakte CFR+-Suche (husearch.solve) liefert, in Pot-Einheiten.
+A situation = public state at the start of a street (board, pot, effective stack, to act first)
+plus the ranges of both players (each 1326 weights). Target = counterfactual values per combo for both players
+at the root, as exact CFR+ search (husearch.solve) delivers them, in pot units.
 
-Reihenfolge wie bei DeepStack: zuerst der River (exakte Loesung, billig: ~100 Knoten), damit das River-Netz die
-Blaetter des Turn-Baums bewerten kann; dann der Turn mit River-Netz-Blaettern, dann der Flop. Diese Datei kann
-jede Strasse exakt loesen (Turn/Flop dann teuer: alle Folgekarten).
+Order as in DeepStack: first the River (exact solution, cheap: ~100 nodes), so the river net can evaluate
+turn tree leaves; then the Turn with river leaves, then the Flop. This file can solve each street exactly (Turn/Flop expensive then: all following cards).
 
-Ranges: synthetisch, aber boardbezogen - Gewicht als weiche Schwelle auf der Handstaerke (dicht/locker, gekappt
-ohne Nuts, mit Gamma-Rauschen, Anteil gleichverteilt), damit das Netz auch Ranges weit ab vom Gleichgewicht
-kennt (Robustheit gegen Modellfehler, vgl. ReBeL-Training mit zufaelligen Beliefs).
+Ranges: synthetic, but board-dependent - weight as soft threshold on hand strength (tight/loose, capped
+without nuts, with gamma noise, evenly distributed portion), so the net also knows ranges far from equilibrium
+(robustness against model errors, cf. ReBeL training with random beliefs).
 
-Format: .npz je Scherbe (board int8[n,5] (-1 = leer), pot_bb/stack_bb float32, oop int8, r0/r1 float16[n,1326],
-v0/v1 float16[n,1326] in Pot-Einheiten, meta json). Alles ohne Bezug zu echten Haenden oder Personen.
+Format: .npz per shard (board int8[n,5] (-1 = empty), pot_bb/stack_bb float32, oop int8, r0/r1 float16[n,1326],
+v0/v1 float16[n,1326] in pot units, meta json). All without relation to real hands or persons.
 """
 
 from __future__ import annotations
@@ -33,17 +32,17 @@ VALUEDATA_VERSION = "vdata-1"
 BB = 100
 STREET_CARDS = {"flop": 3, "turn": 4, "river": 5}
 ITERS_DEFAULT = {"flop": 60, "turn": 150, "river": 300, "river-leaf": 300, "turn-leaf": 150}
-# 'river-leaf' (30.10.): River-Situationen, wie sie an den BLAETTERN einer echten Turn-Suche entstehen. Eine
-# Turn-Situation (synthetische Start-Ranges) wird voll geloest, an jedem River-Anfang des Baums werden die Ranges
-# unter der Durchschnittsstrategie ausgelesen (duenn, polarisiert, mit Blockern) und dann exakt geloest. Grund:
-# Tranche 1 hatte nur breite Ranges (>= 9 Bit Entropie); an Blaettern mit 50 Kombis lag der Netzfehler bei 0,23 Pot.
+# 'river-leaf' (30.10.): River situations as they occur at the LEAVES of a genuine Turn search. A
+# Turn situation (synthetic start ranges) is fully solved, at each river root of the tree the ranges
+# are read out under the average strategy (thin, polarized, with blockers) and then solved exactly. Reason:
+# Tranche 1 had only broad ranges (>= 9 bit entropy); at leaves with 50 combos network error was 0.23 pot.
 LEAF_TURN_ITERS = 60
 LEAF_PER_TURN = 24
 LEAF_MIN_MASS = 1e-6
-# 'turn-leaf' (31.10., Stufe 2): Turn-Situationen, wie sie an den Turn-Anfaengen einer echten Flop-Suche entstehen.
-# Flop-Zustand + synthetische Ranges, Flop-Baum mit gezogenen Turn-/Rivercards exakt loesen, Ranges an den
-# Turn-Anfaengen auslesen, dann jeden Turn-Teilbaum mit dem River-Wertnetz als Blatt loesen (DeepStack-Rezept:
-# das Turn-Netz lernt aus Loesungen, deren Blaetter das River-Netz liefert).
+# 'turn-leaf' (31.10., level 2): Turn situations as they occur at the turn starts of a real flop search.
+# Flop state + synthetic ranges, solve flop tree with drawn turn/river cards exactly, read ranges at the
+# turn roots, then solve each turn subtree with the river value network as leaves (DeepStack recipe:
+# the turn net learns from solutions whose leaves the river net provides).
 TL_FLOP_ITERS = 40
 TL_K_TURN = 8
 TL_K_RIVER = 4
@@ -52,9 +51,9 @@ _VNET = {}
 
 
 def sample_ranges(rng: np.random.Generator, board: list[str]) -> tuple[np.ndarray, np.ndarray]:
-    """Zwei boardbezogene Ranges (Summe 1). Mischung aus gleichverteilt, dicht/locker (weiche Staerkeschwelle),
-    gekappt (ohne die staerksten Haende) und Rauschen."""
-    s = board_strength(tuple(board))                    # Perzentil der Handstaerke, 0 fuer blockierte
+    """Two board-dependent ranges (sum 1). Mix of uniform, tight/loose (soft strength threshold),
+    capped (without strongest hands) and noise."""
+    s = board_strength(tuple(board))                    # Percentile of hand strength, 0 for blocked
     base = (~dead_mask(board)).astype(np.float64)
     out = []
     for _ in range(2):
@@ -62,24 +61,24 @@ def sample_ranges(rng: np.random.Generator, board: list[str]) -> tuple[np.ndarra
         if u < 0.2:
             r = np.ones(N_COMBOS)
         else:
-            tau = rng.uniform(0.0, 0.85)                # Schwelle: 0 = alles, 0.85 = nur Spitze
-            w = rng.uniform(0.04, 0.35)                 # Weichheit
+            tau = rng.uniform(0.0, 0.85)                # Threshold: 0 = all, 0.85 = only top
+            w = rng.uniform(0.04, 0.35)                 # Softness
             r = 1.0 / (1.0 + np.exp(-(s - tau) / w))
-            if rng.random() < 0.3:                      # gekappte Range (hat die Nuts nicht, z. B. Caller)
+            if rng.random() < 0.3:                      # Capped range (does not include nuts, e.g. caller)
                 cap = rng.uniform(0.7, 0.97)
                 r = r * np.where(s > cap, rng.uniform(0.0, 0.4), 1.0)
-            if rng.random() < 0.5:                      # Rauschen: einzelne Haende mehr/weniger
+            if rng.random() < 0.5:                      # Noise: individual hands more/less
                 k = rng.uniform(1.5, 20.0)
                 r = r * rng.gamma(k, 1.0 / k, N_COMBOS)
-            r = r + rng.uniform(0.0, 0.02)              # kleiner Boden: keine Hand ganz ausgeschlossen
+            r = r + rng.uniform(0.0, 0.02)              # Small floor: no hand entirely excluded
         r = r * base
         out.append(r / r.sum())
     return out[0], out[1]
 
 
 def sample_state(rng: np.random.Generator, street: str) -> tuple[State, list[str], float, float]:
-    """Zustand zu Strassenbeginn: Pot 2..80 BB, Stack/Pot 0.25..8 (logarithmisch gleichverteilt), beide Stacks
-    gleich (heads-up zaehlt nur der effektive Stack), wer zuerst handelt zufaellig."""
+    """State at street start: pot 2..80 BB, stack/pot 0.25..8 (log-uniform), both stacks
+    equal (heads-up counts effective stack only), to act first randomly."""
     n = STREET_CARDS[street]
     idx = sorted(int(x) for x in rng.choice(52, n, replace=False))
     board = [FULL_DECK[i] for i in idx]
@@ -94,7 +93,7 @@ def sample_state(rng: np.random.Generator, street: str) -> tuple[State, list[str
 
 
 def get_vnet(name: str | None):
-    """River-Wertnetz je Prozess einmal laden (None = ohne Netz, exakt)."""
+    """Load River value network once per process (None = no net, exact)."""
     if not name:
         return None
     if name not in _VNET:
@@ -121,7 +120,7 @@ def solve_sample(seed: int, street: str, iters: int, vnet: str | None = None) ->
 
 def _river_row(seed: int, sub: int, board: tuple[int, ...], pot: int, stack: int, oop: int,
                r0: np.ndarray, r1: np.ndarray, iters: int, net=None) -> dict:
-    """Eine Zeile: Situation zu Strassenbeginn (River exakt; Turn mit net = River-Wertnetz als Blatt)."""
+    """One line: situation at street start (River exact; Turn with net = River value net as leaf)."""
     st = State(board=board, committed=(pot // 2, pot - pot // 2), bets=(0, 0), stacks=(stack, stack),
                to_act=oop, last_inc=BB, raises=0, acted=(False, False), oop=oop, bb=BB)
     t = time.time()
@@ -136,9 +135,9 @@ def _river_row(seed: int, sub: int, board: tuple[int, ...], pot: int, stack: int
 
 def solve_leaf_samples(seed: int, iters: int = 300, iters_turn: int = LEAF_TURN_ITERS,
                        max_per_turn: int = LEAF_PER_TURN) -> list[dict]:
-    """River-Situationen aus einer echten Turn-Suche: Turn-Zustand + synthetische Start-Ranges, voller Turn-Baum
-    (alle Rivercards) loesen, Ranges an den River-Anfaengen unter der Durchschnittsstrategie auslesen, bis zu
-    max_per_turn davon (gewichtet mit der Erreichwahrscheinlichkeit) exakt loesen."""
+    """River situations from a real Turn search: Turn state + synthetic start ranges, full turn tree
+    (all river cards) solved, ranges at river roots under the average strategy read out, up to
+    max_per_turn of those (weighted by reach probability) solved exactly."""
     rng = np.random.default_rng(seed)
     st, board, _, _ = sample_state(rng, "turn")
     r0, r1 = sample_ranges(rng, board)
@@ -150,8 +149,8 @@ def solve_leaf_samples(seed: int, iters: int = 300, iters_turn: int = LEAF_TURN_
 
 
 def _roots_rows(seed: int, tree, avg, r0, r1, roots, iters: int, max_rows: int, rng, net=None) -> list[dict]:
-    """Ranges an den Strassenanfaengen roots unter der Durchschnittsstrategie auslesen und bis zu max_rows davon
-    (gewichtet mit der Erreichwahrscheinlichkeit) loesen."""
+    """Ranges at street starts roots read under the average strategy and up to max_rows of these
+    (weighted by reach prob) solved."""
     from .husearch import average_reaches
     R0, R1 = average_reaches(tree, avg, r0, r1)
     mass = np.array([R0[n].sum() * R1[n].sum() for n, _ in roots])
@@ -174,9 +173,9 @@ def _roots_rows(seed: int, tree, avg, r0, r1, roots, iters: int, max_rows: int, 
 
 def solve_turn_leaf_samples(seed: int, iters: int = 150, vnet: str | None = "vnet-river-1",
                             iters_flop: int = TL_FLOP_ITERS, max_per_flop: int = TL_PER_FLOP) -> list[dict]:
-    """Turn-Situationen aus einer echten Flop-Suche: Flop-Zustand + synthetische Start-Ranges, Flop-Baum mit
-    TL_K_TURN Turn- und TL_K_RIVER Rivercards exakt loesen, Ranges an den Turn-Anfaengen auslesen, bis zu
-    max_per_flop davon mit dem River-Wertnetz als Blatt loesen (Werte zu Turn-Beginn = Lernziel des Turn-Netzes)."""
+    """Turn situations from a real flop search: Flop state + synthetic start ranges, flop tree with
+    TL_K_TURN turn and TL_K_RIVER river cards solved exactly, ranges at turn roots read, up to
+    max_per_flop solved with the river value net as leaf (values at turn start = learning target for turn net)."""
     rng = np.random.default_rng(seed)
     st, board, _, _ = sample_state(rng, "flop")
     r0, r1 = sample_ranges(rng, board)
@@ -199,7 +198,7 @@ def _worker(args):
         if street == "turn-leaf":
             return solve_turn_leaf_samples(seed, iters, vnet)
         return solve_sample(seed, street, iters, vnet)
-    except Exception as e:          # eine kaputte Situation darf den Lauf nicht stoppen
+    except Exception as e:          #a broken situation must not stop the run
         return {"seed": seed, "error": repr(e)[:200]}
 
 
@@ -210,8 +209,8 @@ def data_dir() -> Path:
 
 def generate(street: str, n: int, out: Path | str, seed: int = 0, iters: int | None = None, workers: int = 1,
              threads: int | None = None, progress=None, vnet: str | None = None) -> dict:
-    """n Situationen loesen und als eine .npz-Scherbe schreiben. Seeds seed..seed+n-1 (reproduzierbar).
-    vnet: River-Wertnetz als Blatt fuer turn/flop/turn-leaf (Pflicht bei turn-leaf, Standard vnet-river-1)."""
+    """Solve n situations and write as one .npz shard. Seeds seed..seed+n-1 (reproducible).
+    vnet: River value net as leaves for turn/flop/turn-leaf (mandatory for turn-leaf, default vnet-river-1)."""
     iters = iters or ITERS_DEFAULT[street]
     if street == "turn-leaf" and not vnet:
         vnet = "vnet-river-1"
@@ -222,7 +221,7 @@ def generate(street: str, n: int, out: Path | str, seed: int = 0, iters: int | N
     t0 = time.time()
 
     def take(r):
-        if isinstance(r, list):                 # river-leaf/turn-leaf: mehrere Zeilen je Seed
+        if isinstance(r, list):                 # river-leaf/turn-leaf: multiple lines per seed
             rows.extend(r)
         else:
             (errors if "error" in r else rows).append(r)
@@ -240,12 +239,12 @@ def generate(street: str, n: int, out: Path | str, seed: int = 0, iters: int | N
             if progress and k % 50 == 0:
                 progress(k, n, time.time() - t0)
     if not rows:
-        raise RuntimeError(f"keine Situation geloest: {errors[:3]}")
+        raise RuntimeError(f"No situation solved: {errors[:3]}")
     stack = lambda key, dt: np.stack([r[key] for r in rows]).astype(dt)
     meta = {"version": VALUEDATA_VERSION, "street": street, "iters": iters, "n": len(rows), "errors": len(errors),
             "vnet": vnet,
             "seed": seed, "bb": BB, "secs_per_sample": float(np.mean([r["secs"] for r in rows])),
-            "nodes_mean": float(np.mean([r["nodes"] for r in rows])), "t": time.strftime("%Y-%m-%d %H:%M:%S")}
+            "nodes_mean": float(np.mean([r["nodes"] for r in rows])), "t": time.strftime('%Y-%m-%d %H:%M:%S')}
     np.savez_compressed(out, board=stack("board", np.int8), pot_bb=stack("pot_bb", np.float32),
                         stack_bb=stack("stack_bb", np.float32), oop=stack("oop", np.int8),
                         r0=stack("r0", np.float16), r1=stack("r1", np.float16),

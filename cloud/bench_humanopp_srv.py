@@ -1,11 +1,11 @@
-"""31.10.: Hilft das Menschenmodell (human-1 + Fold-Modell human-fold-1) der Suche gegen den MENSCHEN-BOT MIT FOLDS (nn?run=human-1@1&fold=human-fold-1)?
-Dritte Messreihe (Server, 16 Prozesse, OMP_NUM_THREADS=1 setzen): der erste Gegner (human-1 ohne Folds) war ein Calling-Station-Zerrbild mit Riesenvarianz.
-Heads-up Cash duplicate, mehrere Stacktiefen, drei Varianten der Suche gegen nn?run=human-1@1:
-  A  Standard-Ranges (auto=1, vnet)                      -> Gegner "spielt wie unser Netz"
-  B  + opp=human-1@1                                     -> Gegneraktionen mit dem Menschen-Netz bewertet (ohne Folds)
-  C  + opp=human-1@1 & oppfold=human-fold-1              -> dazu Weiterspiel-Faktor je Hand (Bayes-Rest)
-Dazu das Netz lynx-4@300 allein als Referenz. Ausgabe bb/100 mit 95 %-Intervall je Variante und Stack.
-Losgeloest starten; ProcessPool ueber (Variante, Stack, Seed-Block)."""
+"""31.10.: Does the human model (human-1 + fold model human-fold-1) help the search against the HUMAN BOT WITH FOLDS (nn?run=human-1@1&fold=human-fold-1)?
+Third measurement series (server, 16 processes, set OMP_NUM_THREADS=1): the first opponent (human-1 without folds) was a calling-station caricature with huge variance.
+Heads-up cash duplicate, multiple stack depths, three variants of the search against nn?run=human-1@1:
+  A  Standard ranges (auto=1, vnet)                      -> Opponent "plays like our net"
+  B  + opp=human-1@1                                     -> Opponent actions evaluated with the human network (without folds)
+  C  + opp=human-1@1 & oppfold=human-fold-1              -> plus continuation factor per hand (Bayes residual)
+Also the network lynx-4@300 alone as reference. Output bb/100 with 95% interval per variant and stack.
+Launched separately; ProcessPool over (variant, stack, seed block)."""
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -17,8 +17,8 @@ VARIANTS = {
     "C-human+fold": "hus?bp=lynx-4-300&auto=1&iters=60&iters_river=150&threads=1&vnet=vnet-river-1&opp=human-1@1&oppfold=human-fold-1",
 }
 STACKS = (40, 100)
-BLOCKS = 32         # Seed-Bloecke je (Variante, Stack): 32 x 120 = 3840 Haende je Zelle
-HANDS = 60          # Blaetter je Block (duplicate -> 120 Haende)
+BLOCKS = 32         # Seed blocks per (variant, stack): 32 x 120 = 3840 hands per cell
+HANDS = 60          # Leaves per block (duplicate -> 120 hands)
 
 
 def task(args):
@@ -35,16 +35,16 @@ def task(args):
 if __name__ == "__main__":
     import math
     jobs = [(n, s, st, b) for n, s in VARIANTS.items() for st in STACKS for b in range(BLOCKS)]
-    print(f"=== Suche gegen Menschen-Bot human-1+Fold: {len(jobs)} Matches x {2 * HANDS} Haende ===", time.strftime("%H:%M"), flush=True)
+    print(f"=== Search against human bot human-1+Fold: {len(jobs)} matches x {2 * HANDS} hands ===", time.strftime("%H:%M"), flush=True)
     acc = {}
     with ProcessPoolExecutor(int(sys.argv[1]) if len(sys.argv) > 1 else 16) as ex:
         for name, stack, block, bb100, hands, secs in ex.map(task, jobs):
             acc.setdefault((name, stack), []).append(bb100)
-            print(f"  {name:13} {stack:3d} BB Block {block}: {bb100:+7.1f} bb/100 ({hands} Haende, {secs:.0f}s)", flush=True)
-    print("=== ERGEBNIS (Mittel der Bloecke, 95 %-Intervall ueber Bloecke) ===", time.strftime("%H:%M"), flush=True)
+            print(f"  {name:13} {stack:3d} BB Block {block}: {bb100:+7.1f} bb/100 ({hands} hands, {secs:.0f}s)", flush=True)
+    print('=== RESULT (mean of blocks, 95% interval over blocks) ===', time.strftime("%H:%M"), flush=True)
     for (name, stack), xs in sorted(acc.items()):
         m = sum(xs) / len(xs)
         sd = math.sqrt(sum((x - m) ** 2 for x in xs) / max(len(xs) - 1, 1))
-        half = 2.04 * sd / math.sqrt(len(xs)) if len(xs) > 1 else float("nan")      # t(31) fuer 32 Bloecke
-        print(f"  {name:13} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] ueber {len(xs) * 2 * HANDS} Haende", flush=True)
-    print("ALLE MESSUNGEN FERTIG", time.strftime("%H:%M"), flush=True)
+        half = 2.04 * sd / math.sqrt(len(xs)) if len(xs) > 1 else float("nan")      # t(31) for 32 blocks
+        print(f"  {name:13} {stack:3d} BB: {m:+7.1f} bb/100 [{m - half:+.1f}; {m + half:+.1f}] over {len(xs) * 2 * HANDS} hands", flush=True)
+    print('ALL MEASUREMENTS COMPLETE', time.strftime("%H:%M"), flush=True)

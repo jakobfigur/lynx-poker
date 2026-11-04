@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Nacht 28./29.10.2026: lynx-4 = lynx-3-300 weiter mit ICM-Belohnung (Aenderung des Turnier-Eigenkapitals
-# statt Chips), Ausbeuter alle 50 It, mehr 3er-/6er-Tische (PokerTH-Format), Lernrate 2e-4.
-# Abschnitte 300/600/900/1200, je Aufnahmepruefung (600 frische Turniere) gegen den Liga-Besten.
-# Danach: Suche gegen Netz auf hu480 (Entscheidung Live-Standard). Fortsetzbar.
+#Night 28/29.10.2026: lynx-4 = lynx-3-300 continued with ICM reward (change of tournament equity
+#instead of chips), exploiter every 50 iterations, more 3-/6-player tables (PokerTH format), learning rate 2e-4.
+#Sections 300/600/900/1200, each an entry test (600 fresh tournaments) against the league best.
+#Afterwards: search against net on hu480 (Live-Standard decision). Continuable.
 cd <Projektordner>
 RUN=lynx-4
 mkdir -p data/rl/$RUN
@@ -23,7 +23,7 @@ for TARGET in 300 600 900 1200; do
   echo "$(date '+%F %T') Abschnitt bis $TARGET beendet (Exit $?)" >> data/rl/$RUN/night.txt
 done
 echo "$(date '+%F %T') TRAINING FERTIG" >> data/rl/$RUN/night.txt
-# Suche gegen Netz (PokerTH-Format hu480), 6 Worker, niemand spielt
+#Search against net (PokerTH format hu480), 6 workers, no one is playing
 cd collector
 ../tools/uv/uv.exe run --quiet --no-sync python ../bench_hus_nacht.py > ../data/bench/hus-vs-netz-pokerth.txt 2>&1
 echo "$(date '+%F %T') SUCHE-VERGLEICH FERTIG (Exit $?)" >> ../data/rl/$RUN/night.txt

@@ -5,7 +5,7 @@ from pokercollector.ai.bench import bench_set, paired_diff, write_report
 
 def test_testsets_fixed_and_valid():
     a, b = bench_set("mix96"), bench_set("mix96")
-    assert a == b and len(a) == 96                          # nie zufaellig anders
+    assert a == b and len(a) == 96                          # never randomly different
     assert all(len(t) == 5 and len(set(t)) == 5 for _, t in a)
     assert len({sd for sd, _ in a} | {sd for sd, _ in bench_set("fest48")}) == 96 + 48
 
@@ -13,16 +13,16 @@ def test_testsets_fixed_and_valid():
 def test_paired_diff_and_report(tmp_path, monkeypatch):
     monkeypatch.setenv("POKERCOLLECTOR_DATA", str(tmp_path))
     from pokercollector.ai.bench import bench_dir
-    rock = {"name": "rock", "spec": "rock", "t": "2026-10-26 12:00:00", "bench_version": "bench-1",
+    rock = {"name": "rock", "spec": "rock", "t": '2026-10-26 12:00:00', "bench_version": "bench-1",
             "mix96": {"roi": 10.0, "ci95": [0, 20], "n": 3, "per_scheme": [0.1, 0.2, 0.0]}}
-    cand = {"name": "kand", "spec": "x", "t": "2026-10-26 13:00:00", "bench_version": "bench-1",
+    cand = {"name": "kand", "spec": "x", "t": '2026-10-26 13:00:00', "bench_version": "bench-1",
             "mix96": {"roi": 20.0, "ci95": [10, 30], "n": 3, "per_scheme": [0.2, 0.3, 0.1]}}
     d = paired_diff(cand, rock, "mix96")
-    assert d["roi"] == 10.0 and d["ci95"][0] == d["ci95"][1] == 10.0   # konstante Differenz
+    assert d["roi"] == 10.0 and d["ci95"][0] == d["ci95"][1] == 10.0   # constant difference
     bench_dir().mkdir(parents=True)
     (bench_dir() / "results.jsonl").write_text(json.dumps(rock) + "\n" + json.dumps(cand) + "\n", "utf-8")
     md = write_report()
-    assert md.index("| kand") < md.index("| rock") and "+10.0 [+10; +10]" in md
+    assert md.index('| kand') < md.index('| rock') and '+10.0 [+10; +10]' in md
 
 
 def test_format_sets():
@@ -35,8 +35,8 @@ def test_format_sets():
 
 
 def test_run_set_fortschritt_und_wiederaufnahme(tmp_path, monkeypatch):
-    """Fertige Bloecke landen sofort in der partial-Datei; ein Neustart rechnet nur die fehlenden Bloecke,
-    das Ergebnis ist identisch mit einem Lauf am Stueck; on_chunk meldet jeden Block."""
+    """ Completed blocks are immediately saved in the partial file; a restart only processes missing blocks,
+    the result is identical to a run in one go; on_chunk reports each block."""
     import json
     from concurrent.futures import ThreadPoolExecutor
     from pokercollector.ai import bench
@@ -54,7 +54,7 @@ def test_run_set_fortschritt_und_wiederaufnahme(tmp_path, monkeypatch):
     with ThreadPoolExecutor(2) as ex:
         full = bench.run_set("x", "s", ex)
     assert full["n"] == 50 and len(calls) == 24
-    # "Absturz" nach 10 Bloecken: partial-Datei mit den ersten 10 Bloecken liegt vor
+    # "Crash" after 10 blocks: partial file with the first 10 blocks exists
     saved = {str(i): [0.01 * m[0] for m in mus[i::24]] for i in range(10)}
     partial = tmp_path / "partial.json"
     partial.write_text(json.dumps({"spec": "x", "set": "s", "chunks": saved}), "utf-8")
@@ -62,11 +62,11 @@ def test_run_set_fortschritt_und_wiederaufnahme(tmp_path, monkeypatch):
     seen = []
     with ThreadPoolExecutor(2) as ex:
         again = bench.run_set("x", "s", ex, on_chunk=lambda k, n, z: seen.append((k, n, z["n"])), partial=partial)
-    assert len(calls) == 14                                   # nur die fehlenden Bloecke
+    assert len(calls) == 14                                   # only the missing blocks
     assert again["per_scheme"] == full["per_scheme"] and again["roi"] == full["roi"]
     assert [k for k, _, _ in seen] == list(range(11, 25)) and all(n == 24 for _, n, _ in seen)
-    assert not partial.exists()                               # aufgeraeumt
-    # partial-Datei einer anderen Spezifikation wird ignoriert
+    assert not partial.exists()                               # cleaned up
+    # partial file from another specification is ignored
     partial.write_text(json.dumps({"spec": "anders", "set": "s", "chunks": saved}), "utf-8")
     calls.clear()
     with ThreadPoolExecutor(2) as ex:

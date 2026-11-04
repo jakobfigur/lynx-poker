@@ -48,6 +48,6 @@ def test_widen_keeps_policy():
     obs = h.observation(h.to_act)
     m = action_mask(obs)
     p2, v2 = forward_np(numpy_weights(net), features(obs, version="feat-2"), m)
-    opp = np.array([0.9, 0.6, 0.8, 0.1, 0.9, 0.7, 0.7, 0.2], np.float32)   # beliebige Gegnerwerte
+    opp = np.array([0.9, 0.6, 0.8, 0.1, 0.9, 0.7, 0.7, 0.2], np.float32)   # arbitrary opponent values
     p3, v3 = forward_np(numpy_weights(wide), features(obs, version="feat-3", opp=opp), m)
     assert np.allclose(p2, p3, atol=1e-6) and abs(v2 - v3) < 1e-5

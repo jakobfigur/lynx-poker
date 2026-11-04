@@ -10,8 +10,8 @@ from pokercollector.poker import FULL_DECK
 
 def test_combo_weights_blockers():
     W = combo_weights()
-    assert W[IDX["AA"], IDX["AA"]] == 6          # jede AA-Kombi hat genau eine kartenfremde AA-Kombi
-    assert W[IDX["AKs"], IDX["KK"]] == 4 * 3     # AKs blockt pro Kombi einen K -> 3 KK-Kombis
+    assert W[IDX["AA"], IDX["AA"]] == 6          # each AA combo has exactly one off-card AA combo
+    assert W[IDX["AKs"], IDX["KK"]] == 4 * 3     # AKs blocks one K per combo -> 3 KK combos
     assert W[IDX["72o"], IDX["AA"]] == 12 * 6
 
 
@@ -20,7 +20,7 @@ def test_matrix_sane():
     assert not np.isnan(E).any()
     assert np.allclose(E + E.T, 1.0, atol=1e-3)
     assert 0.80 < E[IDX["AA"], IDX["KK"]] < 0.84      # AA vs KK ~82 %
-    assert 0.45 < E[IDX["22"], IDX["AKo"]] < 0.56     # Muenzwurf-Klassiker
+    assert 0.45 < E[IDX["22"], IDX["AKo"]] < 0.56     # coin flip classic
     assert 0.05 < E[IDX["AKo"], IDX["AA"]] < 0.10     # AKo vs AA ~7 %
 
 
@@ -34,9 +34,9 @@ def test_heads_up_is_near_equilibrium():
 def test_monotonic_ranges():
     t = nash_table()
     hu = [t["entries"][f"1|{S:g}"]["push_pct"] for S in t["stacks_bb"]]
-    assert all(a >= b - 1.0 for a, b in zip(hu, hu[1:]))           # kleiner Stack -> mehr pushen
+    assert all(a >= b - 1.0 for a, b in zip(hu, hu[1:]))           # smaller stack -> push more
     at10 = [t["entries"][f"{k}|10"]["push_pct"] for k in range(1, 9)]
-    assert all(a >= b - 1.0 for a, b in zip(at10, at10[1:]))       # mehr Spieler dahinter -> enger
+    assert all(a >= b - 1.0 for a, b in zip(at10, at10[1:]))       # more players behind -> tighter
     assert hu[0] > 95
 
 
@@ -45,7 +45,7 @@ def test_specific_hands():
     assert call_probability(["As", "Ah"], 20, 8, 7) == 1.0
     assert push_probability(["7c", "2d"], 10, 1) == 0.0
     assert push_probability(["7c", "2d"], 1, 1) == 1.0
-    assert push_probability(["As", "Ah"], 40, 1) is None             # ausserhalb der Tabelle
+    assert push_probability(["As", "Ah"], 40, 1) is None             # outside the table
 
 
 def test_spot_detection_and_bot_uses_table():

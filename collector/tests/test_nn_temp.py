@@ -1,4 +1,4 @@
-"""Temperatur des Netz-Bots (31.10.): nn?run=...&temp=T schaerft die gemischte Strategie zwischen Sampling (1) und Greedy (0)."""
+"""Temperature of the net bot (Oct 31): nn?run=...&temp=T sharpens the mixed strategy between sampling (1) and greedy (0)."""
 import numpy as np
 import pytest
 
@@ -13,9 +13,9 @@ def test_sharpen_grenzfaelle():
     assert np.allclose(sharpen(p, 0.0), [1, 0, 0, 0])
     q = sharpen(p, 0.5)
     assert np.isclose(q.sum(), 1.0) and q[3] == 0.0
-    assert q[0] > p[0] and q[2] < p[2]                  # schaerfer: Spitze hoch, Rand runter
+    assert q[0] > p[0] and q[2] < p[2]                  # sharper: peak up, edge down
     assert np.allclose(q, p ** 2 / (p ** 2).sum())      # 1/T = 2
-    assert sharpen(p, 3.0)[0] < p[0]                    # T > 1 flacht ab
+    assert sharpen(p, 3.0)[0] < p[0]                    # T > 1 flattens out
 
 
 def test_temp_bot_spielt_legal_und_temp0_wie_greedy():

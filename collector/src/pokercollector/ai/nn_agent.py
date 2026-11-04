@@ -1,13 +1,13 @@
-"""Der lernende Bot: kleines neuronales Netz (Merkmale -> Aktionswahrscheinlichkeiten + Wert).
+"""The learning bot: small neural network (features -> action probabilities + value).
 
-Netz: N_FEATURES -> hidden -> hidden (ReLU) -> Politik (6 Logits) und Wert (1 Zahl).
-Gelernt wird mit PyTorch (rl.py); gespielt wird mit einer numpy-Kopie der Gewichte. Die ist fuer
-einzelne Entscheidungen schneller und laeuft in vielen Prozessen ohne Thread-Konkurrenz.
+Network: N_FEATURES -> hidden -> hidden (ReLU) -> policy (6 logits) and value (1 number).
+Learned with PyTorch (rl.py); played with a numpy copy of the weights. This is faster for
+individual decisions and runs in many processes without thread contention.
 
-Liga-Spezifikation: 'nn?run=<Lauf>@<Checkpoint>' (ohne @ = neuester), Lauf liegt unter data\\rl\\.
-Gespielt wird gemischt (Ziehen nach den Wahrscheinlichkeiten), mit Zufall aus der Situation
-abgeleitet wie bei den anderen Bots: gleiche Situation -> gleiche Entscheidung (Duplicate-fair).
-greedy=1 nimmt immer die wahrscheinlichste Aktion.
+League specification: 'nn?run=<run>@<checkpoint>' (without @ = newest), run is under data\\rl\\.
+Play is mixed (sampling according to probabilities), with randomness derived from the situation
+like other bots: same situation -> same decision (duplicate-fair).
+greedy=1 always picks the most probable action.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ def rl_root() -> Path:
 
 
 def build_net(hidden: int = 128, version: str = FEATURES_VERSION, n_actions: int = N_ACTIONS):
-    """Netz fuer eine Merkmalsversion (Eingangsgroesse aus FEATURE_SIZES) und Aktionszahl (6 oder 8)."""
+    """Network for one feature version (input size from FEATURE_SIZES) and number of actions (6 or 8)."""
     import torch.nn as nn
     n_in = FEATURE_SIZES[version]
 
@@ -61,7 +61,7 @@ def numpy_weights(net) -> dict:
 
 
 def forward_np(w: dict, x: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, float]:
-    """Wahrscheinlichkeiten (maskiert) und Wert fuer EINE Situation."""
+    """Probabilities (masked) and value for ONE situation."""
     h = np.maximum(w["w1"] @ x + w["b1"], 0)
     h = np.maximum(w["w2"] @ h + w["b2"], 0)
     logits = w["wp"] @ h + w["bp"]
@@ -73,8 +73,8 @@ def forward_np(w: dict, x: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, fl
 
 
 def sharpen(p: np.ndarray, temp: float) -> np.ndarray:
-    """Wahrscheinlichkeiten mit Temperatur temp schaerfen: p^(1/temp), neu normiert (temp 1 = unveraendert,
-    temp -> 0 = greedy). Zwischenweg zwischen gemischtem Spiel (ausbeutungsarm) und Greedy (kein Streuverlust)."""
+    """Sharpen probabilities with temperature temp: p^(1/temp), renormalized (temp 1 = unchanged,
+    temp -> 0 = greedy). Intermediate between mixed play (low exploitation loss) and greedy (no spread loss)."""
     if temp <= 0:
         out = np.zeros_like(p)
         out[int(np.argmax(p))] = 1.0
@@ -85,22 +85,22 @@ def sharpen(p: np.ndarray, temp: float) -> np.ndarray:
     return q / s if s > 0 else p
 
 
-NEW_ACTION_TEMPLATE = {6: 2, 7: 2}      # neue Aktionen starten als Kopie von 'raise_half' ...
-NEW_ACTION_OFFSET = -2.0                # ... mit kleinerer Anfangswahrscheinlichkeit (Logit - 2)
+NEW_ACTION_TEMPLATE = {6: 2, 7: 2}      # new actions start as copy of 'raise_half' ...
+NEW_ACTION_OFFSET = -2.0                # ... with smaller initial probability (logit -2)
 
 
 def widen_net(net, version: str, n_actions: int | None = None):
-    """Gleiches Netz fuer eine groessere Merkmalsversion und/oder mehr Aktionen. Neue Eingaenge
-    bekommen Gewicht 0 (spielt zunaechst wie vorher); neue Aktionen starten als Kopie von Raise 1/2 Pot
-    mit Logit -2, also selten, und werden im Training entdeckt."""
+    """Same network for a larger feature version and/or more actions. New inputs
+    get weight 0 (plays initially as before); new actions start as copy of raise 1/2 pot
+    with logit -2, thus rare, and are discovered in training."""
     import torch
     old = getattr(net, "features_version", "feat-1")
     if FEATURE_SIZES[version] < FEATURE_SIZES[old]:
-        raise ValueError(f"{version} ist kleiner als {old}")
+        raise ValueError(f"{version} is less than {old}")
     old_na = net.pi.out_features
     n_actions = n_actions or old_na
     if n_actions < old_na:
-        raise ValueError("weniger Aktionen als vorher")
+        raise ValueError('fewer actions than before')
     new = build_net(net.pi.in_features, version, n_actions)
     sd = net.state_dict()
     with torch.no_grad():
@@ -133,7 +133,7 @@ def load_checkpoint(path: Path) -> dict:
     ck = torch.load(path, map_location="cpu", weights_only=True)
     v = ck.get("features")
     if v not in FEATURE_SIZES or ck.get("n_features") != FEATURE_SIZES[v]:
-        raise ValueError(f"{path}: unbekannte Merkmalsversion {v} ({ck.get('n_features')} Merkmale)")
+        raise ValueError(f"{path}: unknown feature version {v} ({ck.get('n_features')} features)")
     return ck
 
 
@@ -148,7 +148,7 @@ def checkpoint_path(run: str, ckpt: str | int = "latest") -> Path:
     if str(ckpt) == "latest":
         cands = sorted(d.glob("ckpt_*.pt"))
         if not cands:
-            raise FileNotFoundError(f"kein Checkpoint in {d}")
+            raise FileNotFoundError(f"no checkpoint in {d}")
         return cands[-1]
     return d / f"ckpt_{int(ckpt):06d}.pt"
 
@@ -169,18 +169,18 @@ class NNAgent(BaseAgent):
         super().__init__(seed, name)
         self.w = weights
         self.greedy = greedy
-        self.temp = float(temp)               # Temperatur: p ~ p^(1/T); 1 = wie gelernt, <1 schaerfer, ->0 greedy
+        self.temp = float(temp)               # Temperature: p ~ p^(1/T); 1 = as learned, <1 sharper, ->0 greedy
         self.last_probs = None
         self.last_p_fold = None
         self.tracker = None
-        self.fold_model = fold_model          # humanfold.HumanFold: Netze ohne Fold-Daten (human-1) werfen damit weg
+        self.fold_model = fold_model          # humanfold.HumanFold: networks without fold data (human-1) discard this
         if weights.get("features") == "feat-3":
             from .opponents import OpponentTracker
             self.tracker = OpponentTracker()
 
     def p_fold_hand(self, obs: Observation) -> float:
-        """P(Fold | Zustand, eigene Hand) aus dem Fold-Modell: 1 minus Weiterspiel-Faktor der eigenen
-        Kombination bei gleichverteilter Range (Bayes-Rest aus g(c|s), f(s)); 0 ohne offenen Einsatz."""
+        """P(Fold | state, own hand) from fold model: 1 minus continuation factor of own
+        combination in uniformly distributed range (Bayesian remainder from g(c|s), f(s)); 0 without open bet."""
         if self.fold_model is None or obs.to_call <= 0:
             return 0.0
         from .bpranges import COMBO_CARDS
@@ -195,7 +195,7 @@ class NNAgent(BaseAgent):
             self.tracker.update(rec, seat)
 
     def inputs(self, obs: Observation) -> tuple[np.ndarray, np.ndarray]:
-        """Merkmale und Aktionsmaske genau so, wie act() sie benutzt (fuer Lehrer-Daten, teacher.py)."""
+        """Features and action mask exactly as used by act() (for teacher data, teacher.py)."""
         na = self.w.get("n_actions", N_ACTIONS)
         opp = self.tracker.features(obs) if self.tracker is not None else None
         return features(obs, version=self.w.get("features", "feat-1"), opp=opp), action_mask(obs, na)
@@ -212,7 +212,7 @@ class NNAgent(BaseAgent):
             self.last_p_fold = self.p_fold_hand(obs)
             if self.last_p_fold > 0 and rng.random() < self.last_p_fold:
                 return Action.fold()
-            if obs.to_call > 0 and p[0] > 0:          # Netz-Fold rausrechnen: weiter heisst Call/Raise
+            if obs.to_call > 0 and p[0] > 0:          #Subtract network fold: continue means call/raise
                 p = p * mask
                 p[0] = 0.0
                 p = p / p.sum() if p.sum() > 0 else np.where(mask, 1.0 / mask.sum(), 0.0)
@@ -223,7 +223,7 @@ class NNAgent(BaseAgent):
                 p = sharpen(p, self.temp)
             u = rng.random()
             idx = int(min(np.searchsorted(np.cumsum(p), u, side="right"), na - 1))
-            while not mask[idx]:          # Rundung am Rand
+            while not mask[idx]:          # Rounding at the edge
                 idx -= 1
         return to_action(obs, idx)
 
@@ -232,10 +232,8 @@ def make_nn_agent(params: str, seed: int = 0) -> NNAgent:
     kv = dict(p.partition("=")[::2] for p in params.split("&") if p)
     unknown = set(kv) - {"run", "ckpt", "greedy", "fold", "temp"}
     if unknown or "run" not in kv:
-        raise ValueError("nn-Bot: 'nn?run=<Lauf>@<Checkpoint>' (ohne @ = neuester), optional '&greedy=1', "
-                         "'&temp=<T>' (Temperatur, 1 = wie gelernt, 0.5 = schaerfer, 0 = greedy), "
-                         "'&fold=<Fold-Modell>' (data/humans/<name>.npz, z. B. fuer den Menschen-Bot human-1)")
-    run, _, ck = kv["run"].partition("@")     # '@' statt '&ckpt=': kein '&', das cmd zerlegen wuerde
+        raise ValueError("nn-Bot: 'nn?run=<Run>@<Checkpoint>' (without @ = latest), optional '&greedy=1', '&temp=<T>' (temperature, 1 = as trained, 0.5 = sharper, 0 = greedy), '&fold=<Fold-Model>' (data/humans/<name>.npz, e.g. for human bot human-1)")
+    run, _, ck = kv["run"].partition("@")     #'@' instead of '&ckpt=': no '&' which would break cmd parsing
     fold_model = None
     if "fold" in kv:
         from .husearch import load_opp_fold

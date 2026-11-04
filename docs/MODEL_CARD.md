@@ -6,7 +6,7 @@ These checkpoints support reproduction and exploration of the Lynx research proj
 
 ## Contents and provenance
 
-The repository includes small policy checkpoints for the `pros-*`, `lynx-*` and `human-1` generations, plus a human-style fold model. [Data and licensing](DATEN-UND-LIZENZEN.md) lists every included file, its role and the third-party data sources. Training and evaluation methods and dated results are in the [case study](CASE-STUDY.md).
+The repository includes small policy checkpoints for the `pros-*`, `lynx-*` and `human-1` generations, plus a human-style fold model. [Data and licensing](DATA_AND_LICENSES.md) lists every included file, its role and the third-party data sources. Training and evaluation methods and dated results are in the [case study](CASE-STUDY.md).
 
 Training sources include Pluribus hands distributed through the PHH dataset, simulator-generated play and historical HandHQ-derived decisions. The underlying population and poker formats are narrow; performance should not be generalized to other players, stakes, clients or game distributions. The original HandHQ terms have not been independently reviewed; no raw hand histories are distributed here.
 

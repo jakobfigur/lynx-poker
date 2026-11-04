@@ -1,4 +1,4 @@
-"""Tests zu den Befunden des Code-Reviews vom 29.10.2026 (Live-Pfad)."""
+"""Tests on findings from the code review of October 29, 2026 (live path)."""
 from pokercollector.ai.live import BUST_S, LiveBot, TournamentWatch, fix_dollar_misreads, sane
 from pokercollector.ai.observation import Action, Observation
 from pokercollector.ai.replay import observation_from_table_state
@@ -14,7 +14,7 @@ def _obs(**kw):
                 bb_seat=2, big_blind=20, small_blind=10, stacks=[1000, 500, 800], bets=[0, 10, 60],
                 committed=[0, 10, 60], folded=[False, False, False], allin=[False, False, False],
                 in_hand=[True, True, True], history=[], to_call=60, can_check=False, can_raise=True,
-                min_raise_to=120, max_raise_to=1000, hand_id="[1, 5]")
+                min_raise_to=120, max_raise_to=1000, hand_id='[1, 5]')
     base.update(kw)
     return Observation(**base)
 
@@ -45,7 +45,7 @@ def _ev(field, new, t):
 
 
 def test_rereraise_ist_neue_entscheidung_auch_bei_call():
-    """2.1: 'Call 60' gezeigt, Gegner erhoeht auf 300 -> wieder 'Call', aber mit neuem Betrag -> anzeigen."""
+    """2.1: 'Call 60' shown, opponent raises to 300 -> again 'Call', but with new amount -> display."""
     bot = LiveBot(_Agent(Action("call")))
     st = _state()
     bot.on_event(_ev("hero.buttons", st["hero.buttons"], 1.0), st, 1.0)
@@ -55,14 +55,14 @@ def test_rereraise_ist_neue_entscheidung_auch_bei_call():
     bot.on_event(_ev("seat.2.bet", 300, 3.0), st2, 3.0)
     out = bot.poll(4.0)
     assert out is not None and out[1].to_call == 300
-    # gleicher Betrag +-25 %: kein Neuanstoss
+    # same amount +-25%: no restart
     st3 = dict(st2, **{"hero.buttons": [{"action": "call", "amount": 310, "primary": True}]})
     bot.on_event(_ev("hero.buttons", st3["hero.buttons"], 5.0), st3, 5.0)
     assert bot.poll(6.0) is None
 
 
 def test_unlesbarer_stack_verbraucht_entscheidung_nicht():
-    """2.3: Stack kurz unlesbar beim Ablauf der Ruhezeit -> Vorschlag kommt, sobald er wieder lesbar ist."""
+    """2.3: stack briefly unreadable at end of quiet time -> suggestion comes as soon as readable again."""
     bot = LiveBot(_Agent(Action("call")))
     st = _state(hero_stack=None)
     bot.on_event(_ev("hero.buttons", st["hero.buttons"], 1.0), st, 1.0)
@@ -94,10 +94,10 @@ def test_agent_wird_nicht_ohne_karten_gefragt():
 
 
 def test_sieg_wird_verworfen_wenn_gegner_wieder_chips_zeigt():
-    """2.2: All-in-Gewinner steht beim Handwechsel noch auf 0, dann wird der Pot gutgeschrieben."""
+    """2.2: all-in winner is still at 0 during hand change, then pot credited."""
     w = TournamentWatch(0)
     w.on_hand(_hand(1, 1, {0: (3000, 3000), 1: (3000, 3000)}))
-    w.on_hand(_hand(1, 2, {0: (3000, 2500), 1: (3000, 0)}))       # Gegner zeigt 0 (Pot noch nicht gutgeschrieben)
+    w.on_hand(_hand(1, 2, {0: (3000, 2500), 1: (3000, 0)}))       # opponent shows 0 (pot not yet credited)
     assert w.pending and w.pending["platz"] == 1
     assert w.on_state({"seat.0.stack": 2500, "seat.1.stack": None, "seat.1.present": True}, 10.0) is None
     assert w.on_state({"seat.0.stack": 2500, "seat.1.stack": 3500, "seat.1.present": True}, 12.0) is None
@@ -106,7 +106,7 @@ def test_sieg_wird_verworfen_wenn_gegner_wieder_chips_zeigt():
 
 
 def test_alle_chips_regel_nicht_mitten_in_der_hand():
-    """2.4: 5850 von 6000 ist kein Sieg, solange der Gegner noch 150 zeigt."""
+    """2.4: 5850 of 6000 is no win as long as opponent still shows 150."""
     w = TournamentWatch(0)
     w.on_hand(_hand(1, 1, {0: (3000, 3000), 1: (3000, 3000)}))
     st = {"seat.0.present": True, "seat.1.present": True, "seat.0.stack": 5850, "seat.1.stack": 150}
@@ -116,32 +116,32 @@ def test_alle_chips_regel_nicht_mitten_in_der_hand():
 
 
 def test_ausscheide_uhr_stoppt_bei_spielaktivitaet():
-    """2.5: eigener Stack 0 nach All-in, die Hand laeuft aber weiter (Gegner setzen) -> kein Ausscheiden."""
+    """2.5: own stack 0 after all-in, but hand continues (opponents betting) -> no elimination."""
     w = TournamentWatch(0)
     w.on_hand(_hand(1, 1, {0: (1000, 1000), 1: (1000, 1000), 2: (1000, 1000)}))
     base = {"seat.0.present": True, "seat.1.present": True, "seat.2.present": True, "info.game_hand": [1, 2],
             "seat.1.stack": 900, "seat.2.stack": 900}
     assert w.on_state({**base, "seat.0.stack": 0}, 10.0) is None
-    w.activity("seat.1.bet", 200)                           # Gegner handelt noch
+    w.activity("seat.1.bet", 200)                           # opponent still acting
     assert w.zero_since is None
-    assert w.on_state({**base, "seat.0.stack": 0}, 31.0) is None   # Uhr neu gestartet
+    assert w.on_state({**base, "seat.0.stack": 0}, 31.0) is None   # clock restarted
     assert w.on_state({**base, "seat.0.stack": 0}, 31.0 + BUST_S)["platz"] == 3
 
 
 def test_handnummer_verleser_setzt_nicht_zurueck():
-    """2.6: '12' -> '1' als OCR-Verleser mitten im Turnier (ungleiche Stacks) ist kein neues Spiel."""
+    """2.6: '12' -> '1' as OCR misread mid-tournament (unequal stacks) is not a new game."""
     w = TournamentWatch(0)
     w.on_hand(_hand(1, 1, {0: (1000, 1000), 1: (1000, 1000), 2: (1000, 1000)}))
     w.on_hand(_hand(1, 12, {0: (1500, 1600), 1: (700, 600), 2: (800, 800)}))
-    w.on_hand(_hand(1, 5, {0: (1600, 1600), 1: (600, 600), 2: (800, 800)}))     # Verleser
+    w.on_hand(_hand(1, 5, {0: (1600, 1600), 1: (600, 600), 2: (800, 800)}))     # misread
     assert w.hands == 3 and w.field == 3
-    w.on_hand(_hand(1, 1, {0: (1000, 1000), 1: (1000, 1000)}))                   # echter Neustart
+    w.on_hand(_hand(1, 1, {0: (1000, 1000), 1: (1000, 1000)}))                   # real restart
     assert w.hands == 1 and w.field == 2
 
 
 def test_chips_nur_bei_sicherem_start():
     w = TournamentWatch(0)
-    w.on_hand(_hand(1, 7, {0: (1500, 1500), 1: (700, 700)}))      # Einstieg mitten im Spiel, evtl. Plaetze fehlen
+    w.on_hand(_hand(1, 7, {0: (1500, 1500), 1: (700, 700)}))      # entry mid-game, possibly seats missing
     assert w.chips is None
     w2 = TournamentWatch(0)
     w2.on_hand(_hand(1, 1, {0: (1000, 1000), 1: (1000, 1000)}))
@@ -154,12 +154,12 @@ def test_dollar_fix_schneidet_keine_echten_werte():
 
 
 def test_unlesbarer_gegnerstack_ist_kein_allin():
-    """2.7 / 2.9: Stack None -> nicht all-in; Strasse 'showdown' -> aus dem Board."""
+    """2.7 / 2.9: stack None -> not all-in; street 'showdown' -> from the board."""
     st = _state(**{"seat.2.stack": None, "info.street": "showdown"})
     obs = observation_from_table_state(st, 0, 3)
     assert obs.allin == [False, False, False] and obs.street == "preflop"
-    assert "Stack eines Spielers unlesbar" in obs.uncertain
-    assert str(sane(Action("raise", 400), obs)) == "raise 400"
+    assert 'Stack of a player unreadable' in obs.uncertain
+    assert str(sane(Action("raise", 400), obs)) == 'raise 400'
 
 
 def test_session_ended_meldet_offenes_ausscheiden_und_startet_frisch():

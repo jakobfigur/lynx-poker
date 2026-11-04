@@ -1,9 +1,9 @@
-"""Zeitliche Stabilisierung einzelner Felder.
+""" Temporal stabilization of individual fields.
 
-Ein neuer Wert gilt erst als stabil, wenn er in `min_frames` aufeinanderfolgenden
-Analysen und mindestens `min_ms` lang gelesen wurde. Kurzlebige Werte werden nicht
-weggemittelt, sondern als 'transient' gemeldet. Unlesbare Werte (None mit
-Konfidenz 0) ersetzen einen stabilen Wert erst nach `unknown_after_ms`.
+A new value is considered stable only after being read in `min_frames` consecutive
+analyses and for at least `min_ms` duration. Short-lived values are not averaged out
+but reported as 'transient'. Unreadable values (None with
+confidence 0) replace a stable value only after `unknown_after_ms`.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from typing import Any
 
 from .analyzer import FieldObs, TableSnapshot
 
-# Felder, die sich zwischen Frames legitim sehr schnell aendern koennen und
-# deshalb nur 1 Frame Bestaetigung brauchen.
+# Fields that can legitimately change very rapidly between frames and
+# therefore require only 1 frame confirmation.
 FAST_FIELDS = ("hero.to_act",)
 
 
@@ -29,7 +29,7 @@ class FieldEvent:
     field: str
     old: Any
     new: Any
-    t_first: float            # Monotone Zeit der ersten Beobachtung des neuen Wertes
+    t_first: float            # Monotonic time of first observation of the new value
     t_confirmed: float
     frame_first: int
     frame_confirmed: int
@@ -80,7 +80,7 @@ class Stabilizer:
                     events.append(FieldEvent("unknown", name, tr.stable, None, tr.unreadable_since / 1000.0,
                                              snap.t_mono, tr.unreadable_f0, snap.frame_index, 0.0,
                                              raw=obs.raw, rect=obs.rect.as_list() if obs.rect else None,
-                                             method=obs.method, note=obs.note or "laenger unlesbar"))
+                                             method=obs.method, note=obs.note or 'unreadable for a longer time'))
                     tr.stable, tr.stable_key = None, _key(None)
                 continue
             tr.unreadable_since = None
@@ -117,4 +117,4 @@ class Stabilizer:
         events.append(FieldEvent("transient", name, tr.stable, tr.cand, tr.cand_t0 / 1000.0, snap.t_mono,
                                  tr.cand_f0, snap.frame_index, o.confidence if o else 0.0,
                                  raw=o.raw if o else None, rect=o.rect.as_list() if o and o.rect else None,
-                                 method=o.method if o else "", note="nur kurz gesehen, nicht bestaetigt"))
+                                 method=o.method if o else "", note='only briefly seen, not confirmed'))

@@ -14,3 +14,10 @@ Result: **247 passed, 2 skipped**, in 334.37 seconds. The skipped tests require 
 Gitleaks found no secrets in the exact Git publication tree. An additional pattern scan inspected the serialized model payloads without loading them. These checks reduce accidental disclosure risk but do not constitute a security audit. Model file identities are recorded in [MODEL_CHECKSUMS.sha256](MODEL_CHECKSUMS.sha256).
 
 The CI workflow runs the locked test environment and CLI help on Windows and Linux. Check its latest run for current results; the local Windows result above does not establish a passing Linux run.
+
+
+## English language update — 4 November 2026
+
+Documentation, Python comments/docstrings and human-facing messages were translated to English. Commands, option registrations, defaults and data identifiers remain compatible. The advisor now uses English decimal formatting. A new regression test checks that uncertainty warnings from the live observation reach the visible advisor.
+
+The focused live/overlay suite passed 34 tests; the comparison suite passed 3 tests. Markdown targets and whitespace were checked, generated API/CLI references were rebuilt, and Gitleaks found no secrets in the exact staged publication tree. The complete Windows/Linux regression suite runs in CI for this revision; use the linked workflow on the README for its result. The historical model benchmarks were not rerun.

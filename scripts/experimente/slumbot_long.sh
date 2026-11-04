@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lange Slumbot-Messung pros-r1@300 bis 20000 Haende (fortsetzbar; laeuft nebenher, kaum CPU).
+#Long Slumbot measurement pros-r1@300 up to 20000 hands (continuable; runs in parallel, minimal CPU).
 cd <Projektordner>
 while pgrep -f "bench slumbot" >/dev/null 2>&1 || powershell -c "if (Get-CimInstance Win32_Process | ? { \$_.CommandLine -match 'bench slumbot' -and \$_.Name -eq 'pokercollector.exe' }) { exit 0 } else { exit 1 }"; do sleep 60; done
 N=$(wc -l < data/bench/slumbot/pros-r1@300.jsonl)

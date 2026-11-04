@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Nacht 27./28.10.2026: lynx-3 = Lynx 2 (lynx-2@500) weiter, gleiches Rezept (40 % Mensch-Bots).
-# Abschnitte bis 300/600/900/1200/1500, je mit Aufnahmepruefung (600 frische Turniere) gegen den Liga-Besten.
-# Pruefstand alle 100 It: mensch480 + praezise, gepaart gegen lynx-2@500 (best.json). Fortsetzbar.
+#Night 27/28.10.2026: lynx-3 = Lynx 2 (lynx-2@500) continued, same recipe (40% human bots).
+#Sections up to 300/600/900/1200/1500, each with entry test (600 fresh tournaments) against the league best.
+#Testbench every 100 iterations: mensch480 + precise, paired against lynx-2@500 (best.json). Continuable.
 cd <Projektordner>
 RUN=lynx-3
 mkdir -p data/rl/$RUN

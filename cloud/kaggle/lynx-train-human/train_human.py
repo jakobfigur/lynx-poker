@@ -1,7 +1,7 @@
-"""Kaggle-Skript: Menschen-Politiknetz (H11) aus HandHQ-Showdown-Entscheidungen (Dataset lynx-human-actions).
-Eingabe je Zeile: 49 Merkmale (feat-2, wie das Blueprint), Aktionsmaske (8), gewaehlte Aktion. Das Netz hat exakt
-den Aufbau von nn_agent.build_net (body.0, body.2, pi, v), damit der Checkpoint als 'nn?run=human-1@1' laeuft und
-in bpranges als Gegnermodell (ranges=human) steckt. Hold-out: jede 50. Hand. Ergebnis: ckpt_000001.pt + train_human.json."""
+"""Kaggle script: Human-Politics network (H11) from HandHQ showdown decisions (dataset lynx-human-actions).
+Input per line: 49 features (feat-2, like the blueprint), action mask (8), chosen action. The network has exactly
+the architecture of nn_agent.build_net (body.0, body.2, pi, v), so the checkpoint runs as 'nn?run=human-1@1'
+and is used in bpranges as opponent model (ranges=human). Hold-out: every 50th hand. Result: ckpt_000001.pt + train_human.json."""
 import glob
 import json
 import os
@@ -20,9 +20,9 @@ STREETS = ["preflop", "flop", "turn", "river"]
 ACTIONS = ["fold", "call/check", "r_half", "r_pot", "r_2pot", "allin", "r_third", "r_min"]
 
 dev = "cuda" if torch.cuda.is_available() else "cpu"
-print("torch", torch.__version__, "device", dev, torch.cuda.get_device_name(0) if dev == "cuda" else "", flush=True)
+print('torch', torch.__version__, 'device', dev, torch.cuda.get_device_name(0) if dev == "cuda" else "", flush=True)
 files = sorted(glob.glob("/kaggle/input/**/human-*.npz", recursive=True))
-print("Scherben:", len(files), flush=True)
+print('Shards:', len(files), flush=True)
 parts = [np.load(f) for f in files]
 x = np.concatenate([p["x"] for p in parts]).astype(np.float16)
 mask = np.concatenate([p["mask"] for p in parts])
@@ -33,8 +33,8 @@ del parts
 n = len(a)
 hold = (hand % 50) == 0
 tr, va = np.nonzero(~hold)[0], np.nonzero(hold)[0]
-print(f"{n} Zeilen, Training {len(tr)}, Hold-out {len(va)} ({hold.mean():.1%} der Zeilen, jede 50. Hand)", flush=True)
-print("Aktionen gesamt:", {ACTIONS[i]: int(c) for i, c in enumerate(np.bincount(a, minlength=N_ACTIONS))}, flush=True)
+print(f"{n} lines, training {len(tr)}, hold-out {len(va)} ({hold.mean():.1%} of lines, every 50th hand)", flush=True)
+print('Total actions:', {ACTIONS[i]: int(c) for i, c in enumerate(np.bincount(a, minlength=N_ACTIONS))}, flush=True)
 
 X = torch.from_numpy(x)
 M = torch.from_numpy(mask)
@@ -78,7 +78,7 @@ def evaluate(idx):
     return nll / np.maximum(cnt, 1), acc / np.maximum(cnt, 1), cnt
 
 
-# Vergleichslinie: Aktionshaeufigkeit je Strasse (auf die Maske eingeschraenkt) -> NLL
+# Reference line: action frequency per street (limited to mask) -> NLL
 freq = np.stack([np.bincount(a[(street == s) & ~hold], minlength=N_ACTIONS) + 1.0 for s in range(4)])
 freq = freq / freq.sum(1, keepdims=True)
 base = np.zeros(4); cnt0 = np.zeros(4)
@@ -87,7 +87,7 @@ for s in range(4):
     p = freq[s][None, :] * mask[sel]
     p = p / p.sum(1, keepdims=True)
     base[s] = -np.log(np.maximum(p[np.arange(len(sel)), a[sel]], 1e-9)).mean(); cnt0[s] = len(sel)
-print("Vergleichslinie NLL (Haeufigkeiten je Strasse):", {STREETS[s]: round(float(base[s]), 4) for s in range(4)}, flush=True)
+print('Reference line NLL (frequencies per street):', {STREETS[s]: round(float(base[s]), 4) for s in range(4)}, flush=True)
 
 hist = []
 t0 = time.time()
@@ -109,11 +109,11 @@ for ep in range(EPOCHS):
     tot = float((nll * cnt).sum() / cnt.sum())
     hist.append({"epoch": ep + 1, "train_nll": run / len(tr), "val_nll": tot,
                  "val_nll_street": nll.tolist(), "val_acc_street": acc.tolist(), "secs": time.time() - t0})
-    print(f"Epoche {ep + 1}/{EPOCHS}: Training {run / len(tr):.4f}, Hold-out NLL {tot:.4f} "
+    print(f"Epoch {ep + 1}/{EPOCHS}: Training {run / len(tr):.4f}, Hold-out NLL {tot:.4f} "
           + " ".join(f"{STREETS[s]} {nll[s]:.3f}/{acc[s]:.1%}" for s in range(4)) + f", {time.time() - t0:.0f}s", flush=True)
 
 sd = {k: v.detach().cpu() for k, v in net.state_dict().items()}
-meta = {"phase": "human-bc", "iteration": 1, "source": "HandHQ showdown decisions (lynx-human-actions)", "rows": int(n),
+meta = {"phase": "human-bc", "iteration": 1, "source": 'HandHQ showdown decisions (lynx-human-actions)', "rows": int(n),
         "train_rows": int(len(tr)), "holdout_rows": int(len(va)), "hidden": HIDDEN, "epochs": EPOCHS,
         "baseline_nll_street": base.tolist(), "hist": hist}
 torch.save({"nn_version": "nn-mlp-1", "features": "feat-2", "n_features": int(x.shape[1]), "hidden": HIDDEN,

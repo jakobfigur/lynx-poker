@@ -1,18 +1,18 @@
-"""Suche als Lehrer (Expert Iteration, Hebel H5): die Heads-up-Suche spielt, das Netz lernt ihre Entscheidungen.
+"""Search as teacher (Expert Iteration, leverage H5): the heads-up search plays, the network learns its decisions.
 
-Warum: Die Suche (husearch) loest Turn und River im Teilspiel exakt und ist damit dem Netz an den gesuchten
-Stellen ueberlegen (gegen Slumbot: hus-5 +-0 statt Netz-typischem River-Verlust; auf hu480 gleichauf). Live und an
-vollen Tischen bleibt aber oft keine Zeit zum Suchen. Also soll das Netz die Such-Entscheidungen verinnerlichen:
+Why: The search (husearch) solves Turn and River subgames exactly and is therefore superior to the network at the searched
+positions (against Slumbot: hus-5 +-0 instead of typical network river loss; on hu480 equal). Live and at
+full tables there often isn’t time to search. So the network should internalize the search decisions:
 
-  1. collect():  Matches Suche gegen verschiedene Gegner in verschiedenen Stacktiefen; an jeder GESUCHTEN
-                 Entscheidung werden die Netzeingaben des Schuelers (features + Maske) und die volle
-                 Aktionsverteilung der Suche (auf das 8er-Aktionsraster abgebildet, weiche Ziele) gespeichert.
-  2. fit():      der Schueler (z. B. lynx-4@300) wird auf diese weichen Ziele nachtrainiert, mit KL-Leine an
-                 sein Ausgangsnetz (piKL wie im PPO), damit er an den nicht gesuchten Stellen nicht abdriftet.
-  3. Gate:       der neue Checkpoint muss im Pruefstand (bench compare) und gegen Slumbot bestehen.
+  1. collect():  Matches search against various opponents with different stack depths; at each SEARCHED
+                 decision the student’s network inputs (features + mask) and the full
+                 action distribution of the search (mapped to the 8-action grid, soft targets) are stored.
+  2. fit():      The student (e.g. lynx-4@300) is retrained on these soft targets, with a KL loss anchored to
+                 its original network (piKL as in PPO), so it doesn’t drift at non-searched states.
+  3. Gate:       The new checkpoint must pass the testbench (bench compare) and against Slumbot.
 
-Nur gesuchte Entscheidungen zaehlen (Blueprint-Zuege des Lehrers lehren nichts Neues). Formate: Cash heads-up mit
-Stacks 20-200 BB (auto=1 waehlt die Suchkonfiguration je Hand). Alles synthetisch, keine fremden Haende.
+Only searched decisions count (teacher’s blueprint moves teach nothing new). Formats: Cash heads-up with
+stacks 20-200 BB (auto=1 chooses the search config per hand). All synthetic, no external hands.
 """
 
 from __future__ import annotations
@@ -30,11 +30,11 @@ TEACHER_VERSION = "teacher-1"
 
 
 class TeacherRecorder:
-    """Huelle um einen HUSearchAgent: spielt wie er, merkt sich jede gesuchte Entscheidung als Lehrerbeispiel."""
+    """Wrapper around a HUSearchAgent: plays as it does, remembers every searched decision as a teaching example."""
 
     def __init__(self, search_agent, student, name: str = "lehrer"):
         self.inner = search_agent
-        self.student = student                  # NNAgent (liefert inputs(obs) im Schueler-Merkmalsraum)
+        self.student = student                  # NNAgent (provides inputs(obs) in the student feature space)
         self.name = name
         self.rows: list[dict] = []
         self.seed = getattr(search_agent, "seed", 0)
@@ -48,7 +48,7 @@ class TeacherRecorder:
     def act(self, obs: Observation) -> Action:
         a = self.inner.act(obs)
         last = getattr(self.inner, "last", None)
-        if last and last.get("actions") and last.get("nodes", 0) > 0:      # gesucht (Preflop-Loeser: nodes 0)
+        if last and last.get("actions") and last.get("nodes", 0) > 0:      # searched (Preflop solver: nodes 0)
             x, mask = self.student.inputs(obs)
             na = len(mask)
             target = np.zeros(na, np.float32)
@@ -73,19 +73,19 @@ class TeacherRecorder:
 
 
 def resolve_opponent(name: str) -> str:
-    """'mensch-N' -> Stil-Spezifikation aus data/humans/mensch-25nl.json (wie bench 'mensch'); sonst unveraendert."""
+    """'mensch-N' -> style specification from data/humans/mensch-25nl.json (like bench 'mensch'); otherwise unchanged."""
     if name.startswith("mensch-"):
         from .humanbots import load_bots
         bots = {b["name"]: b["spec"] for b in load_bots()}
         if name not in bots:
-            raise ValueError(f"unbekannter Mensch-Bot '{name}' (vorhanden: {', '.join(sorted(bots))})")
+            raise ValueError(f"unknown human-bot '{name}' (available: {', '.join(sorted(bots))})")
         return bots[name]
     return name
 
 
 def collect(search_spec: str, student_spec: str, opponents: list[str], hands: int, stacks_bb: list[int],
             out: Path | str, seed: int = 1, progress=None) -> dict:
-    """Je Gegner und Stacktiefe ein Match (duplicate) Suche gegen Gegner; Lehrerbeispiele in eine .npz."""
+    """One match (duplicate) per opponent and stack depth: search against opponent; teacher examples into one .npz."""
     from .agents import make_agent
     from .evaluate import run_match
     out = Path(out)
@@ -108,13 +108,13 @@ def collect(search_spec: str, student_spec: str, opponents: list[str], hands: in
             if progress:
                 progress(k, len(stacks_bb) * len(opponents), log[-1], len(rows), time.time() - t0)
     if not rows:
-        raise RuntimeError("keine gesuchten Entscheidungen gesammelt")
+        raise RuntimeError('no searched decisions collected')
     data = {key: np.stack([r[key] for r in rows]) for key in ("x", "mask", "target")}
     for key in ("street", "stack_bb", "pot_bb", "nodes"):
         data[key] = np.array([r[key] for r in rows])
     meta = {"version": TEACHER_VERSION, "search": search_spec, "student": student_spec, "opponents": opponents,
             "stacks_bb": stacks_bb, "hands_per_match": hands, "seed": seed, "rows": len(rows), "matches": log,
-            "elapsed_s": time.time() - t0, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
+            "elapsed_s": time.time() - t0, "t": time.strftime('%Y-%m-%d %H:%M:%S')}
     np.savez_compressed(out, **data, meta=json.dumps(meta))
     return meta
 
@@ -129,9 +129,9 @@ def load(paths: list[Path | str]) -> dict:
 def fit(student_run: str, student_ckpt: int | str, paths: list[Path | str], out_run: str, epochs: int = 10,
         batch: int = 512, lr: float = 3e-4, kl_coef: float = 0.5, holdout: float = 0.1, seed: int = 0,
         log=print) -> dict:
-    """Schueler auf die weichen Lehrerziele nachtrainieren: Verlust = Kreuzentropie(Ziel, Schueler)
-    + kl_coef * KL(Anker || Schueler), Anker = Schueler vor dem Training (eingefroren). Ergebnis
-    data/rl/<out_run>/ckpt_000001.pt im nn_agent-Format (gleiche Merkmale, gleiche Aktionen)."""
+    """Retrain student on soft teacher targets: loss = cross-entropy(target, student)
+    + kl_coef * KL(anchor || student), anchor = student before training (frozen). Result
+    data/rl/<out_run>/ckpt_000001.pt in nn_agent format (same features, same actions)."""
     import copy
     import torch
     from torch import nn
@@ -144,7 +144,7 @@ def fit(student_run: str, student_ckpt: int | str, paths: list[Path | str], out_
         p.requires_grad_(False)
     d = load(paths)
     if d["x"].shape[1] != ck["n_features"]:
-        raise ValueError(f"Lehrerdaten haben {d['x'].shape[1]} Merkmale, Schueler {ck['n_features']}")
+        raise ValueError(f"Teacher data has {d['x'].shape[1]} features, student {ck['n_features']}")
     n = len(d["target"])
     rng = np.random.default_rng(seed)
     perm = rng.permutation(n)
@@ -178,7 +178,7 @@ def fit(student_run: str, student_ckpt: int | str, paths: list[Path | str], out_
         return ce.item(), kl.item(), agree, agree0
 
     ce0, kl0, ag0, _ = evaluate()
-    log(f"Start: Kreuzentropie {ce0:.4f}, Uebereinstimmung mit der Suche {ag0:.1%} (Hold-out {n_val} von {n})")
+    log(f"Start: cross-entropy {ce0:.4f}, agreement with search {ag0:.1%} (hold-out {n_val} of {n})")
     hist = [{"epoch": 0, "val_ce": ce0, "val_kl": kl0, "agree": ag0}]
     net.train()
     for ep in range(epochs):
@@ -193,7 +193,7 @@ def fit(student_run: str, student_ckpt: int | str, paths: list[Path | str], out_
             opt.step()
         ce, kl, agree, agree0 = evaluate()
         hist.append({"epoch": ep + 1, "val_ce": ce, "val_kl": kl, "agree": agree})
-        log(f"Epoche {ep + 1}/{epochs}: Kreuzentropie {ce:.4f}, KL zum Anker {kl:.4f}, Uebereinstimmung {agree:.1%} (Anker {agree0:.1%})")
+        log(f"Epoch {ep + 1}/{epochs}: cross-entropy {ce:.4f}, KL to anchor {kl:.4f}, agreement {agree:.1%} (anchor {agree0:.1%})")
     out_dir = rl_root() / out_run
     meta = {"phase": "teacher", "iteration": 1, "student": f"{student_run}@{student_ckpt}", "rows": int(n),
             "kl_coef": kl_coef, "epochs": epochs, "hist": hist, "sources": [str(p) for p in paths],

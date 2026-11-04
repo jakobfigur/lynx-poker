@@ -1,4 +1,4 @@
-"""Erzeugt synthetische, stabilisierte Feldereignisse wie im Journal."""
+""" Produces synthetic, stabilized field events as in the journal."""
 
 
 class EventStream:
@@ -18,7 +18,7 @@ class EventStream:
         return self
 
 
-def table(es: EventStream, t=0.0, names=("jakob", "Calling Carl", "Lucky Luna", "Re-raise Ron"), stack=3000):
+def table(es: EventStream, t=0.0, names=("jakob", 'Calling Carl', 'Lucky Luna', 'Re-raise Ron'), stack=3000):
     for s, n in enumerate(names):
         es.at(t, **{f"seat__{s}__present": True, f"seat__{s}__name": n, f"seat__{s}__stack": stack,
                     f"seat__{s}__bet": 0, f"seat__{s}__folded": False})
@@ -26,9 +26,9 @@ def table(es: EventStream, t=0.0, names=("jakob", "Calling Carl", "Lucky Luna", 
 
 
 def standard_hand(es: EventStream, t0=0.0, hand_no=1, skip_hero_flop=False):
-    """Dealer 0 (Hero), SB 1, BB 2, Sitz 3 UTG. Blinds 10/20.
-    Preflop: 3 fold, 0 call, 1 raise auf 60, 2 fold, 0 call.
-    Flop: 1 check, 0 bet 100, 1 fold. Hero gewinnt 240."""
+    """ Dealer 0 (Hero), SB 1, BB 2, seat 3 UTG. Blinds 10/20.
+    Preflop: 3 fold, 0 call, 1 raise to 60, 2 fold, 0 call.
+    Flop: 1 check, 0 bet 100, 1 fold. Hero wins 240."""
     T = lambda d: t0 + d
     es.at(T(0.0), marker__D=0, marker__SB=1, marker__BB=2, info__blinds=[10, 20])
     es.at(T(0.1), info__game_hand=[1, hand_no], info__street="preflop", board__count=0)

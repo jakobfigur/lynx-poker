@@ -32,7 +32,7 @@ def test_standard_hand_is_complete():
     assert h.board[:3] == ["Ah", "7c", "2d"]
     assert h.seats[0].start_stack == 3000 and h.seats[1].start_stack == 3000
     assert h.contradictions == [] and h.gaps == []
-    # Zweite Hand wurde begonnen, aber nicht beendet -> partiell
+    # second hand started but not finished -> partial
     assert hands[1].hand_no == 2 and hands[1].status == "partial"
 
 
@@ -42,10 +42,10 @@ def test_missed_action_is_reported_not_invented():
     es.at(12.0, info__game_hand=[1, 2])
     h = reconstruct(es.events)[0]
     flop = [(a.seat, a.type, a.source) for a in h.actions if a.street == "flop"]
-    # Hero-Aktion auf dem Flop fehlt im Bild: als unbekannt markiert, nicht erfunden
+    # hero action on the flop missing in image: marked as unknown, not fabricated
     assert (0, "unknown", "inferred_gap") in flop
     assert h.status == "partial"
-    assert any("nicht beobachtet" in g for g in h.gaps)
+    assert any('not observed' in g for g in h.gaps)
 
 
 def test_bet_decrease_without_street_change_is_contradiction():
@@ -75,7 +75,7 @@ def test_check_label_is_observed():
 
 
 def test_stale_bet_from_previous_hand_is_ignored():
-    # Hand 1 endet mit Einsatz 300 von Sitz 0; die Zeile steht nach dem Handwechsel noch kurz da
+    # hand 1 ends with bet 300 from seat 0; the line briefly remains after hand switch
     es = table(EventStream())
     standard_hand(es)
     es.at(10.5, seat__0__bet=300)
@@ -98,22 +98,22 @@ def test_late_fold_goes_to_previous_street_and_calls_are_inferred():
     es.at(0.3, seat__1__bet=10, seat__2__bet=20)
     es.at(3.0, seat__0__bet=60)
     es.at(4.0, seat__1__folded=True)
-    # Sitz 2 callt (nicht gesehen, Einsaetze sofort eingesammelt), Sitz 3 foldet - erst nach dem Flop gelesen
+    # seat 2 calls (not seen, bets collected immediately), seat 3 folds - only read after the flop
     es.at(6.0, board__count=3, board__cards=["Ah", "7c", "2d", None, None], info__street="flop",
           seat__0__bet=0, seat__1__bet=0, seat__2__bet=0)
     es.at(6.5, seat__3__folded=True)
     es.at(9.0, seat__2__action_label="check")
     h = reconstruct(es.events)[0]
     pre = [(a.seat, a.type, a.source.split("+")[0]) for a in h.actions if a.street == "preflop"]
-    assert (3, "fold", "observed_fold") in pre                       # verspaeteter Fold in der richtigen Strasse
-    assert (2, "call", "inferred_street_end") in pre                 # abschliessender Call erschlossen
+    assert (3, "fold", "observed_fold") in pre                       # delayed fold on the correct street
+    assert (2, "call", "inferred_street_end") in pre                 # concluding call inferred
     assert not any(a.street == "flop" and a.seat == 3 for a in h.actions)
 
 
 def test_board_majority_vote():
     es = table(EventStream())
     standard_hand(es)
-    es.at(6.5, board__cards=["Ah", "1c", "2d", None, None])          # einmalige Fehllesung
+    es.at(6.5, board__cards=["Ah", "1c", "2d", None, None])          # one-time misread
     es.at(7.0, board__cards=["Ah", "7c", "2d", None, None])
     es.at(7.5, board__cards=["Ah", "7c", "2d", None, None])
     h = reconstruct(es.events)[0]
@@ -124,6 +124,6 @@ def test_seat_memory_keeps_numbers_when_a_player_leaves():
     from pokercollector.layout import SeatMemory
     m = SeatMemory(0.06)
     six = [(0.5, 0.7), (0.25, 0.65), (0.15, 0.3), (0.5, 0.1), (0.85, 0.3), (0.75, 0.65)]
-    assert m.assign(six, hero=0) == [0, 1, 2, 3, 4, 5]               # im Uhrzeigersinn ab dem eigenen Platz
-    five = [c for i, c in enumerate(six) if i != 3]                  # Spieler oben ist ausgeschieden
+    assert m.assign(six, hero=0) == [0, 1, 2, 3, 4, 5]               # clockwise from own seat
+    five = [c for i, c in enumerate(six) if i != 3]                  # player above is eliminated
     assert m.assign(five, hero=0) == [0, 1, 2, 4, 5]

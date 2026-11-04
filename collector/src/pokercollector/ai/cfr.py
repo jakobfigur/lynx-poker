@@ -1,27 +1,22 @@
-"""Gleichgewicht statt Ausbeutung: Monte-Carlo-CFR wie beim Blueprint von Pluribus.
+"""Equilibrium instead of exploitation: Monte-Carlo CFR like the blueprint of Pluribus.
 
-Idee (Counterfactual Regret Minimization): Der Bot spielt immer wieder Haende gegen sich selbst.
-An jeder eigenen Entscheidung probiert er ALLE Aktionen durch (Kopie des Spielstands) und merkt
-sich, wie viel besser oder schlechter jede gewesen waere als seine aktuelle Mischung ("Bedauern",
-regret). Kuenftig spielt er Aktionen mit positivem Bedauern entsprechend oefter. Der Durchschnitt
-aller Strategien naehert sich einem Gleichgewicht: einer Strategie, die sich kaum ausnutzen laesst -
-egal gegen wen. Das ist das Gegenteil von PPO, das die aktuellen Gegner bestmoeglich ausbeutet.
+Idea (Counterfactual Regret Minimization): The bot repeatedly plays hands against itself.
+At each own decision, it tries ALL actions (copying the game state) and notes how much better or worse each would have been than its current mixture ("regret").
+In the future, it plays actions with positive regret more often. The average of all strategies approaches an equilibrium: a strategy barely exploitable –
+no matter against whom. This is the opposite of PPO, which exploits current opponents as best as possible.
 
-Wie bei Pluribus:
-- External Sampling: eigene Aktionen werden alle durchgespielt, Gegner/Karten zufaellig gezogen.
-- Linear CFR: spaetere Runden zaehlen staerker (Gewicht = Rundennummer).
-- Abstraktion: aehnliche Situationen teilen sich einen Eintrag ("Infoset"):
-  Strasse, Handstaerke-Klasse, Position, Spielerzahl, Pot Odds, eff. Stack, Raises, Aggressor.
-  Aktionen: Fold, Check/Call, Raise 1/2, 1, 2 Pot, All-in; ab 2 Raises je Strasse nur Fold/Call/All-in.
-Jede Hand wird mit zufaelliger Spielerzahl (2-6) und zufaelligen Stacks (3-150 BB) gespielt, damit
-sowohl Turnier-Kurzstacks als auch tiefe Stacks abgedeckt sind. Wert = Chip-Ergebnis in BB.
+As in Pluribus:
+- External Sampling: all own actions are fully played out, opponent/cards are randomly drawn.
+- Linear CFR: later rounds count more (weight = round number).
+- Abstraction: similar situations share an entry ("infoset"):
+  street, hand strength class, position, number of players, pot odds, effective stack, raises, aggressor.
+  Actions: fold, check/call, raise 1/2, 1, 2 pot, all-in; from 2 raises per street only fold/call/all-in.
+Each hand is played with random number of players (2-6) and random stacks (3-150 BB), covering both tournament short stacks and deep stacks. Value = chip result in BB.
 
-Grenzen: Tabellen-CFR mit grober Abstraktion (Pluribus: viel feiner, C++, 64 Kerne, 8 Tage). Ob das
-Ergebnis stark ist, entscheidet der Pruefstand. Spaeter: Durchschnittsstrategie ins Netz uebertragen
-und als Anker/Leine fuer PPO nutzen.
+Limits: table CFR with coarse abstraction (Pluribus: much finer, C++, 64 cores, 8 days). The test bench decides if the result is strong. Later: transfer average strategy to network and use as anchor/leash for PPO.
 
-Ablage: data\\rl\\<lauf>\\cfr_state.npz (Fortsetzen), cfr_avg.npz (Strategie zum Spielen), log.jsonl.
-Liga: 'cfr?run=<lauf>'.
+Storage: data\\rl\\<run>\\cfr_state.npz (resume), cfr_avg.npz (strategy to play), log.jsonl.
+League: 'cfr?run=<run>'.
 """
 
 from __future__ import annotations
@@ -45,7 +40,7 @@ from .tables import preflop_percentile
 CFR_VERSION = "mccfr-1"
 HAND_BUCKETS_PRE = 20
 HAND_BUCKETS_POST = 12
-_RADIX = (4, 20, 6, 5, 5, 5, 4, 2)         # Strasse, Hand, Position, Spieler, Pot Odds, Stack, Raises, Aggressor
+_RADIX = (4, 20, 6, 5, 5, 5, 4, 2)         # Street, hand, position, player, pot odds, stack, raises, aggressor
 
 
 def abstract_mask(obs: Observation) -> np.ndarray:
@@ -71,7 +66,7 @@ def infokey(obs: Observation, cache: dict | None = None) -> int:
         ck = (obs.hole_cards[0], obs.hole_cards[1], tuple(obs.board), opp)
         eq = cache.get(ck) if cache is not None else None
         if eq is None:
-            seed = zlib.crc32(repr(ck).encode())     # stabil ueber Prozesse (hash() ist zufaellig gesalzen)
+            seed = zlib.crc32(repr(ck).encode())     # stable across processes (hash() is randomly salted)
             eq = mc_equity(obs.hole_cards, obs.board, opp, 200, random.Random(seed))
             if cache is not None:
                 cache[ck] = eq
@@ -111,7 +106,7 @@ def regret_matching(reg: np.ndarray | None, mask: np.ndarray) -> np.ndarray:
     return p / p.sum()
 
 
-# ---- Traversierung (laeuft in den Arbeitsprozessen) ---------------------------------------
+# ---- Traversal (runs in worker processes) ---------------------------------------
 
 class _Worker:
     def __init__(self, regrets: dict, rng: random.Random):
@@ -167,7 +162,7 @@ def _job(args):
     return w.d_regret, w.d_strategy, w.nodes, time.perf_counter() - t0
 
 
-# ---- Steuerung ---------------------------------------------------------------------------
+# ---- Control ---------------------------------------------------------------------------
 
 def _save_state(path: Path, regrets: dict, strategy: dict, rnd: int):
     keys = np.array(sorted(regrets.keys() | strategy.keys()), np.int64)
@@ -181,7 +176,7 @@ def _save_state(path: Path, regrets: dict, strategy: dict, rnd: int):
 
 
 def _load_state(path: Path) -> tuple[dict, dict, int]:
-    # Jedes z[...] entpackt das GANZE Array neu - also je Array genau einmal lesen; Datei danach schliessen
+    #Each z[...] unpacks the WHOLE array again - so exactly once per array reading; then close file
     with np.load(path) as z:
         keys, R, S, rnd = z["keys"], z["regrets"].astype(np.float64), z["strategy"].astype(np.float64), int(z["round"])
     regrets = {int(k): R[i].copy() for i, k in enumerate(keys) if R[i].any()}
@@ -201,8 +196,8 @@ def save_average(path: Path, strategy: dict):
 
 def train_cfr(run_dir: Path, rounds: int, traversals: int = 400, workers: int | None = None, seed: int = 1,
               progress=None) -> dict:
-    """rounds: Zielrunde (Gesamtzahl). Je Runde: workers x traversals Durchlaeufe mit der Strategie vom
-    Rundenbeginn, dann Bedauern/Strategie mit Gewicht = Runde (Linear CFR) addieren."""
+    """rounds: target round (total number). Per round: workers x traversals runs with strategy at
+    round start, then add regret/strategy with weight = round (linear CFR)."""
     run_dir.mkdir(parents=True, exist_ok=True)
     state = run_dir / "cfr_state.npz"
     regrets, strategy, start = ({}, {}, 0)
@@ -241,7 +236,7 @@ def train_cfr(run_dir: Path, rounds: int, traversals: int = 400, workers: int | 
     return last
 
 
-# ---- Spielen mit der Durchschnittsstrategie ----------------------------------------------------
+# ---- Playing with the average strategy ----------------------------------------------------
 
 _POLICY_CACHE: dict = {}
 
@@ -251,14 +246,14 @@ def load_policy(run: str) -> dict:
     p = rl_root() / run / "cfr_avg.npz"
     key = (str(p), p.stat().st_mtime)
     if key not in _POLICY_CACHE:
-        with np.load(p) as z:                         # je Array einmal entpacken (sonst Speicher x Eintraege)
+        with np.load(p) as z:                         # unpack each array once (else memory x entries)
             keys, probs = z["keys"], z["probs"]
         _POLICY_CACHE[key] = {int(k): probs[i] for i, k in enumerate(keys)}
     return _POLICY_CACHE[key]
 
 
 class CFRAgent(BaseAgent):
-    """Spielt die Durchschnittsstrategie. Unbekannte Situation: einfache Equity-Regel (gezaehlt)."""
+    """Plays the average strategy. Unknown situation: simple equity rule (counted)."""
     name = "cfr"
 
     def __init__(self, policy: dict, seed: int = 0, name: str | None = None):
@@ -291,5 +286,5 @@ class CFRAgent(BaseAgent):
 def make_cfr_agent(params: str, seed: int = 0) -> CFRAgent:
     kv = dict(p.partition("=")[::2] for p in params.split("&") if p)
     if "run" not in kv:
-        raise ValueError("cfr-Bot: 'cfr?run=<Lauf>'")
+        raise ValueError("cfr bot: 'cfr?run=<run>'")
     return CFRAgent(load_policy(kv["run"]), seed)

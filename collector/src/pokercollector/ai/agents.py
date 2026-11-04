@@ -1,15 +1,15 @@
-"""Gegner-Pool: regelbasierte Bots mit einstellbarem Stil plus Baseline-Agenten.
+"""Opponent pool: rule-based bots with adjustable style plus baseline agents.
 
-Alle Bots sehen nur die Observation. Zufall ist pro Entscheidung aus (Seed, Hand,
-Verlaufslaenge) abgeleitet: gleiche Situation -> gleiche Entscheidung. Das macht
-Matches reproduzierbar und Duplicate-Bewertungen fair.
+All bots see only the observation. Randomness per decision is turned off (seed, hand,
+game length) derived: same situation -> same decision. This makes
+matches reproducible and duplicate evaluations fair.
 
-Stile (angelehnt an typische PokerTH-Bot-Typen; NICHT deren echter Code):
-  station  spielt viele Haende, callt viel, erhoeht fast nie
-  rock     sehr eng, setzt nur mit starken Haenden
-  tag      eng-aggressiv (solider Standard)
-  lag      locker-aggressiv
-  maniac   extrem locker und aggressiv, viele Bluffs
+Styles (based on typical PokerTH bot types; NOT their actual code):
+  station  plays many hands, calls a lot, almost never raises
+  rock     very tight, bets only with strong hands
+  tag      tight-aggressive (solid standard)
+  lag      loose-aggressive
+  maniac   extremely loose and aggressive, many bluffs
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ AGENTS_VERSION = "agents-1"
 
 
 def mc_equity(hole: list[str], board: list[str], opponents: int, iterations: int, rng: random.Random) -> float:
-    """Equity gegen `opponents` zufaellige Haende (kleines Monte-Carlo)."""
+    """Equity against `opponents` random hands (small Monte Carlo)."""
     from ..fastpoker import HAVE_NUMBA, mc_stats
     if HAVE_NUMBA:
         return mc_stats(hole, board, opponents, iterations, rng.getrandbits(31))[0] / iterations
@@ -52,10 +52,10 @@ def mc_equity(hole: list[str], board: list[str], opponents: int, iterations: int
 
 
 def push_fold_spot(obs: Observation) -> dict:
-    """Ordnet eine Preflop-Situation dem Push/Fold-Modell zu.
-    first_in: niemand hat vor uns erhoeht (Limper zaehlen als Spieler dahinter).
-    facing_push: genau eine Erhoehung vor uns, wir sind einer der Spieler dahinter.
-    other: mehrere Erhoehungen oder bereits Caller vor uns."""
+    """Assigns a preflop situation to the push/fold model.
+    first_in: no one has raised before us (limpers count as players behind).
+    facing_push: exactly one raise before us, we are one of the players behind.
+    other: multiple raises or callers before us."""
     pre = [a for a in obs.history if a.street == "preflop"]
     aggr = [i for i, a in enumerate(pre) if a.kind in ("bet", "raise")]
     total = lambda s: obs.stacks[s] + obs.bets[s]
@@ -106,7 +106,7 @@ class BaseAgent:
 
 
 class RandomAgent(BaseAgent):
-    """Zufaellig unter den erlaubten Aktionen - Untergrenze fuer jede Bewertung."""
+    """Randomly among allowed actions - lower bound for each evaluation."""
     name = "random"
 
     def act(self, obs):
@@ -119,7 +119,7 @@ class RandomAgent(BaseAgent):
 
 
 class CallAgent(BaseAgent):
-    """Checkt oder callt immer (deterministisch, fuer Tests)."""
+    """Always checks or calls (deterministic, for tests)."""
     name = "caller"
 
     def act(self, obs):
@@ -128,21 +128,21 @@ class CallAgent(BaseAgent):
 
 @dataclass(frozen=True)
 class Style:
-    vpip: float            # Anteil gespielter Starthaende (nach Perzentil)
-    pfr: float             # Anteil Starthaende, mit denen eroeffnet wird
-    value_margin: float    # Equity ueber fairem Anteil fuer Value-Bet
-    raise_margin: float    # Equity ueber fairem Anteil fuer Raise gegen Einsatz
-    call_slack: float      # callt auch, wenn Equity bis zu diesem Wert unter den Pot Odds liegt
-    bluff: float           # Bluff-Wahrscheinlichkeit, wenn niemand gesetzt hat
-    bet_size: float        # Einsatz als Anteil des Pots
-    open_size: float       # Preflop-Eroeffnung in BB
-    push_bb: float = 0.0   # ab diesem Stack (in BB) nur noch Push/Fold preflop; 0 = nie
-    nash_stack_factor: float = 1.0   # Push/Fold "als haette man x-mal so viele BB": >1 enger, <1 lockerer
-    respect: float = 0.0   # Respekt vor Einsaetzen nach dem Flop: verlangt zum Callen zusaetzlich
-                           # respect x (Einsatz/Pot) Equity. Die Equity gegen ZUFALLSkarten ueberschaetzt
-                           # die Lage gegen jemanden, der setzt; echte Spieler folden viel oefter (HandHQ).
-    sticky: float = 0.0    # "Call-Down": je spaeter die Strasse, desto weniger Respekt (0 = gleich, 1 = am River
-                           # gar keiner). Menschen geben am Flop oft auf, rufen spaeter aber oft bis zum Ende.
+    vpip: float            #Share of played starting hands (by percentile)
+    pfr: float             #Share of starting hands with which it opens
+    value_margin: float    #Equity over fair share for value bet
+    raise_margin: float    #Equity over fair share for raise against bet
+    call_slack: float      #also calls if equity is up to this value below pot odds
+    bluff: float           #Bluff probability if no one has bet
+    bet_size: float        #Bet as fraction of the pot
+    open_size: float       #Preflop open in BB
+    push_bb: float = 0.0   #from this stack (in BB) only push/fold preflop; 0 = never
+    nash_stack_factor: float = 1.0   #Push/fold "as if having x times more BB": >1 tighter, <1 looser
+    respect: float = 0.0   #Respect for bets after the flop: additionally requires to call
+                           # respect x (bet/pot) equity. Equity against RANDOM cards overestimates
+                           # the position against someone who bets; real players fold much more often (HandHQ).
+    sticky: float = 0.0    # "Call-Down": the later the street, the less respect (0 = equal, 1 = at the River
+                           # none at all). People often give up on the flop but then often call until the end.
 
 
 STYLES = {
@@ -166,8 +166,8 @@ class StyleBot(BaseAgent):
         self.iterations = iterations
 
     def _push_fold(self, obs: Observation, p: float, r: random.Random) -> Action:
-        """Kurzer Stack: All-in oder Fold nach der Nash-Push/Fold-Tabelle (pushfold.py).
-        Der Stil verschiebt den Stack, mit dem nachgeschlagen wird (enger/lockerer)."""
+        """Short stack: All-in or fold according to the Nash push/fold table (pushfold.py).
+        The style shifts the stack with which to call (tighter/looser)."""
         from .pushfold import call_probability, push_probability
 
         f = self.style.nash_stack_factor
@@ -184,7 +184,7 @@ class StyleBot(BaseAgent):
             if prob is not None and r.random() < prob:
                 return Action.call()
             return self.passive(obs)
-        # Mehrere Einsaetze vor uns: Modell passt nicht -> nur mit klar genug Equity mitgehen
+        # Multiple bets before us: model does not fit -> only call with clearly enough equity
         eq = preflop_equity(obs.hole_cards, obs.opponents_in_hand)
         po = obs.to_call / (obs.pot + obs.to_call) if obs.to_call else 0.0
         return Action.call() if eq >= po + 0.05 else self.passive(obs)
@@ -244,7 +244,7 @@ class StyleBot(BaseAgent):
 
 
 class EquityAgent(BaseAgent):
-    """Die Baseline aus advisor.py als Agent: Equity gegen Zufallshaende vs. Pot Odds."""
+    """The baseline from advisor.py as an agent: equity against random hands vs. pot odds."""
     name = "equity"
 
     def __init__(self, seed: int = 0, iterations: int = 300, name: str | None = None):
@@ -255,7 +255,7 @@ class EquityAgent(BaseAgent):
     def act(self, obs):
         from ..advisor import GameState, advise
 
-        issues = [] if len(obs.hole_cards) == 2 else ["eigene Karten unbekannt"]
+        issues = [] if len(obs.hole_cards) == 2 else ['own cards unknown']
         gs = GameState(obs.hole_cards, obs.board, max(1, obs.opponents_in_hand),
                        obs.pot, 0 if obs.can_check else obs.to_call, obs.my_stack, obs.big_blind,
                        issues=issues)
@@ -280,45 +280,45 @@ REGISTRY = {
 
 
 def make_agent(spec: str, seed: int = 0) -> BaseAgent:
-    """'tag', 'tag:Name' (Name zur Unterscheidung) oder mit eigenen Stilwerten
-    'tag?bluff=0.2&vpip=0.25:Name' (nur fuer Stil-Bots)."""
-    # Name steht hinter dem LETZTEN Doppelpunkt und enthaelt keine Parameterzeichen -
-    # so bleibt 'hus?bp=run:lynx-5t@1&...:kand' intakt (31.10.: partition(":") zerlegte 'run:' -> KeyError 'run')
+    """'tag', 'tag:Name' (Name for distinction) or with own style values
+    'tag?bluff=0.2&vpip=0.25:Name' (only for style bots)."""
+    # The name stands after the LAST colon and contains no parameter characters -
+    # so 'hus?bp=run:lynx-5t@1&...:kand' stays intact (31.10.: partition(":") split 'run:' -> KeyError 'run')
     body, sep, name = spec.rpartition(":")
     if not sep or not name or any(c in name for c in "=&?@/"):
         body, name = spec, ""
     kind, _, params = body.partition("?")
-    if kind == "search":                   # Netz + Suche waehrend des Spiels (search.py)
+    if kind == "search":                   # Network + search during the game (search.py)
         from .search import make_search_agent
         a = make_search_agent(params, seed)
         a.name = name or body
         return a
-    if kind == "hus":                      # Netz + heads-up Neuloesen ab dem Turn (husearch.py)
+    if kind == "hus":                      # Network + heads-up re-solving from the turn (husearch.py)
         from .husearch import make_husearch_agent
         a = make_husearch_agent(params, seed)
         a.name = name or body
         return a
-    if kind == "cfr":                      # Gleichgewichts-Bot (cfr.py)
+    if kind == "cfr":                      # Equilibrium bot (cfr.py)
         from .cfr import make_cfr_agent
         a = make_cfr_agent(params, seed)
         a.name = name or body
         return a
-    if kind == "nn":                       # lernender Bot (nn_agent.py), braucht PyTorch zum Laden
+    if kind == "nn":                       # learning bot (nn_agent.py), requires PyTorch to load
         from .nn_agent import make_nn_agent
         a = make_nn_agent(params, seed)
         a.name = name or body
         return a
     if kind not in REGISTRY:
-        raise ValueError(f"unbekannter Agent '{kind}'. Verfuegbar: {', '.join(sorted(REGISTRY))}")
+        raise ValueError(f"unknown agent '{kind}'. Available: {', '.join(sorted(REGISTRY))}")
     a = REGISTRY[kind](seed)
     if params:
         if not isinstance(a, StyleBot):
-            raise ValueError(f"Parameter nur fuer Stil-Bots ({', '.join(STYLES)}), nicht fuer '{kind}'")
+            raise ValueError(f"Parameters only for style bots ({', '.join(STYLES)}), not for '{kind}'")
         changes = {}
         for kv in params.split("&"):
             k, _, v = kv.partition("=")
             if k not in Style.__dataclass_fields__:
-                raise ValueError(f"unbekannter Stilwert '{k}'. Moeglich: {', '.join(Style.__dataclass_fields__)}")
+                raise ValueError(f"unknown style value '{k}'. Possible: {', '.join(Style.__dataclass_fields__)}")
             changes[k] = float(v)
         a.style = replace(a.style, **changes)
         a.name = body

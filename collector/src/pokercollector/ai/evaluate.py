@@ -1,14 +1,14 @@
-"""Bewertung von Agenten ueber viele Haende.
+"""Evaluation of agents over many hands.
 
-Format: Cash-Game, jeder Spieler startet jede Hand mit `stack_bb` Big Blinds (Haende
-sind unabhaengig, das senkt die Varianz). Button wandert jede Hand.
+Format: Cash game, each player starts every hand with `stack_bb` big blinds (hands
+are independent, reducing variance). Button moves every hand.
 
-Duplicate: Jedes Kartenblatt wird N-mal gespielt, die Agenten rotieren dabei durch
-alle Plaetze. Jeder Agent bekommt so dieselben Karten wie alle anderen - Kartenglueck
-hebt sich weitgehend auf. Die Stichprobeneinheit fuer den Fehler ist ein Blatt.
+Duplicate: Each deck is played N times; agents rotate through
+all seats. Each agent thus gets the same cards as all others - luck largely cancels out.
+Sample unit for error is a deck.
 
-Ergebnis je Agent: bb/100 mit 95-%-Konfidenzintervall, dazu Spielstil-Kennzahlen
-(VPIP, PFR, Aggression, Showdown-Quote).
+Result per agent: bb/100 with 95% confidence interval, plus playstyle statistics
+(VPIP, PFR, Aggression, Showdown rate).
 """
 
 from __future__ import annotations
@@ -24,13 +24,13 @@ from .engine import ENGINE_VERSION, HandRecord, play_hand
 
 EVAL_VERSION = "eval-1"
 
-# 97,5-%-Quantile der t-Verteilung (Freiheitsgrade 1..30); darueber ~Normalverteilung
+# 97.5% quantiles of the t-distribution (degrees of freedom 1..30); above that ~normal distribution
 _T975 = [12.71, 4.30, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23, 2.20, 2.18, 2.16, 2.14, 2.13,
          2.12, 2.11, 2.10, 2.09, 2.09, 2.08, 2.07, 2.07, 2.06, 2.06, 2.06, 2.05, 2.05, 2.05, 2.04]
 
 
 def t95(n: int) -> float:
-    """Faktor fuer ein 95-%-Intervall bei n Stichproben (kleine n: t-Verteilung)."""
+    """Factor for a 95% interval with n samples (small n: t-distribution)."""
     df = n - 1
     if df < 1:
         return float("nan")
@@ -42,7 +42,7 @@ class AgentStats:
     name: str
     hands: int = 0
     net_chips: int = 0
-    per_unit: list[float] = field(default_factory=list)   # bb je Stichprobeneinheit
+    per_unit: list[float] = field(default_factory=list)   # bb per sample unit
     vpip: int = 0
     pfr: int = 0
     saw_flop: int = 0
@@ -101,12 +101,12 @@ def _tally(rec: HandRecord, seat_agent: list[int], stats: list[AgentStats], unit
 
 def run_match(agents: list, hands: int, seed: int = 1, small_blind: int = 10, big_blind: int = 20,
               stack_bb: int = 100, duplicate: bool = True, progress=None, keep_records: int = 0) -> dict:
-    """agents: Liste von Agent-Objekten (2-10). hands: Anzahl Kartenblaetter.
-    Mit duplicate=True werden hands*len(agents) Haende gespielt."""
+    """agents: list of agent objects (2-10). hands: number of decks.
+    With duplicate=True, hands*len(agents) hands are played."""
     n = len(agents)
     names = [a.name for a in agents]
     if len(set(names)) != n:
-        raise ValueError(f"Agentennamen muessen eindeutig sein: {names} (z. B. 'tag:tag2')")
+        raise ValueError(f"agent names must be unique: {names} (e.g. 'tag:tag2')")
     stats = [AgentStats(nm) for nm in names]
     records: list[HandRecord] = []
     rotations = range(n) if duplicate else [None]
@@ -146,24 +146,23 @@ def run_match(agents: list, hands: int, seed: int = 1, small_blind: int = 10, bi
 def report_markdown(res: dict) -> str:
     c = res["config"]
     lines = [f"# Match: {', '.join(c['agents'])}", "",
-             f"{c['hands_played']} Haende ({c['deals']} Blaetter{' x Rotation (Duplicate)' if c['duplicate'] else ''}), "
-             f"Seed {c['seed']}, Blinds {c['blinds'][0]}/{c['blinds'][1]}, Stack {c['stack_bb']} BB, "
-             f"{res['hands_per_s']} Haende/s", "",
-             "| Agent | bb/100 | 95-%-Intervall | VPIP | PFR | Aggr. | WTSD | W$SD |",
+             f"{c['hands_played']} hands ({c['deals']} boards{' x rotation (duplicate)' if c['duplicate'] else ''}), "
+             f"seed {c['seed']}, blinds {c['blinds'][0]}/{c['blinds'][1]}, stack {c['stack_bb']} BB, "
+             f"{res['hands_per_s']} hands/s", "",
+             '| Agent | bb/100 | 95% Interval | VPIP | PFR | Aggr. | WTSD | W$SD |',
              "|---|---|---|---|---|---|---|---|"]
     for r in res["results"]:
         sig = "" if r["ci95"][0] <= 0 <= r["ci95"][1] else " *"
         lines.append(f"| {r['agent']} | {r['bb_per_100']:+.1f}{sig} | {r['ci95'][0]:+.1f} .. {r['ci95'][1]:+.1f} "
                      f"| {r['vpip']} | {r['pfr']} | {r['aggression']} | {r['wtsd']} | {r['wsd']} |")
-    lines += ["", "`*` = Intervall schliesst 0 aus (Unterschied statistisch belastbar).",
-              "VPIP/PFR in % der Haende, Aggr. = Bets+Raises / Calls nach dem Flop, "
-              "WTSD = Showdown-Quote nach gesehenem Flop, W$SD = gewonnene Showdowns."]
+    lines += ["", '`*` = interval excludes 0 (difference statistically significant).',
+              'VPIP/PFR in % of hands, Aggr. = Bets+Raises / Calls after the flop, WTSD = showdown rate after seeing the flop, W$SD = won showdowns.']
     return "\n".join(lines)
 
 
 def hand_text(rec: HandRecord) -> str:
-    """Lesbarer Handverlauf (fuer Fehlersuche)."""
-    nm = lambda s: rec.names[s] or f"Platz {s}"
+    """Readable hand history (for debugging)."""
+    nm = lambda s: rec.names[s] or f"Seat {s}"
     out = [f"Hand {rec.hand_id}  Button {nm(rec.button)}  Blinds {rec.blinds[0]}/{rec.blinds[1]}"]
     for r in rec.results:
         if r.hole:
@@ -174,7 +173,7 @@ def hand_text(rec: HandRecord) -> str:
             street = a.street
             n = {"preflop": 0, "flop": 3, "turn": 4, "river": 5}[street]
             out.append(f"  -- {street} {' '.join(rec.board[:n])}")
-        amt = f" auf {a.amount_to}" if a.kind in ("bet", "raise", "call", "post_sb", "post_bb") else ""
+        amt = f" to {a.amount_to}" if a.kind in ("bet", "raise", "call", "post_sb", "post_bb") else ""
         out.append(f"     {nm(a.seat)} {a.kind}{amt}{' (all-in)' if a.allin else ''}")
     for p in rec.pots:
         out.append(f"  Pot {p['amount']} -> {', '.join(nm(s) for s in p['winners'])}")

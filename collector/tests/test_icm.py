@@ -23,7 +23,7 @@ def test_sieger_nimmt_alles_entspricht_chipanteil():
 
 
 def test_icm_bestraft_chipfuehrer_bei_flacher_auszahlung():
-    # 4 Spieler, 3 bezahlt: der Big Stack ist weniger wert als sein Chipanteil, der Kurzstack mehr
+    # 4 players, 3 paid: the big stack is worth less than his chip share, the short stack more
     prizes = prizes_from((0.5, 0.3, 0.2), 4)
     stacks = [2500, 500, 500, 500]
     eq = icm_equities(stacks, prizes)
@@ -37,8 +37,8 @@ def test_zwei_uebrig_und_einer_weg():
 
 
 def test_icm_belohnung_im_rollout():
-    """Ein kurzes Training-Rollout mit ICM-Belohnung laeuft durch, und die Belohnungssumme je Turnier ist
-    die Aenderung des Eigenkapitals (Start 1 Buy-in -> Auszahlung)."""
+    """ A short training rollout with ICM reward runs through, and the reward sum per tournament is
+    the change in equity (start 1 buy-in -> payout)."""
     import random
     from pokercollector.ai.rl import _rollout_job
     from pokercollector.ai.nn_agent import build_net, numpy_weights
@@ -48,6 +48,6 @@ def test_icm_belohnung_im_rollout():
     tables = [["rock", "tag", "station", "lag", "maniac"]]
     data, stats = _rollout_job((w, tables, [7], cfg, 10.0, 1, 1.0))
     assert stats["tournaments"] == 1 and stats["hands"] > 0
-    # Summe der Belohnungen (/scale) = Auszahlung - 1 Buy-in, wenn der Lerner bis zum Ende oder Ausscheiden spielt
+    # sum of rewards (/scale) = payout - 1 buy-in if the learner plays until the end or busts
     total = float(data["r"].sum()) / 10.0
     assert -1.0 - 1e-6 <= total <= 2.0 + 1e-6

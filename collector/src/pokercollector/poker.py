@@ -1,6 +1,6 @@
-"""Karten, 7-Karten-Handbewertung und Monte-Carlo-Equity.
+"""Cards, 7-card hand evaluation, and Monte Carlo equity.
 
-Kartennotation: Rang aus '23456789TJQKA' + Farbe aus 'shdc' (z. B. 'Ts' = Pik Zehn).
+Card notation: Rank from '23456789TJQKA' + Suit from 'shdc' (e.g. 'Ts' = Ten of Spades).
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ SUIT_SYMBOLS = {"s": "♠", "h": "♥", "d": "♦", "c": "♣"}
 FULL_DECK = [r + s for r in RANKS for s in SUITS]
 
 CATEGORY_NAMES = [
-    "High Card", "Pair", "Two Pair", "Three of a Kind", "Straight",
-    "Flush", "Full House", "Four of a Kind", "Straight Flush",
+    'High Card', "Pair", 'Two Pair', 'Three of a Kind', "Straight",
+    "Flush", 'Full House', 'Four of a Kind', 'Straight Flush',
 ]
 
 
@@ -35,7 +35,7 @@ def normalize_rank(token: str) -> str | None:
 
 
 def _straight_high(rank_mask: int) -> int:
-    """Hoechste Karte einer Strasse in der Bitmaske (Bit i = Rang i), sonst -1. Wheel = 3."""
+    """ Highest card of a straight in the bitmask (bit i = rank i), otherwise -1. Wheel = 3."""
     for high in range(12, 3, -1):
         need = 0b11111 << (high - 4)
         if rank_mask & need == need:
@@ -46,7 +46,7 @@ def _straight_high(rank_mask: int) -> int:
 
 
 def evaluate(cards: list[str]) -> tuple:
-    """Bewertet 5-7 Karten. Groesseres Tupel = staerkere Hand. Element 0 = Kategorie."""
+    """ Evaluates 5-7 cards. Larger tuple = stronger hand. Element 0 = category."""
     ranks = [RANKS.index(c[0]) for c in cards]
     suits = [c[1] for c in cards]
     suit_count = Counter(suits)
@@ -101,7 +101,7 @@ def describe(value: tuple) -> str:
 
 @dataclass(frozen=True)
 class EquityResult:
-    equity: float          # Gewinnanteil inkl. anteiliger Split-Pots
+    equity: float          # Winning share including partial split pots
     win: float
     tie: float
     iterations: int
@@ -113,20 +113,20 @@ class EquityResult:
 def equity_vs_random(hero: list[str], board: list[str], opponents: int,
                      iterations: int = 3000, seed: int | None = 0,
                      dead: list[str] | None = None) -> EquityResult:
-    """Monte-Carlo-Equity gegen `opponents` zufaellige Haende.
+    """Monte Carlo equity against `opponents` random hands.
 
-    Annahme ausdruecklich: Gegner halten gleichverteilt zufaellige Karten. Reale
-    Gegner, die noch im Pot sind, haben im Mittel staerkere Haende; die Zahl
-    ueberschaetzt die Equity daher typischerweise.
+    Explicit assumption: opponents hold randomly distributed cards. Real
+    opponents still in the pot usually have stronger hands on average; thus, the
+    figure typically overestimates the equity.
     """
     if len(hero) != 2 or not all(is_card(c) for c in hero):
-        raise ValueError(f"ungueltige Hero-Karten: {hero}")
+        raise ValueError(f"invalid hero cards: {hero}")
     if len(board) > 5 or not all(is_card(c) for c in board):
-        raise ValueError(f"ungueltiges Board: {board}")
+        raise ValueError(f"invalid board: {board}")
     if opponents < 1:
-        raise ValueError("mindestens ein Gegner")
+        raise ValueError('at least one opponent')
     if len(set(hero + board)) != len(hero) + len(board):
-        raise ValueError("doppelte Karten")
+        raise ValueError('duplicate cards')
     from .fastpoker import HAVE_NUMBA, mc_stats
     if HAVE_NUMBA and not dead:
         s, sq, wins, ties = mc_stats(hero, board, opponents, iterations, random.Random(seed).getrandbits(31))
@@ -134,7 +134,7 @@ def equity_vs_random(hero: list[str], board: list[str], opponents: int,
         mean = s / n
         var = max(0.0, sq / n - mean * mean)
         return EquityResult(mean, wins / n, ties / n, n, math.sqrt(var / n), opponents,
-                            "Gegner mit zufaelligen Karten (keine Ranges)")
+                            'opponent with random cards (no ranges)')
     known = set(hero) | set(board) | set(dead or [])
     deck = [c for c in FULL_DECK if c not in known]
     rng = random.Random(seed)
@@ -173,11 +173,11 @@ def equity_vs_random(hero: list[str], board: list[str], opponents: int,
     mean = share_sum / n
     var = max(0.0, share_sq / n - mean * mean)
     return EquityResult(mean, wins / n, ties / n, n, math.sqrt(var / n), opponents,
-                        "Gegner mit zufaelligen Karten (keine Ranges)")
+                        'opponent with random cards (no ranges)')
 
 
 def pot_odds(to_call: int, pot: int) -> float:
-    """Benoetigte Equity fuer einen profitablen Call ohne zukuenftige Einsaetze."""
+    """Required equity for a profitable call without future bets."""
     if to_call <= 0:
         return 0.0
     return to_call / (pot + to_call)

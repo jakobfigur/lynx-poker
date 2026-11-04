@@ -1,5 +1,5 @@
-"""hus-3: Blattknoten mit Wertnetz. Ein Orakel-Netz (loest den River exakt) muss den vollen Turn-Baum
-naeherungsweise reproduzieren; ein Null-Netz macht Blaetter wertlos."""
+""" hus-3: leaf nodes with value network. An oracle network (solves the river exactly) must approximately reproduce the full turn tree;
+a zero network makes leaves valueless."""
 import numpy as np
 
 from pokercollector.ai.husearch import LEAF, State, build_tree, solve
@@ -19,7 +19,7 @@ def _turn_state(board=("Ah", "Kd", "7c", "2s"), stacks=(3000, 3000), committed=(
 
 
 class Oracle:
-    """'Wertnetz', das jede Blattsituation exakt loest (langsam, nur fuer den Test)."""
+    """'Value network' that solves every leaf situation exactly (slow, only for testing)."""
 
     def __init__(self, iters=40):
         self.iters = iters
@@ -53,7 +53,7 @@ def test_blattbaum_ist_klein_und_blaetter_haben_zustand():
     assert n_leaf > 0 and len(leafy.kind) < len(full.kind)
     assert leafy.leaf_pot.shape == (n_leaf,) and leafy.leaf_board.shape == (n_leaf, 5)
     assert np.all(leafy.leaf_board >= 0) and np.all(leafy.leaf_pot >= 1200) and leafy.leaf_oop == 0
-    # ohne Netz werden keine Blaetter gebaut
+    # without network, no leaves are built
     assert int((build_tree(st, k_river=6, seed=2).kind == LEAF).sum()) == 0
 
 
@@ -68,9 +68,9 @@ def test_orakel_blaetter_reproduzieren_vollen_baum():
     pot = sum(st.committed)
     ev_full = float(r @ v_full[0]) / pot
     ev_leaf = float(r @ v_leaf[0]) / pot
-    assert abs(ev_full - ev_leaf) < 0.15                     # Pot-Einheiten; Orakel selbst nur grob konvergiert
+    assert abs(ev_full - ev_leaf) < 0.15                     # pot units; oracle only roughly converged
     assert np.allclose(s_leaf.sum(0), 1)
-    # Strategien an der Wurzel aehnlich (mittlere absolute Abweichung der Aktionswahrscheinlichkeiten)
+    # strategies at the root similar (mean absolute deviation of action probabilities)
     assert np.abs(s_full - s_leaf).mean() < 0.2
 
 
@@ -80,4 +80,4 @@ def test_null_netz_macht_weiterspielen_wertlos():
     st = _turn_state()
     tree, strat, v = solve(st, r, r, 10, k_river=3, seed=1, valuenet=Zero(), leaf_street=5)
     assert int((tree.kind == LEAF).sum()) > 0
-    assert abs(float(r @ v[0])) < 0.3 * sum(st.committed)     # alles ausser Fold-Gewinne ist 0
+    assert abs(float(r @ v[0])) < 0.3 * sum(st.committed)     # everything except fold winnings is 0

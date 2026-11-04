@@ -1,24 +1,18 @@
-"""Deep CFR: CFR mit neuronalen Netzen statt Tabelle (Brown, Lerer, Gross, Sandholm 2019).
+"""Deep CFR: CFR with neural networks instead of a table (Brown, Lerer, Gross, Sandholm 2019).
 
-Wie das Tabellen-CFR (cfr.py) spielt der Bot gegen sich selbst und probiert an jeder eigenen
-Entscheidung alle Aktionen durch. Statt das Bedauern je grober Situationsklasse in einer Tabelle zu
-fuehren, lernt ein Netz (Vorteils-Netz), es aus den 46 Merkmalen vorherzusagen. Aehnliche Situationen
-teilen so ihr Wissen - das Tabellen-CFR brauchte fuer jede der ~77 000 Klassen hunderte Besuche.
+Like table CFR (cfr.py), the bot plays against itself and tries all actions at each own decision.
+Instead of maintaining regret per coarse situation class in a table,
+a network (advantage network) learns to predict it from 46 features. Similar situations share knowledge – table CFR needed hundreds of visits for each of ~77,000 classes.
 
-Je Iteration t:
-  1. Durchlaeufe (External Sampling) mit der aktuellen Strategie = Regret Matching auf den
-     Vorhersagen des Vorteils-Netzes. An eigenen Knoten: alle Aktionen durchspielen, das
-     gemessene Bedauern (Wert der Aktion - Wert der Mischung) mit Gewicht t speichern.
-     An fremden Knoten: die gespielte Mischung mit Gewicht t fuer die Durchschnittsstrategie speichern.
-  2. Vorteils-Netz auf allen bisher gesammelten Bedauernswerten trainieren (gewichteter MSE).
-Am Ende (und zwischendurch): Strategie-Netz auf den gespeicherten Mischungen trainieren. Das ist
-die Durchschnittsstrategie, die sich dem Gleichgewicht naehert. Sie hat genau das Format unserer
-anderen Netze (nn_agent) und spielt deshalb direkt in Liga und Pruefstand: 'nn?run=<lauf>@<it>'.
+Per iteration t:
+  1. Runs (external sampling) with current strategy = regret matching on the advantage network predictions. At own nodes: play all actions, store measured regret (action value - mixture value) with weight t.
+     At opponent nodes: store the played mixture with weight t for the average strategy.
+  2. Train advantage network on all collected regret values (weighted MSE).
+At end (and in between): train strategy network on stored mixtures. This is the average strategy approaching equilibrium. It has exactly the format of our other networks (nn_agent) and thus plays directly in league and test bench: 'nn?run=<run>@<it>'.
 
-Speicher: Reservoir-Stichprobe fester Groesse (wie im Original) - alte und neue Daten bleiben
-gleichmaessig vertreten, der Speicherbedarf waechst nicht.
-Ablage: data\\rl\\<lauf>\\ mit deepcfr.json, log.jsonl, adv.pt (Vorteils-Netz + Puffer-Stand),
-buffers.npz, ckpt_<it>.pt (Strategie-Netze).
+Memory: reservoir sampling of fixed size (like the original) - old and new data remain evenly represented, memory use does not grow.
+Storage: data\\rl\\<run>\\ with deepcfr.json, log.jsonl, adv.pt (advantage net + buffer state),
+buffers.npz, ckpt_<it>.pt (strategy nets).
 """
 
 from __future__ import annotations
@@ -44,14 +38,14 @@ DEEPCFR_VERSION = "deepcfr-1"
 @dataclass
 class DeepCFRConfig:
     hidden: int = 128
-    traversals: int = 600          # je Prozess und Iteration
-    adv_capacity: int = 1_500_000  # Reservoir Vorteils-Daten
+    traversals: int = 600          # per process and iteration
+    adv_capacity: int = 1_500_000  # Reservoir advantage data
     strat_capacity: int = 1_500_000
-    adv_steps: int = 600           # Trainingsschritte Vorteils-Netz je Iteration (warm gestartet)
-    strat_steps: int = 3000        # Trainingsschritte Strategie-Netz bei jedem Schnappschuss
+    adv_steps: int = 600           # Training steps for advantage network per iteration (warm start)
+    strat_steps: int = 3000        # Training steps for strategy network at each snapshot
     batch: int = 4096
     lr: float = 1e-3
-    value_scale: float = 0.05      # Bedauern in BB * value_scale (Netz-Ziele um 1 statt um 20)
+    value_scale: float = 0.05      # Regret in BB * value_scale (network targets around 1 instead of 20)
     snapshot_every: int = 10
     seed: int = 1
 
@@ -63,7 +57,7 @@ def _adv_np(w: dict, x: np.ndarray) -> np.ndarray:
 
 
 def strategy_from_adv(adv: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Regret Matching auf vorhergesagten Vorteilen. Alles <= 0: bestes erlaubtes Aktion (Deep-CFR-Regel)."""
+    """Regret matching on predicted advantages. All <= 0: best allowed action (Deep-CFR rule)."""
     pos = np.where(mask, np.maximum(adv, 0.0), 0.0)
     s = pos.sum()
     if s > 0:
@@ -127,7 +121,7 @@ def _job(args):
 
 
 class Reservoir:
-    """Gleichmaessige Stichprobe ueber alle je gesehenen Datenpunkte (Algorithmus R), feste Groesse."""
+    """Uniform sampling over all seen data points (Algorithm R), fixed size."""
 
     def __init__(self, capacity: int, rng: np.random.Generator):
         self.cap = capacity
@@ -135,8 +129,8 @@ class Reservoir:
         self.m = np.zeros((capacity, N_ACTIONS), bool)
         self.y = np.zeros((capacity, N_ACTIONS), np.float32)
         self.t = np.zeros(capacity, np.float32)
-        self.n = 0          # gefuellt
-        self.seen = 0       # insgesamt gesehen
+        self.n = 0          # filled
+        self.seen = 0       # total seen
         self.rng = rng
 
     def add(self, x, m, y, t: int):
@@ -150,7 +144,7 @@ class Reservoir:
             self.n += free
         rest = k - free
         if rest:
-            # Platz j fuer den i-ten neuen Punkt mit Wahrscheinlichkeit cap/(seen+i+1)
+            # slot j for the i-th new point with probability cap/(seen+i+1)
             idx = self.seen + free + np.arange(rest)
             r = (self.rng.random(rest) * (idx + 1)).astype(np.int64)
             keep = r < self.cap
@@ -190,7 +184,7 @@ def _train_adv(net, buf: Reservoir, cfg: DeepCFRConfig, gen) -> float:
 
 
 def train_strategy(buf: Reservoir, cfg: DeepCFRConfig, gen):
-    """Durchschnittsstrategie: Netz lernt die gespeicherten Mischungen (gewichtet mit t, Linear CFR)."""
+    """ Average strategy: network learns the stored mixtures (weighted by t, linear CFR)."""
     import torch
     net = build_net(cfg.hidden)
     opt = torch.optim.Adam(net.parameters(), lr=cfg.lr)
@@ -233,7 +227,7 @@ def train_deepcfr(run_dir: Path, iterations: int, cfg: DeepCFRConfig | None = No
         st = torch.load(run_dir / "adv.pt", map_location="cpu", weights_only=True)
         adv_net.load_state_dict(st["state_dict"])
         start = st["iteration"]
-        with np.load(run_dir / "buffers.npz") as z:      # Datei schliessen: Windows ersetzt sonst nicht
+        with np.load(run_dir / "buffers.npz") as z:      # Close file: Windows otherwise does not replace
             d = {k: z[k] for k in z.files}
         adv_buf.load(d, "a_")
         strat_buf.load(d, "s_")

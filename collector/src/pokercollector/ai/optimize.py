@@ -1,21 +1,21 @@
-"""Selbstverbesserung, Schritt 1: Optimierung der Stil-Parameter eines Bots.
+"""Self-improvement, step 1: optimization of style parameters of a bot.
 
-Verfahren: Cross-Entropy-Methode (CEM). Je Generation werden Kandidaten aus einer
-Normalverteilung ueber die (auf 0..1 normierten) Parameter gezogen, per Duplicate-Sit&Go
-gegen einen festen Gegner-Pool bewertet (alle Kandidaten einer Generation mit denselben
-Karten = faire Vergleiche), die besten 25 % verschieben die Verteilung.
+Method: Cross-Entropy Method (CEM). Each generation draws candidates from a
+normal distribution over (normalized to 0..1) parameters, evaluated via Duplicate Sit&Go
+against a fixed opponent pool (all candidates of one generation with the same
+cards = fair comparisons), the best 25% shift the distribution.
 
-Danach Aufnahmepruefung (`gate`): Kandidat und Titelverteidiger spielen auf FRISCHEN
-Kartenschemata (nicht beim Training gesehen) gegen den Pool; verglichen wird gepaart je
-Schema. Uebernommen wird nur bei belastbarem Vorsprung (95-%-Intervall der Differenz > 0).
+Then acceptance test (`gate`): candidate and reigning champion play on FRESH
+card layouts (not seen during training) against the pool; matched pairwise
+on each layout. Adopted only if difference is reliably positive (95% confidence interval > 0).
 
-Gegner: entweder ein fester Pool (alle Schemata gegen dieselben 5 Bots) oder die Liga
-(`LeaguePool`): je Kartenschema wird ein eigener Tisch aus den aktiven Ligaspielern gezogen,
-staerkere haeufiger (priorisiertes Self-Play wie bei AlphaStar), gelegentlich sitzt der
-aktuelle Stand des Trainings selbst mit am Tisch. Das wirkt der Ueberanpassung an wenige
-feste Gegner entgegen, die beim ersten Lauf (opt-1) sichtbar wurde.
+Opponents: either a fixed pool (all layouts against the same 5 bots) or the league
+(`LeaguePool`): for each card layout a separate table of active league players is drawn,
+stronger ones more often (prioritized self-play like AlphaStar), occasionally
+include the current state of training. This counters overfitting on few
+fixed opponents that was noticeable in the first run (opt-1).
 
-Grenze: Ob das gegen Menschen oder echte PokerTH-Bots traegt, zeigen erst echte Partien.
+Limit: Whether this transfers well against humans or real PokerTH bots will be shown only in real games.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ from .tournament import BlindSchedule, TournamentConfig, play_tournament
 
 OPT_VERSION = "cem-1"
 
-# Parameter: (min, max, ganzzahlig)
+# Parameters: (min, max, integer)
 SPACE = {
     "vpip": (0.08, 0.60, False),
     "pfr": (0.03, 0.45, False),
@@ -77,7 +77,7 @@ def _denorm(x: np.ndarray) -> dict:
     return out
 
 
-# Zufalls-Gegner: bewusst weiter als SPACE, von der Calling-Station bis zum Dauerbluffer
+# Random opponents: deliberately wider than SPACE, from calling station to constant bluffer
 RANDOM_SPACE = {
     "vpip": (0.05, 0.90), "pfr": (0.0, 0.60), "value_margin": (-0.05, 0.40), "raise_margin": (0.0, 0.60),
     "call_slack": (-0.15, 0.35), "bluff": (0.0, 0.70), "bet_size": (0.25, 2.0), "open_size": (2.0, 6.0),
@@ -86,7 +86,7 @@ RANDOM_SPACE = {
 
 
 def random_style_spec(rng: random.Random) -> str:
-    """Ein Stil-Bot mit gewuerfelten Werten. Gleicher rng-Zustand -> gleicher Bot (Duplicate-fair)."""
+    """A style bot with rolled values. Same RNG state -> same bot (Duplicate-fair)."""
     p = {k: rng.uniform(lo, hi) for k, (lo, hi) in RANDOM_SPACE.items()}
     p["pfr"] = min(p["pfr"], p["vpip"])
     parts = [f"{k}={int(round(v)) if k == 'push_bb' else round(v, 3)}" for k, v in p.items()]
@@ -94,22 +94,22 @@ def random_style_spec(rng: random.Random) -> str:
 
 
 class LeaguePool:
-    """Gegnerauswahl aus der Liga. players: [(name, spec, mu)], nur Bots.
-    Gewicht exp((mu - mu_max) / temperature), mindestens `floor`: starke Gegner kommen oefter dran,
-    schwache verschwinden aber nie ganz (sonst verlernt der Bot, sie auszunehmen).
-    random_share: Anteil der Plaetze, die mit einem Zufalls-Stilbot besetzt werden.
-    add(): weitere Gegner, z. B. Ausbeuter aus dem Training, mit Gewicht wie der staerkste Ligaspieler."""
+    """Opponent selection from the league. players: [(name, spec, mu)], bots only.
+    Weight exp((mu - mu_max) / temperature), at least `floor`: stronger opponents appear more often,
+    weak ones never disappear completely (else bot forgets how to exploit them).
+    random_share: fraction of seats occupied by random style bots.
+    add(): add more opponents, e.g. exploiters from training, weighted like the strongest league player."""
 
     def __init__(self, players: list[tuple[str, str, float]], table: int = 5, temperature: float = 15.0,
                  floor: float = 0.1, self_play: float = 0.2, random_share: float = 0.0):
         if len(players) < table:
-            raise ValueError(f"Liga hat nur {len(players)} Bots, ein Tisch braucht {table} Gegner")
+            raise ValueError(f"League has only {len(players)} bots, a table needs {table} opponents")
         self.players = list(players)
         self.table = table
         self.self_play = self_play
         self.random_share = random_share
         self.human_share = 0.0
-        self.human_bots: list[tuple[str, float]] = []     # (spec, Anteil) aus humanbots.load_bots
+        self.human_bots: list[tuple[str, float]] = []     # (spec, share) from humanbots.load_bots
         top = max(mu for _, _, mu in players)
         self.weights = [max(floor, math.exp((mu - top) / temperature)) for _, _, mu in players]
 
@@ -122,8 +122,8 @@ class LeaguePool:
         return {n: w / tot for (n, _, _), w in zip(self.players, self.weights)}
 
     def sample(self, rng: random.Random, self_spec: str | None = None, size: int | None = None) -> list[str]:
-        """Ein Tisch aus `size` (Standard: table) Gegnern, gewichtet und ohne Zuruecklegen, solange genug
-        verschiedene da sind; danach mit Zuruecklegen (z. B. 10er-Tisch bei kleiner Liga)."""
+        """A table of `size` (default: table) opponents, weighted and without replacement as long as enough
+        different available; then with replacement (e.g. 10-seat table in small league)."""
         idx, w = list(range(len(self.players))), list(self.weights)
         chosen = []
         for _ in range(size or self.table):
@@ -143,7 +143,7 @@ class LeaguePool:
 
 
 def matchup_payouts(spec: str, matchups: list[tuple[int, list[str]]], config: TournamentConfig) -> list[float]:
-    """Netto-Auszahlung (Buy-ins, Mittel ueber alle Sitzrotationen) des Kandidaten je (Schema, Gegnertisch)."""
+    """Net payout (buy-ins, averaged over seat rotations) of the candidate per (layout, opponent table)."""
     out = []
     for sd, pool in matchups:
         n = len(pool) + 1
@@ -159,7 +159,7 @@ def matchup_payouts(spec: str, matchups: list[tuple[int, list[str]]], config: To
 
 
 def scheme_payouts(spec: str, pool: list[str], schemes: list[int], config: TournamentConfig) -> list[float]:
-    """Wie matchup_payouts, alle Schemata gegen denselben festen Pool."""
+    """Like matchup_payouts, all layouts against the same fixed pool."""
     return matchup_payouts(spec, [(sd, pool) for sd in schemes], config)
 
 
@@ -200,7 +200,7 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
                     try:
                         log.append(json.loads(line))
                     except json.JSONDecodeError:
-                        break          # unvollstaendige letzte Zeile nach Abbruch
+                        break          # incomplete last line after abort
             resumable = [e for e in log if "state_mean" in e]
             if resumable:
                 last = resumable[-1]
@@ -208,7 +208,7 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
                 best = last.get("state_best", best)
                 first_gen = last["generation"] + 1
                 log = log[:log.index(last) + 1]
-    # Zufall je Generation aus (seed, Generation): Fortsetzen ergibt denselben Verlauf
+    # random per generation from (seed, generation): continuing yields the same sequence
     t0 = time.perf_counter()
 
     def write_log(entry):
@@ -220,8 +220,8 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
                     f.write(json.dumps(entry) + "\n")
                 return
             except OSError:
-                time.sleep(2 * (attempt + 1))   # z. B. USB-Stick kurz weg
-        print("WARNUNG: Protokoll konnte nicht geschrieben werden (Generation", entry["generation"], ")")
+                time.sleep(2 * (attempt + 1))   # e.g. USB stick briefly removed
+        print('WARNING: log could not be written (generation', entry["generation"], ')')
 
     with ProcessPoolExecutor(workers) as ex:
         for g in range(first_gen, generations + 1):
@@ -230,7 +230,7 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
             xs = [mean] + [mean + std * rng.standard_normal(len(SPACE)) for _ in range(population - 1)]
             cands = [_denorm(x) for x in xs]
             specs = [spec_from_params(c) for c in cands]
-            # alle Kandidaten einer Generation: dieselben Karten UND dieselben Gegnertische
+            # all candidates of one generation: same cards AND same opponent tables
             mus = _matchups(schemes, pool, seed * 7919 + g, self_spec=specs[0])
             results = list(ex.map(_eval_job, [(s, mus, config) for s in specs]))
             rois = [100 * sum(r) / len(r) for r in results]
@@ -244,8 +244,8 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
                      "std_mean": round(float(std.mean()), 3), "elapsed_s": round(time.perf_counter() - t0, 1)}
             if isinstance(pool, LeaguePool):
                 entry["tables"] = [m[1] for m in mus]
-            # "Bester" = Verteilungszentrum der letzten Generation ist robuster als ein Einzeltreffer;
-            # wir merken beides und entscheiden spaeter per Aufnahmepruefung.
+            # "Best" = center of distribution of last generation is more robust than a single hit;
+            # we remember both and decide later via acceptance test.
             if rois[top] > best["roi"]:
                 best = {"roi": rois[top], "params": cands[top], "spec": specs[top], "generation": g}
             entry.update({"state_mean": [round(float(x), 6) for x in mean],
@@ -263,8 +263,8 @@ def run_cem(generations: int = 8, population: int = 12, schemes_per_gen: int = 1
 def gate(candidate_spec: str, champion_spec: str, schemes: int = 40, seed: int = 777,
          pool: list[str] | LeaguePool | None = None, config: TournamentConfig = DEFAULT_CONFIG,
          workers: int | None = None) -> dict:
-    """Gepaarter Vergleich auf frischen Kartenschemata (bei LeaguePool auch frisch gezogenen Tischen,
-    ohne Self-Play). Gibt ROI beider und die Differenz mit Intervall."""
+    """Paired comparison on fresh card layouts (in LeaguePool also freshly drawn tables,
+    no self-play). Gives ROI of both and difference with interval."""
     pool = pool or DEFAULT_POOL
     sch = [int(seed * 7_000_003 + i) for i in range(schemes)]
     mus = _matchups(sch, pool, seed)
