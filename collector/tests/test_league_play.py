@@ -83,7 +83,7 @@ def test_human_parse():
     assert hu.parse("f", o).kind == "fold"
     assert hu.parse("c", o).kind == "call"
     assert hu.parse("r", o).amount == 40
-    assert hu.parse('r 100', o).amount == 100
+    assert hu.parse("r 100", o).amount == 100
     assert hu.parse("a", o).amount == 1000
     assert hu.parse("p", o).amount == 20 + 30 + 20
     with pytest.raises(ValueError):
@@ -107,9 +107,9 @@ def test_cash_session_with_scripted_human(tmp_path):
     md = stats_markdown(sessions, "du")
     assert "**du**" in md and "tag" in md
     text = "\n".join(map(str, out))
-    assert 'unknown input' in text and 'Your cards' in text
+    assert "unknown input" in text and "Your cards" in text
     # Visibility: Opponent cards appear only at 'show' (Showdown)
-    assert 'Your result' in text
+    assert "Your result" in text
 
 
 def test_tournament_session_human_always_folds(tmp_path):

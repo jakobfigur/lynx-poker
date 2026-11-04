@@ -6,10 +6,10 @@ from pokercollector.ai.humans import HumanStats
 HAND = {  # real HandHQ hand (PokerStars 25NL): all-in with '????' in the middle of the hand, cards only at the end
     "variant": "NT", "antes": [0] * 6, "blinds_or_straddles": [0.1, 0.25, 0, 0, 0, 0],
     "starting_stacks": [16.1, 32.65, 38.95, 21.35, 31.3, 51.65],
-    "actions": ['d dh p1 ????', 'd dh p2 ????', 'd dh p3 ????', 'd dh p4 ????', 'd dh p5 ????', 'd dh p6 ????',
-                'p3 cbr 1.00', "p4 f", 'p5 cbr 3.00', "p6 f", "p1 f", "p2 f", 'p3 cbr 8.00', 'p5 cbr 31.30',
-                'p3 cc', 'p5 sm ????', 'p3 sm ????', 'd db Ts7cTh', 'p3 sm ????', 'p5 sm ????', 'd db 2s',
-                'p3 sm ????', 'p5 sm ????', 'd db Qs', 'p3 sm KsKh', 'p5 sm KcKd'],
+    "actions": ["d dh p1 ????", "d dh p2 ????", "d dh p3 ????", "d dh p4 ????", "d dh p5 ????", "d dh p6 ????",
+                "p3 cbr 1.00", "p4 f", "p5 cbr 3.00", "p6 f", "p1 f", "p2 f", "p3 cbr 8.00", "p5 cbr 31.30",
+                "p3 cc", "p5 sm ????", "p3 sm ????", "d db Ts7cTh", "p3 sm ????", "p5 sm ????", "d db 2s",
+                "p3 sm ????", "p5 sm ????", "d db Qs", "p3 sm KsKh", "p5 sm KcKd"],
     "players": ["a", "b", "c", "d", "e", "f"], "winnings": [0, 0, 0, 0, 0, 0],
 }
 

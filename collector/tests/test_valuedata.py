@@ -1,4 +1,4 @@
-""" value net data (milestone 3): format, reproducibility, zero sum."""
+' value net data (milestone 3): format, reproducibility, zero sum.'
 import numpy as np
 
 from pokercollector.ai.valuedata import generate, load, sample_ranges, sample_state, solve_sample
@@ -33,8 +33,7 @@ def test_generate_schreibt_scherbe(tmp_path):
 
 
 def test_river_leaf_zeilen_aus_turnsuche():
-    """ river-leaf: solve turn tree, read ranges at river starts, solve exactly. Rows have the normal
-    format, ranges are normalized and free of board cards, the values are (except for convergence) zero sum."""
+    ' river-leaf: solve turn tree, read ranges at river starts, solve exactly. Rows have the normal\n    format, ranges are normalized and free of board cards, the values are (except for convergence) zero sum.'
     import numpy as np
     from pokercollector.ai.husearch import average_reaches, build_tree
     from pokercollector.ai.valuedata import sample_ranges, sample_state, solve_leaf_samples
@@ -66,14 +65,13 @@ def test_river_leaf_zeilen_aus_turnsuche():
 
 
 def test_turn_leaf_zeilen_aus_flopsuche():
-    """turn-leaf (level 2): Solve flop tree with drawn cards, read ranges at turn starts, solve turn subtree
-    with the river value network as leaf. Rows have 4 board cards, normalized ranges, values approximately zero-sum."""
+    'turn-leaf (level 2): Solve flop tree with drawn cards, read ranges at turn starts, solve turn subtree\n    with the river value network as leaf. Rows have 4 board cards, normalized ranges, values approximately zero-sum.'
     import numpy as np
     import pytest
     from pokercollector.ai.valuedata import data_dir, solve_turn_leaf_samples
     from pokercollector.ai.valuenet import combo_mask
     if not (data_dir() / "vnet-river-1.pt").exists():
-        pytest.skip('no River value network vnet-river-1')
+        pytest.skip("kein River-Wertnetz vnet-river-1")
     rows = solve_turn_leaf_samples(seed=11, iters=20, vnet="vnet-river-1", iters_flop=6, max_per_flop=3)
     assert 1 <= len(rows) <= 3
     for r in rows:

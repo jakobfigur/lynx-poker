@@ -57,7 +57,7 @@ def test_live_pot_quellen():
 
 
 def _hand(game, no, stacks):
-    """stacks: {seat: (start, end)}"""
+    'stacks: {seat: (start, end)}'
     return {"game_no": game, "hand_no": no,
             "seats": {str(s): {"start_stack": a, "end_stack": b} for s, (a, b) in stacks.items()}}
 
@@ -140,7 +140,7 @@ def test_sane_vorschlag():
     from pokercollector.ai.live import sane
     from pokercollector.ai.observation import Action
     o = _obs()
-    assert str(sane(Action("raise", 5000), o)) == 'raise 1000'          # never more than own stack
+    assert str(sane(Action("raise", 5000), o)) == "raise 1000"          # never more than own stack
     assert str(sane(Action("raise", 0), o)) == "call"                   # 'raise 0' -> call
     o2 = _obs(folded=[False, True, False])                              # only opponent already all-in
     assert str(sane(Action("raise", 1000), o2)) == "call"
@@ -179,8 +179,7 @@ def test_dollar_als_fuenf_gelesen():
 
 
 def test_siegerstack_als_einsatz_gelesen_zaehlt_nicht():
-    """October 29 evening: on the final screen, the winning stack '$13408' was read as a bet from seat 5 and remained
-    throughout the next tournament -> pot 13438 instead of 30. bet + stack over all chips = no bet."""
+    "October 29 evening: on the final screen, the winning stack '$13408' was read as a bet from seat 5 and remained\n    throughout the next tournament -> pot 13438 instead of 30. bet + stack over all chips = no bet."
     from pokercollector.ai.live import fix_dollar_misreads
     st = {"seat.5.bet": 13408, "seat.5.stack": 2000, "seat.0.bet": 20, "seat.0.stack": 1980, "info.total": 10}
     out = fix_dollar_misreads(st, 12000)
@@ -191,8 +190,7 @@ def test_siegerstack_als_einsatz_gelesen_zaehlt_nicht():
 
 
 def test_einsatz_ohne_aktion_in_der_hand_wird_ignoriert():
-    """ The same glitch one level higher: the reconstructor has no action for seat 5, the bet 13408
-    in the image is a remnant -> remove from pot and bets. Blinds without event (unchanged) remain."""
+    ' The same glitch one level higher: the reconstructor has no action for seat 5, the bet 13408\n    in the image is a remnant -> remove from pot and bets. Blinds without event (unchanged) remain.'
     from pokercollector.ai.live import drop_stale_bets
     from pokercollector.ai.replay import observation_from_table_state
     st = {"seat.0.cards": ["2d", "5c"], "seat.0.present": True, "seat.0.stack": 980, "seat.0.bet": 20,
@@ -206,7 +204,7 @@ def test_einsatz_ohne_aktion_in_der_hand_wird_ignoriert():
                         {"seat": 0, "type": "post_bb", "amount_to": 20, "street": "preflop"}]}
     out = drop_stale_bets(obs, hand)
     assert out.bets[5] == 0 and out.pot == 30 and out.bets[1] == 10 and out.bets[0] == 20
-    assert 'Bet without action in this hand ignored' in out.uncertain
+    assert "Bet without action in this hand ignored" in out.uncertain
     # no actions (hand just started) nothing is changed
     assert drop_stale_bets(obs, {"actions": []}) is obs
     # a real bet with action remains, even if large

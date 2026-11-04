@@ -1,4 +1,4 @@
-"""Temperature of the net bot (Oct 31): nn?run=...&temp=T sharpens the mixed strategy between sampling (1) and greedy (0)."""
+'Temperature of the net bot (Oct 31): nn?run=...&temp=T sharpens the mixed strategy between sampling (1) and greedy (0).'
 import numpy as np
 import pytest
 

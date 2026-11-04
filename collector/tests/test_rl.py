@@ -15,7 +15,7 @@ TINY = TournamentConfig(start_stack=300, blinds=BlindSchedule(10, 20, 4))
 
 
 class Probe:
-    """ plays like a style bot and simultaneously checks features and action mapping."""
+    ' plays like a style bot and simultaneously checks features and action mapping.'
 
     def __init__(self, inner):
         self.inner, self.name, self.n = inner, inner.name, 0
@@ -78,7 +78,18 @@ def test_bc_ppo_resume_and_league_spec(tmp_path, monkeypatch):
     assert r1.payouts == r2.payouts                   # reproducible (duplicate-fair)
 
 
-PLURIBUS_HAND_11 = "\nvariant = 'NT'\nante_trimming_status = true\nantes = [0, 0, 0, 0, 0, 0]\nblinds_or_straddles = [50, 100, 0, 0, 0, 0]\nmin_bet = 100\nstarting_stacks = [10000, 10000, 10000, 10000, 10000, 10000]\nactions = ['d dh p1 4hAc', 'd dh p2 Ah6s', 'd dh p3 4cKh', 'd dh p4 2s4s', 'd dh p5 2c9c', 'd dh p6 4dKc', 'p3 f', 'p4 f', 'p5 f', 'p6 f', 'p1 cc', 'p2 cc', 'd db 5d6h2h', 'p1 cc', 'p2 cbr 130', 'p1 cc', 'd db 3h', 'p1 cc', 'p2 cbr 300', 'p1 cc', 'd db Js', 'p1 cc', 'p2 cc', 'p1 sm 4hAc', 'p2 sm']\nhand = 11\nplayers = ['Pluribus', 'MrBlue', 'MrBlonde', 'MrWhite', 'MrPink', 'MrBrown']\nfinishing_stacks = [10530, 9470, 10000, 10000, 10000, 10000]\n"
+PLURIBUS_HAND_11 = """
+variant = 'NT'
+ante_trimming_status = true
+antes = [0, 0, 0, 0, 0, 0]
+blinds_or_straddles = [50, 100, 0, 0, 0, 0]
+min_bet = 100
+starting_stacks = [10000, 10000, 10000, 10000, 10000, 10000]
+actions = ['d dh p1 4hAc', 'd dh p2 Ah6s', 'd dh p3 4cKh', 'd dh p4 2s4s', 'd dh p5 2c9c', 'd dh p6 4dKc', 'p3 f', 'p4 f', 'p5 f', 'p6 f', 'p1 cc', 'p2 cc', 'd db 5d6h2h', 'p1 cc', 'p2 cbr 130', 'p1 cc', 'd db 3h', 'p1 cc', 'p2 cbr 300', 'p1 cc', 'd db Js', 'p1 cc', 'p2 cc', 'p1 sm 4hAc', 'p2 sm']
+hand = 11
+players = ['Pluribus', 'MrBlue', 'MrBlonde', 'MrWhite', 'MrPink', 'MrBrown']
+finishing_stacks = [10530, 9470, 10000, 10000, 10000, 10000]
+"""
 
 
 def test_phh_replay_matches_engine():
@@ -92,7 +103,7 @@ def test_phh_replay_matches_engine():
     bad = dict(hand, finishing_stacks=[10000] * 6)
     assert not replay(bad).ok                         # incorrect end stacks are detected
     swapped = dict(hand, actions=[a.replace("p3 f", "p4 f", 1) if a == "p3 f" else a for a in hand["actions"]])
-    assert "Reihenfolge" in replay(swapped).problem
+    assert "Action order" in replay(swapped).problem
 
 
 def test_ppo_with_anchor(tmp_path, monkeypatch):

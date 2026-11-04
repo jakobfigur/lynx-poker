@@ -9,7 +9,7 @@ from pokercollector.poker import FULL_DECK
 
 
 def deck_with(holes: dict[int, list[str]], board: list[str]) -> list[str]:
-    """Build deck so that seat i gets the cards holes[i] and the board `board`."""
+    'Build deck so that seat i gets the cards holes[i] and the board `board`.'
     used = set(board) | {c for h in holes.values() for c in h}
     rest = [c for c in FULL_DECK if c not in used]
     deck = []

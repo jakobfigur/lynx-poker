@@ -124,7 +124,7 @@ def _flop_state(board=("Ah", "Kd", "7c"), stacks=(9500, 9500), committed=(500, 5
 
 
 def test_flop_baum_zieht_karten_und_teiler_stimmt():
-    """ hus-2: from flop on k turn and k river cards are drawn; divisor = (available-4)*k/available."""
+    ' hus-2: from flop on k turn and k river cards are drawn; divisor = (available-4)*k/available.'
     tree = build_tree(_flop_state(), k_turn=5, k_river=4, seed=3)
     chance = np.nonzero(tree.kind == 3)[0]
     assert len(chance) > 0
@@ -143,7 +143,7 @@ def test_flop_baum_zieht_karten_und_teiler_stimmt():
 
 
 def test_flop_allin_vor_dem_river_laeuft_bis_zum_showdown():
-    """ All-in on flop: chance node turn -> chance node river -> showdown (no showdown on 4 cards)."""
+    ' All-in on flop: chance node turn -> chance node river -> showdown (no showdown on 4 cards).'
     tree = build_tree(_flop_state(stacks=(300, 9500)), k_turn=3, k_river=3, seed=1)
     chance = np.nonzero(tree.kind == 3)[0]
     sd = np.nonzero(tree.kind == 2)[0]
@@ -183,8 +183,7 @@ def test_agent_mit_flop_spielt_regelkonform():
 
 
 def test_root_state_reihenfolge_und_totes_geld_am_vollen_tisch():
-    """ Review 29.10. B1/B2: button (seat 0) has folded, opponent seat 1 sits before us (seat 3) -> he acts
-    first (oop = opponent); blinds/bets of folded players are dead money in the pot."""
+    ' Review 29.10. B1/B2: button (seat 0) has folded, opponent seat 1 sits before us (seat 3) -> he acts\n    first (oop = opponent); blinds/bets of folded players are dead money in the pot.'
     from pokercollector.ai.husearch import root_state
     from pokercollector.ai.observation import Observation
     n = 6
@@ -204,7 +203,7 @@ def test_root_state_reihenfolge_und_totes_geld_am_vollen_tisch():
 
 
 def test_leaf_option_wird_geparst():
-    """ leaf=4: flop subtrees end at turn starts (level 2); only 4 or 5 allowed."""
+    ' leaf=4: flop subtrees end at turn starts (level 2); only 4 or 5 allowed.'
     import pytest
     from pokercollector.ai.husearch import make_husearch_agent
     a = make_husearch_agent("bp=run:lynx-4@300&leaf=4&streets=turn,river", 1)
@@ -215,7 +214,7 @@ def test_leaf_option_wird_geparst():
 
 
 def test_leaf4_mit_k_turn_zieht_turncards():
-    """ leaf=4 takes all 47 turns except when k_turn is explicitly set (31.10.)."""
+    ' leaf=4 takes all 47 turns except when k_turn is explicitly set (31.10.).'
     from pokercollector.ai.husearch import make_husearch_agent
     a = make_husearch_agent("bp=rock&leaf=4", 0)
     b = make_husearch_agent("bp=rock&leaf=4&k_turn=8", 0)
@@ -224,7 +223,7 @@ def test_leaf4_mit_k_turn_zieht_turncards():
 
 
 def test_greedy_optionen_der_suche():
-    """ bpgreedy=1 switches neural net blueprint to greedy, greedy=1 the search itself (31.10.)."""
+    ' bpgreedy=1 switches neural net blueprint to greedy, greedy=1 the search itself (31.10.).'
     from pokercollector.ai.husearch import make_husearch_agent
     a = make_husearch_agent("bp=run:lynx-4@300&bpgreedy=1&greedy=1", 0)
     assert a.bp.greedy and a.greedy
@@ -233,8 +232,7 @@ def test_greedy_optionen_der_suche():
 
 
 def test_make_agent_name_hinter_run_doppelpunkt():
-    """ 31.10.: 'hus?bp=run:<run>@<ckpt>&...:name' - the name is after the last colon,
-    'run:' in the parameter must not be considered a name separator (crash bench_humanopp3 C-5t-bpg)."""
+    " 31.10.: 'hus?bp=run:<run>@<ckpt>&...:name' - the name is after the last colon,\n    'run:' in the parameter must not be considered a name separator (crash bench_humanopp3 C-5t-bpg)."
     from pokercollector.ai.agents import make_agent
     a = make_agent("hus?bp=run:lynx-4@300&streets=turn,river:kand", 1)
     assert a.name == "kand"

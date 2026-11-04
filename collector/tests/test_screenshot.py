@@ -1,4 +1,4 @@
-""" end-to-end against the real PokerTH web screenshot (Windows OCR necessary)."""
+' end-to-end against the real PokerTH web screenshot (Windows OCR necessary).'
 
 from pathlib import Path
 
@@ -16,7 +16,7 @@ def snap():
         from pokercollector.pipeline import make_analyzer
         an = make_analyzer(Profile.load())
     except Exception as e:  # no Windows / no OCR language
-        pytest.skip(f"Windows OCR not available: {e}")
+        pytest.skip(f"Windows-OCR nicht verfuegbar: {e}")
     return an.analyze(cv2.imread(str(IMG)))
 
 
@@ -38,10 +38,10 @@ def test_info_row_and_pot(snap):
 
 
 EXPECTED = {
-    0: ("jakob", 3000, 0), 1: ('Calling Carl', 2990, 10), 2: ('Lucky Luna', 2980, 20),
-    3: ('Re-raise Ro...', 3000, 0), 4: ('Falcon Fay', 3000, 0), 5: ('All-in Annie', 3000, 0),
-    6: ('Tilt Master', 3000, 0), 7: ('Sniper Sam', 3000, 0), 8: ('Bluff Bot', 3000, 0),
-    9: ('Sharp Shooter', 3000, 0),
+    0: ("jakob", 3000, 0), 1: ("Calling Carl", 2990, 10), 2: ("Lucky Luna", 2980, 20),
+    3: ("Re-raise Ro...", 3000, 0), 4: ("Falcon Fay", 3000, 0), 5: ("All-in Annie", 3000, 0),
+    6: ("Tilt Master", 3000, 0), 7: ("Sniper Sam", 3000, 0), 8: ("Bluff Bot", 3000, 0),
+    9: ("Sharp Shooter", 3000, 0),
 }
 
 
@@ -66,12 +66,12 @@ def test_hero_cards_and_buttons(snap):
 
 @pytest.mark.parametrize("factor", [0.85, 1.25])
 def test_other_window_sizes(factor):
-    """ window size changed (simulated by scaling). Below ~0.8 it becomes unreliable."""
+    ' window size changed (simulated by scaling). Below ~0.8 it becomes unreliable.'
     try:
         from pokercollector.pipeline import make_analyzer
         an = make_analyzer(Profile.load())
     except Exception as e:
-        pytest.skip(f"Windows OCR not available: {e}")
+        pytest.skip(f"Windows-OCR nicht verfuegbar: {e}")
     img = cv2.imread(str(IMG))
     img = cv2.resize(img, None, fx=factor, fy=factor, interpolation=cv2.INTER_AREA if factor < 1 else cv2.INTER_CUBIC)
     s = an.analyze(img)

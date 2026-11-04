@@ -18,9 +18,9 @@ def test_turniere_und_tafel(tmp_path, monkeypatch):
     assert abs(s["roi"] - 100 * ((0.5 * 6 - 1) + (0 - 1)) / 2) < 0.1
     rows = ziele.scoreboard("lynx-x")
     assert [r["ziel"] for r in rows] == [1, 2, 3, 4, 5]
-    assert rows[0]["erreicht"] == 0 and '2 tournaments' in rows[0]["wert"]
-    assert 'not measured' in rows[1]["wert"]
-    assert 'Targets for lynx-x' in ziele.scoreboard_text("lynx-x", rows)
+    assert rows[0]["erreicht"] == 0 and "2 tournaments" in rows[0]["wert"]
+    assert "not measured" in rows[1]["wert"]
+    assert "Goals for lynx-x" in ziele.scoreboard_text("lynx-x", rows)
 
 
 def test_stufen():

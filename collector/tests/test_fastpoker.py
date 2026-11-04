@@ -5,7 +5,7 @@ import pytest
 from pokercollector.fastpoker import HAVE_NUMBA, evaluate_fast, mc_stats
 from pokercollector.poker import FULL_DECK, equity_vs_random, evaluate
 
-pytestmark = pytest.mark.skipif(not HAVE_NUMBA, reason='numba not installed')
+pytestmark = pytest.mark.skipif(not HAVE_NUMBA, reason="numba nicht installiert")
 
 
 def _cmp(a, b):

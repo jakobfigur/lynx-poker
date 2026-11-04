@@ -1,4 +1,4 @@
-"""Value network (milestone 3): Features, mask, zero-sum correction, mini-training learns."""
+'Value network (milestone 3): Features, mask, zero-sum correction, mini-training learns.'
 import numpy as np
 import pytest
 

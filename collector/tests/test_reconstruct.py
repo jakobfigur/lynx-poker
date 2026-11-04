@@ -45,7 +45,7 @@ def test_missed_action_is_reported_not_invented():
     # hero action on the flop missing in image: marked as unknown, not fabricated
     assert (0, "unknown", "inferred_gap") in flop
     assert h.status == "partial"
-    assert any('not observed' in g for g in h.gaps)
+    assert any("not observed" in g for g in h.gaps)
 
 
 def test_bet_decrease_without_street_change_is_contradiction():
@@ -57,7 +57,7 @@ def test_bet_decrease_without_street_change_is_contradiction():
     es.at(5.0, seat__0__bet=60)
     es.at(9.0, seat__0__bet=40)
     h = reconstruct(es.events)[0]
-    assert any("sinkt" in c for c in h.contradictions)
+    assert any("decreased" in c for c in h.contradictions)
 
 
 def test_check_label_is_observed():

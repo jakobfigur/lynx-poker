@@ -37,8 +37,7 @@ def test_zwei_uebrig_und_einer_weg():
 
 
 def test_icm_belohnung_im_rollout():
-    """ A short training rollout with ICM reward runs through, and the reward sum per tournament is
-    the change in equity (start 1 buy-in -> payout)."""
+    ' A short training rollout with ICM reward runs through, and the reward sum per tournament is\n    the change in equity (start 1 buy-in -> payout).'
     import random
     from pokercollector.ai.rl import _rollout_job
     from pokercollector.ai.nn_agent import build_net, numpy_weights

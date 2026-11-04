@@ -9,24 +9,24 @@ def ev(s):
 
 
 def test_categories():
-    assert ev('As Ks Qs Js Ts 2d 3c')[0] == 8          # Royal/Straight Flush
-    assert ev('9h 9d 9s 9c 2d 3c 4h')[0] == 7
-    assert ev('9h 9d 9s 2c 2d 3c 4h')[0] == 6
-    assert ev('Ah 9h 7h 4h 2h Kd Qc')[0] == 5
-    assert ev('Ah 2d 3c 4s 5h Kd Qc') == (4, 3)        # Wheel
-    assert ev('Td Jc Qs Kh Ah 2c 3d') == (4, 12)
-    assert ev('9h 9d 9s Ac Kd 3c 4h')[0] == 3
-    assert ev('9h 9d 8s 8c Kd 3c 4h')[0] == 2
-    assert ev('9h 9d 8s 7c Kd 3c 4h')[0] == 1
-    assert ev('Ah Jd 8s 7c 5d 3c 2h')[0] == 0
+    assert ev("As Ks Qs Js Ts 2d 3c")[0] == 8          # Royal/Straight Flush
+    assert ev("9h 9d 9s 9c 2d 3c 4h")[0] == 7
+    assert ev("9h 9d 9s 2c 2d 3c 4h")[0] == 6
+    assert ev("Ah 9h 7h 4h 2h Kd Qc")[0] == 5
+    assert ev("Ah 2d 3c 4s 5h Kd Qc") == (4, 3)        # Wheel
+    assert ev("Td Jc Qs Kh Ah 2c 3d") == (4, 12)
+    assert ev("9h 9d 9s Ac Kd 3c 4h")[0] == 3
+    assert ev("9h 9d 8s 8c Kd 3c 4h")[0] == 2
+    assert ev("9h 9d 8s 7c Kd 3c 4h")[0] == 1
+    assert ev("Ah Jd 8s 7c 5d 3c 2h")[0] == 0
 
 
 def test_tiebreaks():
-    assert ev('Ah Ad Ks 7c 5d 3c 2h') > ev('Ah Ad Qs 7c 5d 3c 2h')    # Kicker
-    assert ev('Kh Kd Ks Qc Qd 2c 2h') == (6, 11, 10)                  # best full house
-    assert ev('9h 9d 9s 8c 8d 8h 2c') == (6, 7, 6)                    # two sets
-    assert ev('2h 3h 4h 5h 6h 7h 8d')[0:2] == (8, 5)                  # highest straight flush
-    assert ev('Ah Ad Kc Kd Qs Qh 2c') == (2, 12, 11, 10)              # three pairs -> best two + kicker
+    assert ev("Ah Ad Ks 7c 5d 3c 2h") > ev("Ah Ad Qs 7c 5d 3c 2h")    # Kicker
+    assert ev("Kh Kd Ks Qc Qd 2c 2h") == (6, 11, 10)                  # best full house
+    assert ev("9h 9d 9s 8c 8d 8h 2c") == (6, 7, 6)                    # two sets
+    assert ev("2h 3h 4h 5h 6h 7h 8d")[0:2] == (8, 5)                  # highest straight flush
+    assert ev("Ah Ad Kc Kd Qs Qh 2c") == (2, 12, 11, 10)              # three pairs -> best two + kicker
 
 
 def test_equity_sanity():
@@ -44,5 +44,5 @@ def test_pot_odds_and_advice():
     assert a.recommendation == "fold" and a.equity is not None
     b = advise(GameState(["As", "Ah"], [], 1, 30, 10, 3000, 20))
     assert b.recommendation == "raise"
-    c = advise(GameState(["As"], [], 1, 30, 10, 3000, 20, issues=['own cards not recognized reliably']))
+    c = advise(GameState(["As"], [], 1, 30, 10, 3000, 20, issues=["eigene Karten nicht sicher erkannt"]))
     assert c.recommendation is None

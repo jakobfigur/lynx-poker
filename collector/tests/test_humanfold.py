@@ -23,9 +23,9 @@ def test_public_vector_passt_zu_den_scherbenspalten():
     assert x.shape == (humanfold.PUBLIC_DIM,) and x[1] == 1.0 and x[14] == 0.0      # Flop, no bet open
     rows = humandata.public_rows({"variant": "NT", "antes": [0, 0, 0], "blinds_or_straddles": [0.5, 1.0, 0],
                                   "min_bet": 1.0, "starting_stacks": [50.0, 50.0, 50.0], "players": ["A", "B", "C"],
-                                  "actions": ['d dh p1 ????', 'd dh p2 ????', 'd dh p3 ????', 'p3 cbr 2.5', "p1 f",
-                                              'p2 cc', 'd db AhKd7c', 'p2 cc', 'p3 cc', 'd db 2s', 'p2 cc', 'p3 cc',
-                                              'd db 9h', 'p2 cc', 'p3 cc', 'p2 sm AsTc']}, 1)[2]
+                                  "actions": ["d dh p1 ????", "d dh p2 ????", "d dh p3 ????", "p3 cbr 2.5", "p1 f",
+                                              "p2 cc", "d db AhKd7c", "p2 cc", "p3 cc", "d db 2s", "p2 cc", "p3 cc",
+                                              "d db 9h", "p2 cc", "p3 cc", "p2 sm AsTc"]}, 1)[2]
     r = rows[3]                                                       # p2 on flop, first decision
     y = humanfold.public_vector_arrays(*[[r[k]] for k in ("street", "position", "n_players", "n_live", "pot_bb",
                                                              "to_call_bb", "stack_bb", "raises_street", "raises_pre",
@@ -38,7 +38,7 @@ def test_public_vector_passt_zu_den_scherbenspalten():
 def test_fold_modell_training_und_faktor(tmp_path):
     rows_dir = DATA / "humans" / "actions"
     if not any(rows_dir.glob("public-*.npz")):
-        pytest.skip('no public boards')
+        pytest.skip("keine public-Scherben")
     res = humanfold.train(rows_dir, tmp_path / "hf.npz", max_rows=40000, epochs=1, hidden_f=16, hidden_g=32,
                           batch=2048, max_shards=1, log=lambda m: None)
     hf = humanfold.HumanFold.load(res["out"])
@@ -62,7 +62,7 @@ def test_netzbot_mit_fold_modell_wirft_schwache_haende_weg():
     from pokercollector.ai.evaluate import run_match
     fm = DATA / "humans" / "human-fold-1.npz"
     if not fm.exists() or not (DATA / "rl" / "human-1" / "ckpt_000001.pt").exists():
-        pytest.skip('fold model or human-1 missing')
+        pytest.skip("Fold-Modell oder human-1 fehlt")
     bot = make_agent("nn?run=human-1@1&fold=human-fold-1:m", 1)
     h = Hand([10000, 10000], 1, 50, 100, seed=7, hand_id="pf")                   # HU, button raises 3 BB
     h.apply(1, Action.raise_to(300))

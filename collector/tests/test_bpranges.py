@@ -88,8 +88,7 @@ def test_agent_nutzt_blueprint_ranges_und_heuristik_per_spec():
 
 
 def test_gleichgewichts_ranges_preflop_fuer_cash():
-    """ ranges=eq: preflop ranges from hupreflop.path_ranges. SB opens 2.5x, BB calls (200 BB): opener
-    has more strong hands than caller (3-bets take top hands from caller), ranges normalized, board cards removed."""
+    ' ranges=eq: preflop ranges from hupreflop.path_ranges. SB opens 2.5x, BB calls (200 BB): opener\n    has more strong hands than caller (3-bets take top hands from caller), ranges normalized, board cards removed.'
     from pokercollector.ai.hupreflop import equilibrium_ranges, path_ranges
     h = Hand([20000, 20000], 0, 50, 100, seed=11, hand_id="eq")
     h.apply(0, Action.raise_to(250))
@@ -118,7 +117,7 @@ def test_gleichgewichts_ranges_preflop_fuer_cash():
 
 
 def test_gegnermodell_und_auto_format():
-    """opp_weights: own network for opponent actions (H11 human model); auto=1 selects the configuration per hand."""
+    'opp_weights: own network for opponent actions (H11 human model); auto=1 selects the configuration per hand.'
     import copy
     h, obs = _turn_obs()
     hero, opp = obs.seat, 1 - obs.seat

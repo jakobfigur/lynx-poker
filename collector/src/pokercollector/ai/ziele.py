@@ -160,6 +160,6 @@ def scoreboard_text(name: str, rows: list[dict]) -> str:
         n = len(r["stufen"])
         bar = "#" * r["erreicht"] + "." * (n - r["erreicht"])
         nxt = r["stufen"][r["erreicht"]] if r["erreicht"] < n else 'all levels reached'
-        lines.append(f"  {r['target']}  {r['title']:26s} [{bar}]  {r['value']}")
+        lines.append(f"  {r['ziel']}  {r['titel']:26s} [{bar}]  {r['wert']}")
         lines.append(f"     {'':26s}  next level: {nxt}")
     return "\n".join(lines)

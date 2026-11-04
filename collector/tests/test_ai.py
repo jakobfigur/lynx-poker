@@ -19,7 +19,7 @@ def test_tables():
 
 @pytest.mark.parametrize("kind", sorted(REGISTRY))
 def test_agents_always_choose_legal_actions(kind):
-    """ Without correction (on_illegal='raise'), each agent must only provide allowed actions."""
+    " Without correction (on_illegal='raise'), each agent must only provide allowed actions."
     from pokercollector.ai.engine import play_hand
     agents = [make_agent(f"{kind}:{kind}{i}", i) if i == 0 else make_agent(f"maniac:m{i}", i) for i in range(4)]
     for k in range(40):

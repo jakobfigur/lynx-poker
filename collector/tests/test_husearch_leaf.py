@@ -1,5 +1,4 @@
-""" hus-3: leaf nodes with value network. An oracle network (solves the river exactly) must approximately reproduce the full turn tree;
-a zero network makes leaves valueless."""
+' hus-3: leaf nodes with value network. An oracle network (solves the river exactly) must approximately reproduce the full turn tree;\na zero network makes leaves valueless.'
 import numpy as np
 
 from pokercollector.ai.husearch import LEAF, State, build_tree, solve
@@ -19,7 +18,7 @@ def _turn_state(board=("Ah", "Kd", "7c", "2s"), stacks=(3000, 3000), committed=(
 
 
 class Oracle:
-    """'Value network' that solves every leaf situation exactly (slow, only for testing)."""
+    "'Value network' that solves every leaf situation exactly (slow, only for testing)."
 
     def __init__(self, iters=40):
         self.iters = iters

@@ -11,7 +11,7 @@ from pokercollector.ai.tournament import BlindSchedule, TournamentConfig, play_t
 
 
 def _snapshots(n_hands=40):
-    """ real game states from hands with mixed bots: (original hand copy, observation)."""
+    ' real game states from hands with mixed bots: (original hand copy, observation).'
     rng = random.Random(7)
     bots = [make_agent(f"{s}:b{i}", i) for i, s in enumerate(["maniac", "lag", "station", "tag", "maniac", "lag"])]
     out = []

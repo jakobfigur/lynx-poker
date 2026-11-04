@@ -1,5 +1,4 @@
-""" Masks for own displays: the Lynx bar is visible but cut out from collector captures
-    (replaces hiding via WDA_EXCLUDEFROMCAPTURE since 11/3/2026)."""
+' Masks for own displays: the Lynx bar is visible but cut out from collector captures\n    (replaces hiding via WDA_EXCLUDEFROMCAPTURE since 11/3/2026).'
 import json
 
 import numpy as np

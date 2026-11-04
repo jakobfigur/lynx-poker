@@ -109,7 +109,7 @@ def replay_handhq(hand: dict, hand_no: int = 0, version: str = FEATURES, n_actio
         if h.done:
             return False, 'Action after hand ended', []
         if h.to_act != seat:
-            return False, "Reihenfolge", []
+            return False, "Action order", []
         obs = h.observation(seat)
         if p[1] == "f":
             act = Action.fold()
@@ -284,7 +284,7 @@ def public_rows(hand: dict, hand_no: int = 0):
             continue
         seat = int(p[0][1:]) - 1
         if h.done or h.to_act != seat:
-            return False, "Reihenfolge", []
+            return False, "Action order", []
         obs = h.observation(seat)
         if p[1] == "f":
             act = Action.fold()

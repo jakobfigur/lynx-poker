@@ -13,16 +13,16 @@ def test_testsets_fixed_and_valid():
 def test_paired_diff_and_report(tmp_path, monkeypatch):
     monkeypatch.setenv("POKERCOLLECTOR_DATA", str(tmp_path))
     from pokercollector.ai.bench import bench_dir
-    rock = {"name": "rock", "spec": "rock", "t": '2026-10-26 12:00:00', "bench_version": "bench-1",
+    rock = {"name": "rock", "spec": "rock", "t": "2026-10-26 12:00:00", "bench_version": "bench-1",
             "mix96": {"roi": 10.0, "ci95": [0, 20], "n": 3, "per_scheme": [0.1, 0.2, 0.0]}}
-    cand = {"name": "kand", "spec": "x", "t": '2026-10-26 13:00:00', "bench_version": "bench-1",
+    cand = {"name": "kand", "spec": "x", "t": "2026-10-26 13:00:00", "bench_version": "bench-1",
             "mix96": {"roi": 20.0, "ci95": [10, 30], "n": 3, "per_scheme": [0.2, 0.3, 0.1]}}
     d = paired_diff(cand, rock, "mix96")
     assert d["roi"] == 10.0 and d["ci95"][0] == d["ci95"][1] == 10.0   # constant difference
     bench_dir().mkdir(parents=True)
     (bench_dir() / "results.jsonl").write_text(json.dumps(rock) + "\n" + json.dumps(cand) + "\n", "utf-8")
     md = write_report()
-    assert md.index('| kand') < md.index('| rock') and '+10.0 [+10; +10]' in md
+    assert md.index("| kand") < md.index("| rock") and "+10.0 [+10; +10]" in md
 
 
 def test_format_sets():
@@ -35,8 +35,7 @@ def test_format_sets():
 
 
 def test_run_set_fortschritt_und_wiederaufnahme(tmp_path, monkeypatch):
-    """ Completed blocks are immediately saved in the partial file; a restart only processes missing blocks,
-    the result is identical to a run in one go; on_chunk reports each block."""
+    ' Completed blocks are immediately saved in the partial file; a restart only processes missing blocks,\n    the result is identical to a run in one go; on_chunk reports each block.'
     import json
     from concurrent.futures import ThreadPoolExecutor
     from pokercollector.ai import bench

@@ -5,15 +5,15 @@ from pokercollector.ai.features import FEATURE_SIZES
 
 
 def _hand(shown=("p3",), hu=False):
-    """25NL hand as in HandHQ: p1 SB 0.10, p2 BB 0.25, p3 Button (3-max) or heads-up p1 SB/Button."""
+    '25NL hand as in HandHQ: p1 SB 0.10, p2 BB 0.25, p3 Button (3-max) or heads-up p1 SB/Button.'
     if hu:
         return {"variant": "NT", "antes": [0, 0], "blinds_or_straddles": [0.10, 0.25], "min_bet": 0.25,
                 "starting_stacks": [25.0, 30.0], "players": ["A", "B"],
-                "actions": ['d dh p1 ????', 'd dh p2 ????', 'p1 cbr 0.75', 'p2 cc', 'd db AhKd7c', 'p2 cc',
-                            'p1 cbr 1.00', 'p2 cc', 'd db 2s', 'p2 cc', 'p1 cc', 'd db 9h', 'p2 cc', 'p1 cc',
-                            'p1 sm QsQd', 'p2 sm AsTc']}
-    acts = ['d dh p1 ????', 'd dh p2 ????', 'd dh p3 ????', 'p3 cbr 0.75', "p1 f", 'p2 cc', 'd db AhKd7c',
-            'p2 cc', 'p3 cbr 1.00', 'p2 cc', 'd db 2s', 'p2 cc', 'p3 cc', 'd db 9h', 'p2 cbr 2.50', 'p3 cc']
+                "actions": ["d dh p1 ????", "d dh p2 ????", "p1 cbr 0.75", "p2 cc", "d db AhKd7c", "p2 cc",
+                            "p1 cbr 1.00", "p2 cc", "d db 2s", "p2 cc", "p1 cc", "d db 9h", "p2 cc", "p1 cc",
+                            "p1 sm QsQd", "p2 sm AsTc"]}
+    acts = ["d dh p1 ????", "d dh p2 ????", "d dh p3 ????", "p3 cbr 0.75", "p1 f", "p2 cc", "d db AhKd7c",
+            "p2 cc", "p3 cbr 1.00", "p2 cc", "d db 2s", "p2 cc", "p3 cc", "d db 9h", "p2 cbr 2.50", "p3 cc"]
     cards = {"p2": "AsTc", "p3": "QsQd"}
     for p in shown:
         acts.append(f"{p} sm {cards[p]}")
@@ -48,10 +48,10 @@ def test_beide_gezeigt_und_heads_up():
 
 def test_ohne_karten_oder_kaputt_wird_uebersprungen():
     ok, problem, rows = replay_handhq(_hand(shown=()), 4)
-    assert not ok and problem == 'no cards' and rows == []
-    h = _hand(); h["actions"].insert(3, 'p1 cc')                 #wrong order
+    assert not ok and problem == "no cards" and rows == []
+    h = _hand(); h["actions"].insert(3, "p1 cc")                 #wrong order
     ok, problem, _ = replay_handhq(h, 5)
-    assert not ok and problem == "Reihenfolge"
+    assert not ok and problem == "Action order"
     h = _hand(); h["blinds_or_straddles"] = [0.10, 0.25, 0.50]   # Straddle
     assert replay_handhq(h, 6)[1] == "Antes/Straddles"
 

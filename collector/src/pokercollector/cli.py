@@ -703,7 +703,7 @@ def cmd_bench(a):
             print(f"  {sm['hands']:6d} hands  raw {r['bb100']:+7.1f} bb/100 [{r['ci95'][0]:+.0f}; {r['ci95'][1]:+.0f}]"
                   f"  All-in EV {e['bb100']:+7.1f} [{e['ci95'][0]:+.0f}; {e['ci95'][1]:+.0f}]"
                   f"  adjusted {b['bb100']:+7.1f} [{b['ci95'][0]:+.0f}; {b['ci95'][1]:+.0f}]"
-                  f" (Card luck {b.get('luck_bb100', float('nan')):+.0f})"
+                  f" (Card luck {b.get('glueck_bb100', float('nan')):+.0f})"
                   + (f"  ({sm['engine_mismatch']} engine deviations!)" if sm["engine_mismatch"] else ""), flush=True)
 
         if a.hands > 0:

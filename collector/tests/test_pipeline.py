@@ -1,4 +1,4 @@
-"""End-to-end: video -> analysis -> log -> reconstruction, plus recorder."""
+'End-to-end: video -> analysis -> log -> reconstruction, plus recorder.'
 
 import json
 from pathlib import Path
@@ -40,7 +40,7 @@ def test_offline_session_end_to_end(tmp_path):
         from pokercollector.pipeline import make_analyzer, run_offline
         an = make_analyzer(Profile.load())
     except Exception as e:
-        pytest.skip(f"Windows OCR not available: {e}")
+        pytest.skip(f"Windows-OCR nicht verfuegbar: {e}")
     img = cv2.imread(str(IMG))
     blank = np.zeros_like(img)
     video = tmp_path / "in.mp4"
