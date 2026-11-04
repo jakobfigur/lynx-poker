@@ -10,6 +10,7 @@ Start with the [project README](../README.md) for installation and scope, or the
 | Explore the Python interfaces | [API reference](API-REFERENZ.md) |
 | Check model provenance and omitted data | [Data and licenses](DATEN-UND-LIZENZEN.md) |
 | Understand model scope and limitations | [Model card](MODEL_CARD.md) |
+| Review the initial software checks | [Validation record](VALIDATION.md) |
 | Understand original experiments and decisions | [Project notes](projektnotizen/) |
 | Contribute a change | [Contributing](../CONTRIBUTING.md) |
 | Report a vulnerability | [Security policy](../SECURITY.md) |
